@@ -64,18 +64,21 @@ const integrations = [
 
 // ─── Animated Hero Components ─────────────────────────────────────────────────
 
+const rotatingWords = ['bad handoff', 'rep departure', 'lost context', 'slow transition', 'dropped account']
+
 const AnimatedWord = () => {
+  const [wordIndex, setWordIndex] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % rotatingWords.length)
+    }, 2800)
+    return () => clearInterval(timer)
+  }, [])
+
   return (
-    <motion.span
+    <span
       className="inline-block relative"
-      animate={{
-        filter: ['brightness(1)', 'brightness(1.3)', 'brightness(1)'],
-      }}
-      transition={{
-        duration: 3,
-        ease: 'easeInOut',
-        repeat: Infinity,
-      }}
       style={{
         textShadow: `
           0 0 80px rgba(16,185,129,0.5),
@@ -86,10 +89,19 @@ const AnimatedWord = () => {
         `,
       }}
     >
-      <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
-        bad handoff
-      </span>
-    </motion.span>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={rotatingWords[wordIndex]}
+          className="inline-block bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent"
+          initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: -20, filter: 'blur(8px)' }}
+          transition={{ duration: 0.4, ease: 'easeInOut' }}
+        >
+          {rotatingWords[wordIndex]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   )
 }
 
