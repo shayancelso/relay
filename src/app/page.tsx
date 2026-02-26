@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react'
+import Image from 'next/image'
 
 const roleConfig: Record<DemoRole, { icon: typeof Shield; gradient: string; accent: string; features: string[] }> = {
   revops_admin: {
@@ -107,23 +108,28 @@ export default function PersonaSelector() {
                   <div className={`absolute inset-0 rounded-2xl bg-gradient-to-b ${config.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
 
                   <div className="relative z-10">
-                    {/* Icon */}
-                    <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-colors duration-300 group-hover:border-white/20 group-hover:bg-white/10">
-                      <Icon className={`h-5 w-5 text-white/50 transition-colors duration-300 ${config.accent}`} />
+                    {/* Avatar + Info */}
+                    <div className="mb-5 flex items-center gap-4">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-white/10 transition-all duration-300 group-hover:border-white/25 group-hover:shadow-lg group-hover:shadow-black/30">
+                        <Image
+                          src={user.avatar_url}
+                          alt={user.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-widest text-white/30 mb-0.5">
+                          {getRoleLabel(role)}
+                        </p>
+                        <h3 className="text-lg font-semibold text-white/90 tracking-tight">
+                          {user.name}
+                        </h3>
+                        <p className="text-sm text-white/40">
+                          {user.title}
+                        </p>
+                      </div>
                     </div>
-
-                    {/* Role label */}
-                    <p className="text-xs font-medium uppercase tracking-widest text-white/30 mb-1.5">
-                      {getRoleLabel(role)}
-                    </p>
-
-                    {/* Person name */}
-                    <h3 className="text-lg font-semibold text-white/90 tracking-tight">
-                      {user.name}
-                    </h3>
-                    <p className="text-sm text-white/40 mt-0.5">
-                      {user.title}
-                    </p>
 
                     {/* Description */}
                     <p className="mt-4 text-sm text-white/35 leading-relaxed">

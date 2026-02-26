@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useRole, DEMO_USERS, getRoleLabel, type DemoRole } from '@/lib/role-context'
 import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 
 interface NavItem {
   href: string
@@ -214,10 +215,10 @@ export function Sidebar() {
                   )}
                 >
                   <div className={cn(
-                    'flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-bold',
-                    r === role ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-white/30'
+                    'relative h-7 w-7 overflow-hidden rounded-lg border',
+                    r === role ? 'border-emerald-500/40' : 'border-white/10'
                   )}>
-                    {DEMO_USERS[r].avatar_initials}
+                    <Image src={DEMO_USERS[r].avatar_url} alt={DEMO_USERS[r].name} fill className="object-cover" />
                   </div>
                   <div>
                     <p className="text-[12px] font-medium">{DEMO_USERS[r].name}</p>
@@ -232,8 +233,8 @@ export function Sidebar() {
 
         {/* User card */}
         <div className="flex items-center gap-2.5 rounded-lg px-3 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-white/10 to-white/5 text-[11px] font-semibold text-sidebar-foreground/70 border border-white/[0.06]">
-            {user.avatar_initials}
+          <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-white/[0.1]">
+            <Image src={user.avatar_url} alt={user.name} fill className="object-cover" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-medium text-sidebar-foreground/80 truncate">{user.name}</p>

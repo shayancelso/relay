@@ -10,6 +10,7 @@ interface DemoUser {
   email: string
   role: DemoRole
   avatar_initials: string
+  avatar_url: string
   title: string
 }
 
@@ -20,6 +21,7 @@ export const DEMO_USERS: Record<DemoRole, DemoUser> = {
     email: 'sarah.chen@wealthsimple.com',
     role: 'revops_admin',
     avatar_initials: 'SC',
+    avatar_url: '/avatars/sarah.jpg',
     title: 'VP Revenue Operations',
   },
   am_leadership: {
@@ -28,6 +30,7 @@ export const DEMO_USERS: Record<DemoRole, DemoUser> = {
     email: 'marcus.j@wealthsimple.com',
     role: 'am_leadership',
     avatar_initials: 'MJ',
+    avatar_url: '/avatars/marcus.jpg',
     title: 'Director, Account Management',
   },
   rep: {
@@ -36,6 +39,7 @@ export const DEMO_USERS: Record<DemoRole, DemoUser> = {
     email: 'elena.r@wealthsimple.com',
     role: 'rep',
     avatar_initials: 'ER',
+    avatar_url: '/avatars/elena.jpg',
     title: 'Senior Account Manager',
   },
 }
