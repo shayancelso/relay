@@ -58,8 +58,16 @@ const roleConfig: Record<DemoRole, { icon: typeof Shield; gradient: string; acce
 // ─── Integration logos ────────────────────────────────────────────────────────
 
 const integrations = [
-  'Salesforce', 'HubSpot', 'Gainsight', 'Gong', 'Slack',
-  'Outreach', 'Intercom', 'Google Calendar', 'Outlook', 'Zendesk',
+  { name: 'Salesforce', logo: '/logos/salesforce.svg' },
+  { name: 'HubSpot', logo: '/logos/hubspot.svg' },
+  { name: 'Gainsight', logo: '/logos/gainsight.svg' },
+  { name: 'Gong', logo: '/logos/gong.svg' },
+  { name: 'Slack', logo: '/logos/slack.svg' },
+  { name: 'Outreach', logo: '/logos/outreach.svg' },
+  { name: 'Intercom', logo: '/logos/intercom.svg' },
+  { name: 'Google Calendar', logo: '/logos/googlecalendar.svg' },
+  { name: 'Outlook', logo: '/logos/outlook.svg' },
+  { name: 'Zendesk', logo: '/logos/zendesk.svg' },
 ]
 
 // ─── Animated Hero Components ─────────────────────────────────────────────────
@@ -505,23 +513,25 @@ export default function LandingPage() {
           <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#1a1918] to-transparent z-10 pointer-events-none" />
 
           <Marquee pauseOnHover className="[--duration:35s] [--gap:1.5rem] mb-3">
-            {integrations.map((name) => (
+            {integrations.map((item) => (
               <div
-                key={name}
-                className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-5 py-3 text-sm text-white/40 font-medium whitespace-nowrap hover:text-white/60 hover:border-white/[0.15] transition-colors duration-200"
+                key={item.name}
+                className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-lg px-5 py-3 whitespace-nowrap hover:bg-white/[0.06] hover:border-white/[0.15] transition-colors duration-200"
               >
-                {name}
+                <Image src={item.logo} alt={item.name} width={20} height={20} className="brightness-0 invert opacity-40" />
+                <span className="text-sm text-white/40 font-medium">{item.name}</span>
               </div>
             ))}
           </Marquee>
 
           <Marquee reverse pauseOnHover className="[--duration:40s] [--gap:1.5rem]">
-            {[...integrations].reverse().map((name) => (
+            {[...integrations].reverse().map((item) => (
               <div
-                key={name}
-                className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-5 py-3 text-sm text-white/40 font-medium whitespace-nowrap hover:text-white/60 hover:border-white/[0.15] transition-colors duration-200"
+                key={item.name}
+                className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-lg px-5 py-3 whitespace-nowrap hover:bg-white/[0.06] hover:border-white/[0.15] transition-colors duration-200"
               >
-                {name}
+                <Image src={item.logo} alt={item.name} width={20} height={20} className="brightness-0 invert opacity-40" />
+                <span className="text-sm text-white/40 font-medium">{item.name}</span>
               </div>
             ))}
           </Marquee>
