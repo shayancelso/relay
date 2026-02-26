@@ -518,7 +518,7 @@ export default function LandingPage() {
                 key={item.name}
                 className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-lg px-5 py-3 whitespace-nowrap hover:bg-white/[0.06] hover:border-white/[0.15] transition-colors duration-200"
               >
-                <Image src={item.logo} alt={item.name} width={20} height={20} className="brightness-0 invert opacity-40" />
+                <Image src={item.logo} alt={item.name} width={20} height={20} className="opacity-70" />
                 <span className="text-sm text-white/40 font-medium">{item.name}</span>
               </div>
             ))}
@@ -530,7 +530,7 @@ export default function LandingPage() {
                 key={item.name}
                 className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] rounded-lg px-5 py-3 whitespace-nowrap hover:bg-white/[0.06] hover:border-white/[0.15] transition-colors duration-200"
               >
-                <Image src={item.logo} alt={item.name} width={20} height={20} className="brightness-0 invert opacity-40" />
+                <Image src={item.logo} alt={item.name} width={20} height={20} className="opacity-70" />
                 <span className="text-sm text-white/40 font-medium">{item.name}</span>
               </div>
             ))}
