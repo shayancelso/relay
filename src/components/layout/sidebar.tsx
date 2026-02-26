@@ -22,6 +22,8 @@ import {
   Activity,
   CalendarDays,
   ClipboardList,
+  Link2,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRole, DEMO_USERS, getRoleLabel, type DemoRole } from '@/lib/role-context'
@@ -35,21 +37,25 @@ interface NavItem {
   badge?: string | number
 }
 
-const navByRole: Record<DemoRole, { main: NavItem[]; system?: NavItem[] }> = {
+const navByRole: Record<DemoRole, { main: NavItem[]; insights?: NavItem[]; configure?: NavItem[]; system?: NavItem[] }> = {
   revops_admin: {
     main: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/accounts', label: 'Accounts', icon: Building2, badge: '2,000' },
       { href: '/transitions', label: 'Transitions', icon: ArrowLeftRight, badge: '24' },
+      { href: '/revenue', label: 'Revenue Impact', icon: Shield },
       { href: '/team', label: 'Team', icon: Users },
-      { href: '/rules', label: 'Assignment Rules', icon: Workflow },
+      { href: '/rules', label: 'Rules', icon: Workflow },
+    ],
+    insights: [
       { href: '/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/reports', label: 'Reports', icon: ClipboardList },
-      { href: '/playbooks', label: 'Playbooks', icon: BookOpen },
       { href: '/activity', label: 'Activity Log', icon: Activity },
-      { href: '/calendar', label: 'Calendar', icon: CalendarDays },
     ],
-    system: [
+    configure: [
+      { href: '/playbooks', label: 'Playbooks', icon: BookOpen },
+      { href: '/integrations', label: 'Integrations', icon: Link2 },
+      { href: '/calendar', label: 'Calendar', icon: CalendarDays },
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -58,14 +64,17 @@ const navByRole: Record<DemoRole, { main: NavItem[]; system?: NavItem[] }> = {
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/transitions', label: 'Pipeline', icon: Target },
       { href: '/team', label: 'Team Performance', icon: TrendingUp },
+      { href: '/revenue', label: 'Revenue Impact', icon: Shield },
       { href: '/accounts', label: 'At-Risk Accounts', icon: AlertTriangle },
+    ],
+    insights: [
       { href: '/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/reports', label: 'Reports', icon: ClipboardList },
-      { href: '/playbooks', label: 'Playbooks', icon: BookOpen },
       { href: '/activity', label: 'Activity Log', icon: Activity },
-      { href: '/calendar', label: 'Calendar', icon: CalendarDays },
     ],
-    system: [
+    configure: [
+      { href: '/playbooks', label: 'Playbooks', icon: BookOpen },
+      { href: '/calendar', label: 'Calendar', icon: CalendarDays },
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -121,77 +130,72 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
       {/* Separator */}
       <div className="mx-4 h-px bg-white/[0.06]" />
 
-      {/* Main Navigation */}
+      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 pt-4">
-        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/25">
-          Navigation
-        </p>
-        <div className="space-y-0.5">
-          {nav.main.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
-            return (
-              <Link
-                key={item.href + item.label}
-                href={item.href}
-                onClick={handleNavClick}
-                className={cn(
-                  'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-                  isActive
-                    ? 'bg-white/[0.08] text-sidebar-foreground'
-                    : 'text-sidebar-foreground/50 hover:bg-white/[0.04] hover:text-sidebar-foreground/80'
-                )}
-              >
-                {/* Active indicator bar */}
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-emerald-400" />
-                )}
-                <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-emerald-400' : 'text-sidebar-foreground/30 group-hover:text-sidebar-foreground/50')} />
-                <span className="flex-1 truncate">{item.label}</span>
-                {item.badge && (
-                  <span className={cn(
-                    'ml-auto text-[10px] font-medium tabular-nums rounded-full px-1.5 py-0.5',
-                    isActive ? 'bg-white/10 text-sidebar-foreground/70' : 'bg-white/[0.04] text-sidebar-foreground/30'
-                  )}>
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            )
-          })}
-        </div>
-
-        {/* System section */}
-        {nav.system && nav.system.length > 0 && (
-          <>
-            <div className="mx-3 my-4 h-px bg-white/[0.04]" />
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/25">
-              System
-            </p>
-            <div className="space-y-0.5">
-              {nav.system.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.href + item.label}
-                    href={item.href}
-                    className={cn(
-                      'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
-                      isActive
-                        ? 'bg-white/[0.08] text-sidebar-foreground'
-                        : 'text-sidebar-foreground/50 hover:bg-white/[0.04] hover:text-sidebar-foreground/80'
-                    )}
-                  >
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-emerald-400" />
-                    )}
-                    <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-emerald-400' : 'text-sidebar-foreground/30')} />
-                    <span>{item.label}</span>
-                  </Link>
-                )
-              })}
+        {/* Helper: renders a labelled group of nav items */}
+        {(
+          [
+            { key: 'main', label: 'Navigation', items: nav.main },
+            { key: 'insights', label: 'Insights', items: nav.insights },
+            { key: 'configure', label: 'Configure', items: nav.configure },
+          ] as { key: string; label: string; items?: NavItem[] }[]
+        )
+          .filter((section) => section.items && section.items.length > 0)
+          .map((section, sectionIndex) => (
+            <div key={section.key}>
+              {sectionIndex > 0 && (
+                <div className="mx-3 my-4 h-px bg-white/[0.04]" />
+              )}
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/25">
+                {section.label}
+              </p>
+              <div className="space-y-0.5">
+                {section.items!.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
+                  return (
+                    <Link
+                      key={item.href + item.label}
+                      href={item.href}
+                      onClick={handleNavClick}
+                      className={cn(
+                        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
+                        isActive
+                          ? 'bg-white/[0.08] text-sidebar-foreground'
+                          : 'text-sidebar-foreground/50 hover:bg-white/[0.04] hover:text-sidebar-foreground/80'
+                      )}
+                    >
+                      {isActive && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-emerald-400" />
+                      )}
+                      <item.icon
+                        className={cn(
+                          'h-4 w-4 shrink-0',
+                          isActive
+                            ? 'text-emerald-400'
+                            : 'text-sidebar-foreground/30 group-hover:text-sidebar-foreground/50'
+                        )}
+                      />
+                      <span className="flex-1 truncate">{item.label}</span>
+                      {item.badge && (
+                        <span
+                          className={cn(
+                            'ml-auto text-[10px] font-medium tabular-nums rounded-full px-1.5 py-0.5',
+                            isActive
+                              ? 'bg-white/10 text-sidebar-foreground/70'
+                              : 'bg-white/[0.04] text-sidebar-foreground/30'
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
             </div>
-          </>
-        )}
+          ))}
       </nav>
 
       {/* Bottom section */}

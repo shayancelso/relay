@@ -21,6 +21,7 @@ import {
 import { ArrowRight, Building2, Calendar, DollarSign } from 'lucide-react'
 import { TransitionActions } from '@/components/transitions/transition-actions'
 import { TransitionTimeline } from '@/components/transitions/transition-timeline'
+import { ApprovalHistory } from '@/components/transitions/approval-history'
 import { BriefSection } from '@/components/briefs/brief-section'
 import { EmailSection } from '@/components/emails/email-section'
 
@@ -190,6 +191,7 @@ export default async function TransitionDetailPage({
         transitionId={transition.id}
         currentStatus={transition.status}
         hasBrief={!!brief}
+        createdAt={transition.created_at}
       />
 
       {/* Main content */}
@@ -230,9 +232,13 @@ export default async function TransitionDetailPage({
           )}
         </div>
 
-        {/* Sidebar: Timeline */}
-        <div>
+        {/* Sidebar: Timeline + Approval Chain */}
+        <div className="space-y-6">
           <TransitionTimeline activities={activities} />
+          <ApprovalHistory
+            transitionStatus={transition.status}
+            createdAt={transition.created_at}
+          />
         </div>
       </div>
     </div>
