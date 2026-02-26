@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Command, Search } from 'lucide-react'
+import { Command, Search, Menu } from 'lucide-react'
 import { useRole, getRoleLabel } from '@/lib/role-context'
 import { cn } from '@/lib/utils'
 import { NotificationPanel } from './notifications'
@@ -21,6 +21,9 @@ function getPageTitle(pathname: string): string {
   if (pathname === '/analytics') return 'Analytics'
   if (pathname === '/playbooks') return 'Playbooks'
   if (pathname === '/onboarding') return 'Getting Started'
+  if (pathname === '/activity') return 'Activity Log'
+  if (pathname === '/calendar') return 'Calendar'
+  if (pathname === '/reports') return 'Reports'
   return 'Relay'
 }
 
@@ -30,25 +33,32 @@ const roleBadgeColors: Record<string, string> = {
   rep: 'bg-amber-50 text-amber-700 border-amber-200/60',
 }
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname()
   const { role, user } = useRole()
   const pageTitle = getPageTitle(pathname)
 
   return (
     <>
-      <header className="flex h-14 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-6">
-        {/* Left: Role badge + Page title */}
-        <div className="flex items-center gap-3">
+      <header className="flex h-14 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-4 md:px-6">
+        {/* Left: Hamburger + Role badge + Page title */}
+        <div className="flex items-center gap-2 md:gap-3">
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="h-4.5 w-4.5" />
+          </button>
           <div
             className={cn(
-              'rounded-md border px-2 py-0.5 text-[10px] font-medium',
+              'hidden sm:block rounded-md border px-2 py-0.5 text-[10px] font-medium',
               roleBadgeColors[role]
             )}
           >
             {getRoleLabel(role)}
           </div>
-          <div className="h-4 w-px bg-border/60" />
+          <div className="hidden sm:block h-4 w-px bg-border/60" />
           <h2 className="text-sm font-semibold tracking-tight text-foreground">
             {pageTitle}
           </h2>

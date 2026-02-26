@@ -81,7 +81,7 @@ const navByRole: Record<DemoRole, { main: NavItem[]; system?: NavItem[] }> = {
   },
 }
 
-export function Sidebar() {
+export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname()
   const { role, user, setRole } = useRole()
   const [showSwitcher, setShowSwitcher] = useState(false)
@@ -98,8 +98,17 @@ export function Sidebar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const handleNavClick = () => {
+    // Close sidebar on mobile after nav click
+    onClose?.()
+  }
+
   return (
-    <aside className="flex h-screen w-[260px] flex-col border-r border-white/[0.06] bg-sidebar text-sidebar-foreground">
+    <aside className={cn(
+      'flex h-screen w-[260px] flex-col border-r border-white/[0.06] bg-sidebar text-sidebar-foreground shrink-0',
+      'fixed inset-y-0 left-0 z-50 transition-transform duration-300 lg:static lg:translate-x-0',
+      open ? 'translate-x-0' : '-translate-x-full',
+    )}>
       {/* Brand */}
       <div className="flex h-[60px] items-center gap-3 px-5">
         <Image src="/relay-icon.png" alt="Relay" width={28} height={28} className="shrink-0" />
@@ -124,6 +133,7 @@ export function Sidebar() {
               <Link
                 key={item.href + item.label}
                 href={item.href}
+                onClick={handleNavClick}
                 className={cn(
                   'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
                   isActive

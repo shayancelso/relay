@@ -310,80 +310,193 @@ export default function CalendarPage() {
             </CardHeader>
 
             <CardContent className="pb-4 px-4">
-              {/* Day-of-week headers */}
-              <div className="grid grid-cols-7 mb-1">
-                {DAYS_OF_WEEK.map((d) => (
-                  <div
-                    key={d}
-                    className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider py-1.5"
-                  >
-                    {d}
+              {view === 'month' ? (
+                <>
+                  {/* Day-of-week headers */}
+                  <div className="grid grid-cols-7 mb-1">
+                    {DAYS_OF_WEEK.map((d) => (
+                      <div
+                        key={d}
+                        className="text-center text-[10px] font-semibold text-muted-foreground uppercase tracking-wider py-1.5"
+                      >
+                        {d}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              {/* Calendar cells */}
-              <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
-                {calendarGrid.map((cell, idx) => {
-                  const isToday = cell.dateStr === TODAY_STR
-                  const events = cell.dateStr ? eventsByDate[cell.dateStr] ?? [] : []
-                  const hasEvents = events.length > 0
+                  {/* Calendar cells */}
+                  <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
+                    {calendarGrid.map((cell, idx) => {
+                      const isToday = cell.dateStr === TODAY_STR
+                      const events = cell.dateStr ? eventsByDate[cell.dateStr] ?? [] : []
+                      const hasEvents = events.length > 0
+
+                      return (
+                        <div
+                          key={idx}
+                          className={cn(
+                            'relative bg-background min-h-[56px] p-1.5 transition-colors',
+                            cell.day ? 'hover:bg-muted/40 cursor-default' : 'bg-muted/20',
+                          )}
+                        >
+                          {cell.day !== null && (
+                            <>
+                              <div className={cn(
+                                'h-6 w-6 rounded-full flex items-center justify-center text-[12px] font-medium mx-auto',
+                                isToday
+                                  ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-500 text-white font-semibold'
+                                  : 'text-foreground/80',
+                              )}>
+                                {cell.day}
+                              </div>
+                              {hasEvents && (
+                                <div className="flex justify-center gap-0.5 mt-1 flex-wrap">
+                                  {events.slice(0, 3).map((e, i) => {
+                                    const dotColor = EVENT_TYPE_CONFIG[e.type].dotColor
+                                    return (
+                                      <span
+                                        key={i}
+                                        className={cn('h-1.5 w-1.5 rounded-full', dotColor)}
+                                        title={e.title}
+                                      />
+                                    )
+                                  })}
+                                  {events.length > 3 && (
+                                    <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
+                                      +{events.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Legend row */}
+                  <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      Today
+                    </div>
+                    <span>{calendarEvents.length} events this month</span>
+                  </div>
+                </>
+              ) : (
+                /* ---- WEEK VIEW ---- */
+                (() => {
+                  // Current week: Feb 22 (Sun) – Feb 28 (Sat) 2026
+                  const weekStart = 22
+                  const weekDays = Array.from({ length: 7 }, (_, i) => {
+                    const day = weekStart + i
+                    const dateStr = `2026-02-${String(day).padStart(2, '0')}`
+                    const dayName = DAYS_OF_WEEK[i]
+                    return { day, dateStr, dayName }
+                  })
+
+                  // Time slots for the grid
+                  const hours = ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM']
+
+                  // Map time string to row index
+                  function timeToRow(time: string): number {
+                    const match = time.match(/^(\d+):?(\d*)\s*(AM|PM)$/i)
+                    if (!match) return 0
+                    let h = parseInt(match[1])
+                    const m = parseInt(match[2] || '0')
+                    const period = match[3].toUpperCase()
+                    if (period === 'PM' && h !== 12) h += 12
+                    if (period === 'AM' && h === 12) h = 0
+                    return Math.max(0, (h - 8) * 2 + (m >= 30 ? 1 : 0))
+                  }
 
                   return (
-                    <div
-                      key={idx}
-                      className={cn(
-                        'relative bg-background min-h-[56px] p-1.5 transition-colors',
-                        cell.day ? 'hover:bg-muted/40 cursor-default' : 'bg-muted/20',
-                      )}
-                    >
-                      {cell.day !== null && (
-                        <>
-                          {/* Day number */}
-                          <div className={cn(
-                            'h-6 w-6 rounded-full flex items-center justify-center text-[12px] font-medium mx-auto',
-                            isToday
-                              ? 'ring-2 ring-emerald-500 ring-offset-1 bg-emerald-500 text-white font-semibold'
-                              : 'text-foreground/80',
-                          )}>
-                            {cell.day}
-                          </div>
-
-                          {/* Event dots */}
-                          {hasEvents && (
-                            <div className="flex justify-center gap-0.5 mt-1 flex-wrap">
-                              {events.slice(0, 3).map((e, i) => {
-                                const dotColor = EVENT_TYPE_CONFIG[e.type].dotColor
-                                return (
-                                  <span
-                                    key={i}
-                                    className={cn('h-1.5 w-1.5 rounded-full', dotColor)}
-                                    title={e.title}
-                                  />
-                                )
-                              })}
-                              {events.length > 3 && (
-                                <span className="text-[9px] text-muted-foreground leading-none mt-0.5">
-                                  +{events.length - 3}
-                                </span>
-                              )}
+                    <div>
+                      {/* Day headers */}
+                      <div className="grid grid-cols-[60px_repeat(7,1fr)] mb-0">
+                        <div />
+                        {weekDays.map(({ day, dateStr, dayName }) => {
+                          const isToday = dateStr === TODAY_STR
+                          return (
+                            <div key={day} className="text-center pb-2 border-b border-border">
+                              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{dayName}</p>
+                              <div className={cn(
+                                'h-7 w-7 rounded-full flex items-center justify-center text-[13px] font-semibold mx-auto mt-0.5',
+                                isToday ? 'bg-emerald-500 text-white' : 'text-foreground/80',
+                              )}>
+                                {day}
+                              </div>
                             </div>
-                          )}
-                        </>
-                      )}
+                          )
+                        })}
+                      </div>
+
+                      {/* Time grid */}
+                      <div className="grid grid-cols-[60px_repeat(7,1fr)] relative">
+                        {/* Time labels + row lines */}
+                        {hours.map((label, i) => (
+                          <div
+                            key={label}
+                            className="col-span-full grid grid-cols-[60px_repeat(7,1fr)]"
+                            style={{ height: 64 }}
+                          >
+                            <div className="text-[10px] text-muted-foreground tabular-nums text-right pr-3 pt-0 -mt-2">
+                              {label}
+                            </div>
+                            {weekDays.map(({ day }) => (
+                              <div key={day} className="border-t border-l border-border/50 hover:bg-muted/20 transition-colors" />
+                            ))}
+                          </div>
+                        ))}
+
+                        {/* Events overlay */}
+                        {weekDays.map(({ dateStr }, colIdx) => {
+                          const dayEvents = eventsByDate[dateStr] ?? []
+                          return dayEvents.map((event) => {
+                            const row = timeToRow(event.time)
+                            const cfg = EVENT_TYPE_CONFIG[event.type]
+                            const Icon = cfg.icon
+
+                            return (
+                              <div
+                                key={event.id}
+                                className={cn(
+                                  'absolute rounded-md px-1.5 py-1 text-left overflow-hidden border cursor-default transition-shadow hover:shadow-md',
+                                  event.type === 'meeting' && 'bg-violet-50 border-violet-200',
+                                  event.type === 'call' && 'bg-sky-50 border-sky-200',
+                                  event.type === 'deadline' && 'bg-amber-50 border-amber-200',
+                                )}
+                                style={{
+                                  top: `${row * 32 + 2}px`,
+                                  height: '54px',
+                                  left: `calc(60px + ${colIdx} * ((100% - 60px) / 7) + 2px)`,
+                                  width: `calc((100% - 60px) / 7 - 4px)`,
+                                }}
+                              >
+                                <div className="flex items-center gap-1 mb-0.5">
+                                  <Icon className="h-2.5 w-2.5 shrink-0 opacity-60" />
+                                  <span className="text-[9px] tabular-nums text-muted-foreground">{event.time}</span>
+                                </div>
+                                <p className="text-[10px] font-semibold leading-tight line-clamp-2">{event.title}</p>
+                              </div>
+                            )
+                          })
+                        })}
+                      </div>
+
+                      {/* Legend */}
+                      <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          Today
+                        </div>
+                        <span>Week of Feb 22 – 28, 2026</span>
+                      </div>
                     </div>
                   )
-                })}
-              </div>
-
-              {/* Legend row */}
-              <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  Today
-                </div>
-                <span>{calendarEvents.length} events this month</span>
-              </div>
+                })()
+              )}
             </CardContent>
           </Card>
         </div>
