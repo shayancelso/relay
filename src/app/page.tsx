@@ -131,7 +131,7 @@ const HeroCardStack = () => {
   }, [])
 
   return (
-    <div className="relative w-full max-w-[840px] h-[80px] mx-auto" style={{ perspective: '1000px' }}>
+    <div className="relative w-full max-w-[840px] h-[64px] sm:h-[80px] mx-auto" style={{ perspective: '1000px' }}>
       <AnimatePresence mode="popLayout">
         {heroCards.map((card, i) => {
           const offset = (i - index + heroCards.length) % heroCards.length
@@ -157,7 +157,7 @@ const HeroCardStack = () => {
                 transition: { duration: 0.4 },
               }}
               transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-              className="absolute top-0 left-0 right-0 mx-auto w-full h-[80px] px-6 sm:px-8 flex items-center gap-4 rounded-[28px] border origin-bottom"
+              className="absolute top-0 left-0 right-0 mx-auto w-full h-[64px] sm:h-[80px] px-4 sm:px-8 flex items-center gap-3 sm:gap-4 rounded-[20px] sm:rounded-[28px] border origin-bottom"
               style={{
                 background: 'rgba(42, 40, 38, 0.65)',
                 backdropFilter: 'blur(12px)',
@@ -167,10 +167,10 @@ const HeroCardStack = () => {
                 zIndex: heroCards.length - offset,
               }}
             >
-              <div className="p-2 rounded-full" style={{ backgroundColor: `${card.color}20` }}>
-                <card.icon size={22} style={{ color: card.color }} />
+              <div className="p-1.5 sm:p-2 rounded-full shrink-0" style={{ backgroundColor: `${card.color}20` }}>
+                <card.icon className="h-4 w-4 sm:h-[22px] sm:w-[22px]" style={{ color: card.color }} />
               </div>
-              <span className="text-white/85 text-sm sm:text-lg font-medium tracking-wide">
+              <span className="text-white/85 text-xs sm:text-lg font-medium tracking-wide truncate">
                 {card.text}
               </span>
               {isActive && (
@@ -249,7 +249,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ─── 2. Hero Section ──────────────────────────────────────────────── */}
-      <section id="hero" className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
+      <section id="hero" className="relative pt-24 pb-16 md:pt-44 md:pb-32 overflow-hidden">
         {/* Animated background glows */}
         <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
           <motion.div
@@ -294,7 +294,7 @@ export default function LandingPage() {
 
           {/* Main headline */}
           <BlurFade delay={0.08} duration={0.6}>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] text-white/95 max-w-4xl mx-auto">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] text-white/95 max-w-4xl mx-auto">
               Never lose a customer
               <br />
               to a <AnimatedWord />
@@ -303,7 +303,7 @@ export default function LandingPage() {
 
           {/* Subtitle */}
           <BlurFade delay={0.16} duration={0.6}>
-            <p className="mt-7 text-lg sm:text-xl text-white/50 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 text-base sm:text-xl text-white/50 max-w-2xl mx-auto leading-relaxed">
               Relay automates account transitions with AI-powered briefs, intelligent assignment, and personalized outreach — so your customers never feel the seams.
             </p>
           </BlurFade>
@@ -539,9 +539,9 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 4. Problem Section ───────────────────────────────────────────── */}
-      <section id="problem" className="py-24 md:py-32">
+      <section id="problem" className="py-16 md:py-32">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
             {/* Left: Headline + pain points */}
             <div>
@@ -558,15 +558,15 @@ export default function LandingPage() {
 
               <BlurFade delay={0.1} duration={0.55} inView>
                 <div className="mt-6 flex items-baseline gap-2">
-                  <span className="text-6xl font-black text-white/95 tracking-tight">$</span>
+                  <span className="text-4xl sm:text-6xl font-black text-white/95 tracking-tight">$</span>
                   <NumberTicker
                     value={2.1}
                     decimalPlaces={1}
                     delay={0.3}
-                    className="text-6xl font-black text-white/95 tracking-tight"
+                    className="text-4xl sm:text-6xl font-black text-white/95 tracking-tight"
                   />
-                  <span className="text-4xl font-black text-white/95">M</span>
-                  <span className="text-lg text-white/40 font-medium ml-2">avg. ARR at risk</span>
+                  <span className="text-3xl sm:text-4xl font-black text-white/95">M</span>
+                  <span className="text-sm sm:text-lg text-white/40 font-medium ml-2">avg. ARR at risk</span>
                 </div>
               </BlurFade>
 
@@ -673,10 +673,10 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 5. Features Bento Grid ───────────────────────────────────────── */}
-      <section id="features" className="py-24 md:py-32 border-t border-white/[0.04]">
+      <section id="features" className="py-16 md:py-32 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
           <BlurFade delay={0} duration={0.55} inView>
-            <div className="text-center mb-16">
+            <div className="text-center mb-10 md:mb-16">
               <p className="text-xs font-semibold tracking-[0.2em] text-white/25 uppercase mb-4">Features</p>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white/95 max-w-3xl mx-auto leading-[1.1]">
                 Everything you need to protect revenue during transitions
@@ -688,13 +688,13 @@ export default function LandingPage() {
 
             {/* Card 1: AI Briefs — spans 2 cols on desktop */}
             <BlurFade delay={0.08} duration={0.55} inView className="md:col-span-2">
-              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8 hover:border-white/[0.15] transition-all duration-300 overflow-hidden">
-                <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 sm:p-8 hover:border-white/[0.15] transition-all duration-300 overflow-hidden">
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
                   <div>
-                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4 sm:mb-5">
                       <FileText className="h-5 w-5 text-emerald-400" />
                     </div>
-                    <h3 className="text-2xl font-bold text-white/95 tracking-tight mb-3">AI-Powered Handoff Briefs</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white/95 tracking-tight mb-3">AI-Powered Handoff Briefs</h3>
                     <p className="text-white/50 leading-relaxed">
                       Claude AI analyzes account history, support tickets, and relationship notes to generate comprehensive handoff briefs your reps actually read.
                     </p>
@@ -798,13 +798,13 @@ export default function LandingPage() {
 
             {/* Card 4: Intro Sequences — spans 2 cols on desktop */}
             <BlurFade delay={0.26} duration={0.55} inView className="md:col-span-2">
-              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8 hover:border-white/[0.15] transition-all duration-300">
-                <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 sm:p-8 hover:border-white/[0.15] transition-all duration-300">
+                <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
                   <div>
-                    <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-5">
+                    <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-4 sm:mb-5">
                       <Mail className="h-5 w-5 text-violet-400" />
                     </div>
-                    <h3 className="text-2xl font-bold text-white/95 tracking-tight mb-3">Automated Intro Sequences</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white/95 tracking-tight mb-3">Automated Intro Sequences</h3>
                     <p className="text-white/50 leading-relaxed">
                       Personalized intro emails that reference specific relationship details — not generic templates. Customers feel the continuity, not the change.
                     </p>
@@ -850,15 +850,15 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 6. Metrics Section ───────────────────────────────────────────── */}
-      <section id="metrics" className="py-24 md:py-32 bg-[#161514] border-y border-white/[0.04]">
+      <section id="metrics" className="py-16 md:py-32 bg-[#161514] border-y border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
           <BlurFade delay={0} duration={0.55} inView>
-            <p className="text-center text-xs font-semibold tracking-[0.2em] text-white/25 uppercase mb-16">
+            <p className="text-center text-xs font-semibold tracking-[0.2em] text-white/25 uppercase mb-10 md:mb-16">
               By The Numbers
             </p>
           </BlurFade>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-0 lg:divide-x divide-white/[0.06]">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10 lg:gap-0 lg:divide-x divide-white/[0.06]">
             {[
               {
                 prefix: '$',
@@ -895,19 +895,19 @@ export default function LandingPage() {
             ].map((stat, i) => (
               <BlurFade key={i} delay={stat.delay} duration={0.55} inView>
                 <div className="text-center lg:px-10">
-                  <div className="flex items-baseline justify-center gap-1">
+                  <div className="flex items-baseline justify-center gap-0.5 sm:gap-1">
                     {stat.prefix && (
-                      <span className="text-4xl font-black text-white/95">{stat.prefix}</span>
+                      <span className="text-2xl sm:text-4xl font-black text-white/95">{stat.prefix}</span>
                     )}
                     <NumberTicker
                       value={stat.value}
                       decimalPlaces={stat.decimals}
                       delay={stat.delay + 0.3}
-                      className="text-5xl font-black text-white/95 tracking-tight"
+                      className="text-3xl sm:text-5xl font-black text-white/95 tracking-tight"
                     />
-                    <span className="text-4xl font-black text-emerald-400">{stat.suffix}</span>
+                    <span className="text-2xl sm:text-4xl font-black text-emerald-400">{stat.suffix}</span>
                   </div>
-                  <p className="mt-3 text-sm text-white/40 leading-relaxed">{stat.label}</p>
+                  <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-white/40 leading-relaxed">{stat.label}</p>
                 </div>
               </BlurFade>
             ))}
@@ -916,10 +916,10 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 7. How It Works ──────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 md:py-32">
+      <section id="how-it-works" className="py-16 md:py-32">
         <div className="max-w-7xl mx-auto px-6">
           <BlurFade delay={0} duration={0.55} inView>
-            <div className="text-center mb-16">
+            <div className="text-center mb-10 md:mb-16">
               <p className="text-xs font-semibold tracking-[0.2em] text-white/25 uppercase mb-4">How It Works</p>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white/95 max-w-2xl mx-auto leading-[1.1]">
                 From departure to done in days, not weeks
@@ -964,9 +964,9 @@ export default function LandingPage() {
               const Icon = step.icon
               return (
                 <BlurFade key={step.step} delay={0.1 + i * 0.1} duration={0.55} inView>
-                  <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-8 hover:border-white/[0.15] transition-all duration-300 relative">
+                  <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 sm:p-8 hover:border-white/[0.15] transition-all duration-300 relative">
                     {/* Step number */}
-                    <div className={cn('h-12 w-12 rounded-2xl border flex items-center justify-center mb-6', step.bg)}>
+                    <div className={cn('h-12 w-12 rounded-2xl border flex items-center justify-center mb-4 sm:mb-6', step.bg)}>
                       <Icon className={cn('h-5 w-5', step.color)} />
                     </div>
                     <div className="absolute top-8 right-8 text-5xl font-black text-white/[0.04] tracking-tight select-none">
@@ -983,12 +983,12 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 8. Social Proof / Testimonial ───────────────────────────────── */}
-      <section id="social-proof" className="py-24 md:py-32 border-t border-white/[0.04]">
+      <section id="social-proof" className="py-16 md:py-32 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6">
 
           {/* Big quote card */}
           <BlurFade delay={0} duration={0.6} inView>
-            <div className="relative rounded-2xl bg-white/[0.03] border border-white/[0.08] p-10 md:p-14 overflow-hidden max-w-4xl mx-auto">
+            <div className="relative rounded-2xl bg-white/[0.03] border border-white/[0.08] p-6 sm:p-10 md:p-14 overflow-hidden max-w-4xl mx-auto">
               {/* Subtle emerald gradient border effect */}
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-500/[0.06] via-transparent to-teal-500/[0.04] pointer-events-none" />
               <BorderBeam size={200} duration={14} colorFrom="#34d399" colorTo="#0d9488" />
@@ -1019,17 +1019,17 @@ export default function LandingPage() {
           </BlurFade>
 
           {/* Social proof metric cards */}
-          <div className="mt-8 grid grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <div className="mt-6 sm:mt-8 grid grid-cols-3 gap-2 sm:gap-4 max-w-4xl mx-auto">
             {[
-              { value: '4.9/5', label: 'Avg. customer rating', sub: 'G2 + Capterra' },
-              { value: '200+', label: 'Companies trust Relay', sub: 'From Series A to public' },
-              { value: 'SOC 2', label: 'Type II certified', sub: 'Enterprise-grade security' },
+              { value: '4.9/5', label: 'Avg. rating', sub: 'G2 + Capterra' },
+              { value: '200+', label: 'Companies', sub: 'Series A to public' },
+              { value: 'SOC 2', label: 'Type II', sub: 'Enterprise security' },
             ].map((card) => (
               <BlurFade key={card.value} delay={0.15} duration={0.5} inView>
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 text-center">
-                  <div className="text-2xl font-black text-white/90 tracking-tight">{card.value}</div>
-                  <div className="text-xs text-white/50 mt-1 font-medium">{card.label}</div>
-                  <div className="text-xs text-white/25 mt-0.5">{card.sub}</div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 sm:p-5 text-center">
+                  <div className="text-lg sm:text-2xl font-black text-white/90 tracking-tight">{card.value}</div>
+                  <div className="text-[10px] sm:text-xs text-white/50 mt-1 font-medium">{card.label}</div>
+                  <div className="text-[10px] sm:text-xs text-white/25 mt-0.5 hidden sm:block">{card.sub}</div>
                 </div>
               </BlurFade>
             ))}
@@ -1038,7 +1038,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 9. Try The Demo (Persona Selector) ──────────────────────────── */}
-      <section id="demo" className="py-24 md:py-32 bg-[#161514] border-t border-white/[0.04]">
+      <section id="demo" className="py-16 md:py-32 bg-[#161514] border-t border-white/[0.04]">
         <div className="relative max-w-7xl mx-auto px-6">
           <DotPattern
             width={32}
@@ -1083,7 +1083,7 @@ export default function LandingPage() {
                   <BlurFade key={role} delay={0.16 + i * 0.08} duration={0.5} inView>
                     <button
                       onClick={() => selectRole(role)}
-                      className="group relative w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-white/[0.06] hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/20"
+                      className="group relative w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 sm:p-7 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-white/[0.06] hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/20"
                     >
                       {/* Gradient glow on hover */}
                       <div
@@ -1146,7 +1146,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 10. Final CTA ────────────────────────────────────────────────── */}
-      <section id="pricing" className="py-24 md:py-32 border-t border-white/[0.04]">
+      <section id="pricing" className="py-16 md:py-32 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <BlurFade delay={0} duration={0.6} inView>
             <div className="relative inline-block mb-6">
@@ -1190,10 +1190,10 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 11. Footer ───────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.06] py-16 bg-[#161514]">
+      <footer className="border-t border-white/[0.06] py-10 md:py-16 bg-[#161514]">
         <div className="max-w-7xl mx-auto px-6">
           {/* 4-column grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-14">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 mb-10 md:mb-14">
             {[
               {
                 heading: 'Product',
