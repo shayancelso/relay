@@ -16,6 +16,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Relay — Account Transition Engine",
   description: "Automate account handoffs with AI-powered briefs and personalized intro emails",
+  icons: {
+    icon: "/relay-icon.png",
+    apple: "/relay-icon.png",
+  },
 }
 
 export default function RootLayout({

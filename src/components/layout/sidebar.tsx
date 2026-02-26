@@ -102,9 +102,7 @@ export function Sidebar() {
     <aside className="flex h-screen w-[260px] flex-col border-r border-white/[0.06] bg-sidebar text-sidebar-foreground">
       {/* Brand */}
       <div className="flex h-[60px] items-center gap-3 px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 font-bold text-sm text-white shadow-lg shadow-emerald-500/20">
-          R
-        </div>
+        <Image src="/relay-icon.png" alt="Relay" width={28} height={28} className="shrink-0" />
         <div className="flex flex-col">
           <span className="text-[13px] font-semibold tracking-tight text-sidebar-foreground">Relay</span>
           <span className="text-[10px] text-sidebar-foreground/30 tracking-wide">Wealthsimple</span>

@@ -55,11 +55,15 @@ export default function PersonaSelector() {
       <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-20">
         {/* Brand */}
         <BlurFade delay={0} duration={0.5}>
-          <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 font-bold text-lg text-white">
-              R
-            </div>
-            <span className="text-2xl font-semibold tracking-tight">Relay</span>
+          <div className="mb-3">
+            <Image
+              src="/relay-logo.png"
+              alt="Relay"
+              width={180}
+              height={48}
+              className="brightness-[0.95]"
+              priority
+            />
           </div>
         </BlurFade>
 

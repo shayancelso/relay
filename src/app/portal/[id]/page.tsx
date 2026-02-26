@@ -121,9 +121,7 @@ export default function CustomerPortalPage({
         {/* Top bar */}
         <div className="max-w-3xl mx-auto px-6 pt-6 pb-0 flex items-center gap-2">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-emerald-500 flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-white" />
-            </div>
+            <img src="/relay-icon.png" alt="Relay" className="w-6 h-6" />
             <span className="text-white/90 font-semibold text-sm tracking-tight">Relay</span>
           </div>
           <span className="text-white/25 text-sm">·</span>
@@ -380,9 +378,7 @@ export default function CustomerPortalPage({
           href="/"
           className="flex items-center gap-1.5 text-stone-400 hover:text-stone-600 transition-colors text-xs group"
         >
-          <div className="w-4 h-4 rounded bg-emerald-500 flex items-center justify-center">
-            <Zap className="w-2.5 h-2.5 text-white" />
-          </div>
+          <img src="/relay-icon.png" alt="Relay" className="w-4 h-4" />
           Powered by Relay
           <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
         </a>
