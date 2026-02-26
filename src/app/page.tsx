@@ -1,8 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'motion/react'
 import {
   Sparkles,
   Play,
@@ -59,6 +61,114 @@ const integrations = [
   'Salesforce', 'HubSpot', 'Gainsight', 'Gong', 'Slack',
   'Outreach', 'Intercom', 'Google Calendar', 'Outlook', 'Zendesk',
 ]
+
+// ─── Animated Hero Components ─────────────────────────────────────────────────
+
+const AnimatedWord = () => {
+  return (
+    <motion.span
+      className="inline-block relative"
+      animate={{
+        filter: ['brightness(1)', 'brightness(1.3)', 'brightness(1)'],
+      }}
+      transition={{
+        duration: 3,
+        ease: 'easeInOut',
+        repeat: Infinity,
+      }}
+      style={{
+        textShadow: `
+          0 0 80px rgba(16,185,129,0.5),
+          0 18px 80px rgba(20,184,166,0.12),
+          0 0 40px rgba(16,185,129,0.35),
+          0 0 20px rgba(52,211,153,0.25),
+          0 0 10px rgba(16,185,129,0.15)
+        `,
+      }}
+    >
+      <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+        bad handoff
+      </span>
+    </motion.span>
+  )
+}
+
+const heroCards = [
+  { id: 1, text: 'Generating handoff brief for Acme Corp...', icon: Sparkles, color: '#10b981' },
+  { id: 2, text: 'Matching accounts to optimal reps...', icon: Target, color: '#14b8a6' },
+  { id: 3, text: 'Drafting personalized intro email...', icon: Mail, color: '#34d399' },
+  { id: 4, text: 'Analyzing revenue impact across portfolio...', icon: BarChart3, color: '#0d9488' },
+]
+
+const HeroCardStack = () => {
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % heroCards.length)
+    }, 2500)
+    return () => clearInterval(timer)
+  }, [])
+
+  return (
+    <div className="relative w-full max-w-[840px] h-[80px] mx-auto" style={{ perspective: '1000px' }}>
+      <AnimatePresence mode="popLayout">
+        {heroCards.map((card, i) => {
+          const offset = (i - index + heroCards.length) % heroCards.length
+          if (offset > 2) return null
+          const isActive = offset === 0
+
+          return (
+            <motion.div
+              key={card.id}
+              layout
+              initial={{ opacity: 0, scale: 0.8, y: 40 }}
+              animate={{
+                opacity: isActive ? 1 : 1 - offset * 0.3,
+                scale: isActive ? 1 : 1 - offset * 0.05,
+                y: isActive ? 0 : offset * 14,
+                filter: isActive ? 'blur(0px)' : `blur(${offset * 2}px)`,
+              }}
+              exit={{
+                opacity: 0,
+                x: -100,
+                rotateZ: -5,
+                filter: 'blur(10px)',
+                transition: { duration: 0.4 },
+              }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              className="absolute top-0 left-0 right-0 mx-auto w-full h-[80px] px-6 sm:px-8 flex items-center gap-4 rounded-[28px] border origin-bottom"
+              style={{
+                background: 'rgba(42, 40, 38, 0.65)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                borderColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+                boxShadow: isActive ? '0 20px 50px rgba(0,0,0,0.5)' : 'none',
+                zIndex: heroCards.length - offset,
+              }}
+            >
+              <div className="p-2 rounded-full" style={{ backgroundColor: `${card.color}20` }}>
+                <card.icon size={22} style={{ color: card.color }} />
+              </div>
+              <span className="text-white/85 text-sm sm:text-lg font-medium tracking-wide">
+                {card.text}
+              </span>
+              {isActive && (
+                <motion.div
+                  className="absolute bottom-0 left-8 h-[2px] rounded-full"
+                  style={{ background: `linear-gradient(90deg, transparent, ${card.color}80, transparent)` }}
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: '200px', opacity: 1, x: [0, 500] }}
+                  transition={{ duration: 2, ease: 'linear', repeat: Infinity }}
+                />
+              )}
+            </motion.div>
+          )
+        })}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -120,16 +230,36 @@ export default function LandingPage() {
 
       {/* ─── 2. Hero Section ──────────────────────────────────────────────── */}
       <section id="hero" className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
-        {/* Background dot pattern */}
+        {/* Animated background glows */}
+        <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
+          <motion.div
+            className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[50vw] h-[30vw] rounded-full blur-[120px]"
+            style={{ background: 'radial-gradient(ellipse, rgba(16,185,129,0.12) 0%, transparent 70%)' }}
+            animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
+          />
+          <motion.div
+            className="absolute top-[20%] left-[-5%] w-[30vw] h-[30vw] rounded-full blur-[100px]"
+            style={{ background: 'radial-gradient(ellipse, rgba(20,184,166,0.07) 0%, transparent 70%)' }}
+            animate={{ x: [0, 40, 0], opacity: [0.4, 0.8, 0.4] }}
+            transition={{ duration: 8, ease: 'easeInOut', repeat: Infinity }}
+          />
+          <motion.div
+            className="absolute top-[10%] right-[-5%] w-[25vw] h-[25vw] rounded-full blur-[100px]"
+            style={{ background: 'radial-gradient(ellipse, rgba(52,211,153,0.06) 0%, transparent 70%)' }}
+            animate={{ x: [0, -30, 0], opacity: [0.3, 0.7, 0.3] }}
+            transition={{ duration: 7, ease: 'easeInOut', repeat: Infinity, delay: 1 }}
+          />
+          <div className="absolute top-[-5%] left-1/2 -translate-x-1/2 w-[40vw] h-[20vw] bg-white/[0.02] rounded-full blur-[100px]" />
+        </div>
+
+        {/* Dot pattern overlay */}
         <DotPattern
           width={32}
           height={32}
           cr={1}
           className="text-white/[0.025] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_30%,#000_30%,transparent_100%)]"
         />
-
-        {/* Radial glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-emerald-500/[0.04] rounded-full blur-[120px] pointer-events-none" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
 
@@ -147,10 +277,7 @@ export default function LandingPage() {
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] text-white/95 max-w-4xl mx-auto">
               Never lose a customer
               <br />
-              to a{' '}
-              <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
-                bad handoff
-              </span>
+              to a <AnimatedWord />
             </h1>
           </BlurFade>
 
@@ -204,8 +331,15 @@ export default function LandingPage() {
             </div>
           </BlurFade>
 
+          {/* Animated card stack */}
+          <BlurFade delay={0.38} duration={0.6}>
+            <div className="mt-12 mb-4">
+              <HeroCardStack />
+            </div>
+          </BlurFade>
+
           {/* Product mockup */}
-          <BlurFade delay={0.42} duration={0.7}>
+          <BlurFade delay={0.5} duration={0.7}>
             <div className="relative mt-16 mx-auto max-w-5xl">
               {/* Glow behind mockup */}
               <div className="absolute inset-x-0 -top-10 h-32 bg-emerald-500/[0.08] blur-[60px] rounded-full pointer-events-none" />
