@@ -328,21 +328,23 @@ export default function LandingPage() {
             </div>
           </BlurFade>
 
-          {/* Social proof dots */}
+          {/* Social proof avatars */}
           <BlurFade delay={0.32} duration={0.5}>
             <div className="mt-8 flex items-center justify-center gap-3">
               <div className="flex -space-x-2">
                 {[
-                  'bg-emerald-400',
-                  'bg-teal-400',
-                  'bg-cyan-400',
-                  'bg-sky-400',
-                  'bg-blue-400',
-                ].map((color, i) => (
+                  '/avatars/face1.jpg',
+                  '/avatars/face2.jpg',
+                  '/avatars/face3.jpg',
+                  '/avatars/face4.jpg',
+                  '/avatars/face5.jpg',
+                ].map((src, i) => (
                   <div
                     key={i}
-                    className={cn('h-7 w-7 rounded-full border-2 border-[#1a1918]', color)}
-                  />
+                    className="relative h-7 w-7 rounded-full border-2 border-[#1a1918] overflow-hidden"
+                  >
+                    <Image src={src} alt="" fill className="object-cover" />
+                  </div>
                 ))}
               </div>
               <p className="text-sm text-white/40">
