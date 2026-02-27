@@ -39,9 +39,10 @@ import { cn } from '@/lib/utils'
 const STEPS = [
   { id: 1, label: 'Welcome', icon: Building2 },
   { id: 2, label: 'Import', icon: Upload },
-  { id: 3, label: 'Invite Team', icon: Users },
-  { id: 4, label: 'Rules', icon: Sliders },
-  { id: 5, label: 'Ready!', icon: PartyPopper },
+  { id: 3, label: 'Fields', icon: Sliders },
+  { id: 4, label: 'Invite Team', icon: Users },
+  { id: 5, label: 'Rules', icon: Sliders },
+  { id: 6, label: 'Ready!', icon: PartyPopper },
 ] as const
 
 type Role = 'Admin' | 'Manager' | 'Rep'
@@ -374,7 +375,88 @@ function StepImport({
 }
 
 // ---------------------------------------------------------------------------
-// Step 3 — Invite Team
+// Step 3 — Map Your Fields
+// ---------------------------------------------------------------------------
+
+const DEFAULT_FIELD_MAPPINGS = [
+  { relayName: 'Account Owner', customerName: 'Account Owner' },
+  { relayName: 'CSM Name', customerName: 'CSM Name' },
+  { relayName: 'Contract Renewal Date', customerName: 'Renewal Date' },
+  { relayName: 'Account Tier', customerName: 'Account Tier' },
+  { relayName: 'Health Score', customerName: 'Health Score' },
+]
+
+function StepMapFields({
+  onNext,
+  onSkip,
+}: {
+  onNext: () => void
+  onSkip: () => void
+}) {
+  const [mappings, setMappings] = useState(DEFAULT_FIELD_MAPPINGS)
+
+  const updateMapping = (index: number, value: string) => {
+    setMappings((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, customerName: value } : m))
+    )
+  }
+
+  return (
+    <div className="space-y-5 fade-in-up">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-stone-900">Map Your Fields</h2>
+        <p className="mt-1.5 text-stone-500 text-sm leading-relaxed">
+          Tell us what your CRM calls these key fields. We&rsquo;ve pre-filled smart defaults — adjust if yours differ.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {/* Column headers */}
+        <div className="grid grid-cols-2 gap-4 px-1">
+          <span className="text-xs font-medium text-stone-400 uppercase tracking-wide">Relay calls it</span>
+          <span className="text-xs font-medium text-stone-400 uppercase tracking-wide">Your CRM calls it</span>
+        </div>
+
+        {mappings.map((mapping, i) => (
+          <div key={mapping.relayName} className="grid grid-cols-2 gap-4 items-center">
+            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-stone-50 border border-stone-200">
+              <span className="text-sm text-stone-600 font-medium truncate">{mapping.relayName}</span>
+            </div>
+            <Input
+              value={mapping.customerName}
+              onChange={(e) => updateMapping(i, e.target.value)}
+              className="h-10 text-sm"
+              placeholder={mapping.relayName}
+            />
+          </div>
+        ))}
+      </div>
+
+      <p className="text-xs text-stone-400 px-1">
+        Not sure? Leave the defaults — you can update these anytime in Settings.
+      </p>
+
+      <div className="flex items-center justify-between pt-1">
+        <button
+          onClick={onSkip}
+          className="text-sm text-stone-400 hover:text-stone-600 transition-colors"
+        >
+          Skip for now
+        </button>
+        <Button
+          onClick={onNext}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+        >
+          Continue
+          <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Step 4 — Invite Team
 // ---------------------------------------------------------------------------
 
 const ROLES: Role[] = ['Admin', 'Manager', 'Rep']
@@ -743,7 +825,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [orgName, setOrgName] = useState('')
 
-  const goNext = () => setStep((s) => Math.min(s + 1, 5))
+  const goNext = () => setStep((s) => Math.min(s + 1, 6))
   const goBack = () => setStep((s) => Math.max(s - 1, 1))
   const handleFinish = () => router.push('/dashboard')
 
@@ -756,10 +838,12 @@ export default function OnboardingPage() {
       case 2:
         return <StepImport onNext={goNext} onSkip={goNext} />
       case 3:
-        return <StepInvite onNext={goNext} />
+        return <StepMapFields onNext={goNext} onSkip={goNext} />
       case 4:
-        return <StepRules onNext={goNext} />
+        return <StepInvite onNext={goNext} />
       case 5:
+        return <StepRules onNext={goNext} />
+      case 6:
         return <StepReady orgName={orgName} onFinish={handleFinish} />
       default:
         return null
@@ -794,8 +878,8 @@ export default function OnboardingPage() {
             {renderStep()}
           </div>
 
-          {/* Back button (not on step 1 or step 5) */}
-          {step > 1 && step < 5 && (
+          {/* Back button (not on step 1 or final step) */}
+          {step > 1 && step < 6 && (
             <div className="mt-4 flex justify-start">
               <button
                 onClick={goBack}

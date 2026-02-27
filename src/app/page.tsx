@@ -316,6 +316,7 @@ export default function LandingPage() {
                 background="rgba(16,185,129,0.9)"
                 borderRadius="10px"
                 className="text-base font-semibold px-8 py-3.5 text-white border-emerald-400/40 w-full sm:w-auto"
+                onClick={() => router.push('/onboarding')}
               >
                 Start Free Trial
               </ShimmerButton>
@@ -1173,6 +1174,7 @@ export default function LandingPage() {
                 background="rgba(16,185,129,0.9)"
                 borderRadius="10px"
                 className="text-base font-semibold px-10 py-4 text-white border-emerald-400/40 w-full sm:w-auto"
+                onClick={() => router.push('/onboarding')}
               >
                 Start Free Trial
               </ShimmerButton>

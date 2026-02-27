@@ -94,8 +94,21 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
   const pathname = usePathname()
   const { role, user, setRole } = useRole()
   const [showSwitcher, setShowSwitcher] = useState(false)
+  const [orgName, setOrgName] = useState('Wealthsimple')
   const switcherRef = useRef<HTMLDivElement>(null)
   const nav = navByRole[role]
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('relay-trial-data')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.companyName) setOrgName(parsed.companyName)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -123,7 +136,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
         <Image src="/relay-icon.png" alt="Relay" width={28} height={28} className="shrink-0" />
         <div className="flex flex-col">
           <span className="text-[13px] font-semibold tracking-tight text-sidebar-foreground">Relay</span>
-          <span className="text-[10px] text-sidebar-foreground/30 tracking-wide">Wealthsimple</span>
+          <span className="text-[10px] text-sidebar-foreground/30 tracking-wide">{orgName}</span>
         </div>
       </div>
 
