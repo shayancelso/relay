@@ -22,6 +22,7 @@ import {
   AlignLeft,
 } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils'
+import { EmailComposer } from './email-composer'
 
 interface Contact {
   id: string
@@ -323,132 +324,33 @@ export function EmailSection({
       <CardContent className="space-y-4">
         {/* Composer */}
         {composing && (
-          <div className="rounded-xl border bg-muted/10 p-4 space-y-4">
-            {/* Enhanced progress bar */}
-            {generating && (
-              <div className="h-0.5 w-full bg-muted rounded-full overflow-hidden -mt-2 mb-2">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 via-violet-500 to-emerald-400 transition-[width] duration-300"
-                  style={{
-                    width: body.length > 0 ? `${Math.min((body.length / 1500) * 100, 95)}%` : '5%',
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Template variant selector */}
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-muted-foreground">Tone</Label>
-              <div className="flex items-center gap-1 rounded-lg border bg-muted/20 p-1">
-                {VARIANT_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setVariant(opt.value)}
-                    disabled={generating}
-                    className={cn(
-                      'flex-1 rounded-md px-2.5 py-1.5 text-[10px] font-medium transition-all',
-                      variant === opt.value
-                        ? 'bg-card shadow-sm text-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                    title={opt.description}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-muted-foreground">To</Label>
-                <Select value={selectedContact} onValueChange={setSelectedContact}>
-                  <SelectTrigger className="h-9 text-[12px]">
-                    <SelectValue placeholder="Select contact" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts.filter(c => c.email).map(c => (
-                      <SelectItem key={c.id} value={c.id} className="text-[12px]">
-                        {c.name} ({c.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={generateEmail}
-                  disabled={generating || !selectedContact}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-md px-3 py-2 text-[11px] font-medium transition-all h-9',
-                    generating || !selectedContact
-                      ? 'bg-violet-100 text-violet-400 cursor-not-allowed'
-                      : 'bg-violet-50 text-violet-600 hover:bg-violet-100'
-                  )}
-                >
-                  {generating ? (
-                    <>
-                      <div className="h-3 w-3 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
-                      Writing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-3 w-3" /> Generate with AI
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-muted-foreground">Subject</Label>
-              <Input
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                className="h-9 text-[12px]"
-                placeholder="Email subject..."
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-medium text-muted-foreground">Body</Label>
-              <div className="relative">
-                <Textarea
-                  value={body}
-                  onChange={e => setBody(e.target.value)}
-                  rows={14}
-                  className="text-[12px] leading-relaxed"
-                  placeholder="Email body..."
-                />
-                {generating && (
-                  <span className="absolute bottom-3 right-3 inline-block w-2 h-5 bg-blue-500 animate-pulse rounded-sm" />
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setComposing(false)
-                  setSubject('')
-                  setBody('')
-                  setSelectedContact('')
-                  if (streamRef.current) clearInterval(streamRef.current)
-                  setGenerating(false)
-                }}
-                className="rounded-md border px-3 py-1.5 text-[11px] font-medium hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveDraft}
-                disabled={!subject || !body || generating}
-                className="rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5"
-              >
-                <Save className="h-3 w-3" /> Save Draft
-              </button>
-            </div>
-          </div>
+          <EmailComposer
+            contacts={contacts}
+            account={account}
+            fromOwner={fromOwner}
+            toOwner={toOwner}
+            onSave={(email) => {
+              const contact = contacts.find(c => c.id === email.to)
+              const newEmail: Email = {
+                id: `email-new-${Date.now()}`,
+                subject: email.subject,
+                body: email.body,
+                status: 'draft',
+                type: 'warm_intro',
+                sent_at: null,
+                ai_generated: true,
+                created_at: new Date().toISOString(),
+                contact: contact ? { name: contact.name, email: contact.email || '' } : null,
+              }
+              setEmailList(prev => [newEmail, ...prev])
+              setComposing(false)
+            }}
+            onClose={() => {
+              setComposing(false)
+              if (streamRef.current) clearInterval(streamRef.current)
+              setGenerating(false)
+            }}
+          />
         )}
 
         {/* Email Preview */}

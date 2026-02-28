@@ -26,6 +26,7 @@ import {
 import { formatCurrency, getHealthBg, getSegmentColor, formatSegment } from '@/lib/utils'
 import { toast } from 'sonner'
 import { demoTeamMembers, demoAccounts } from '@/lib/demo-data'
+import { RecommendationCards } from '@/components/assignment/recommendation-cards'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -595,120 +596,18 @@ export default function NewTransitionPage() {
           <div className="space-y-3">
             {recommendations.map(rec => {
               const account = demoAccounts.find(a => a.id === rec.accountId)
-              const assignedRep = demoTeamMembers.find(m => m.id === assignments.get(rec.accountId))
-              const allRepsForDropdown = demoTeamMembers.filter(m => m.id !== selectedRepId && m.capacity > 0)
-
               return (
-                <Card key={rec.accountId} className="card-hover overflow-hidden">
-                  <CardContent className="p-4 space-y-3">
-                    {/* Account header */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[12px] font-semibold truncate">{rec.accountName}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          {account && (
-                            <>
-                              <Badge
-                                className={`text-[10px] px-1.5 py-0 border ${getSegmentColor(account.segment)}`}
-                                variant="outline"
-                              >
-                                {formatSegment(account.segment)}
-                              </Badge>
-                              <Badge
-                                className={`text-[10px] px-1.5 py-0 border ${getHealthBg(account.health_score)}`}
-                                variant="outline"
-                              >
-                                Health {account.health_score}
-                              </Badge>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {account && (
-                        <span className="text-[12px] font-bold tabular-nums shrink-0 text-foreground">
-                          {formatCurrency(account.arr)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Top recommendations */}
-                    <div className="space-y-1.5">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
-                        Top Matches
-                      </p>
-                      {rec.recs.map((r, idx) => (
-                        <div
-                          key={r.userId}
-                          className={[
-                            'flex items-center gap-2 rounded-lg px-2.5 py-1.5',
-                            idx === 0 ? 'bg-emerald-50/80' : 'bg-muted/40',
-                          ].join(' ')}
-                        >
-                          <div className="w-4 shrink-0 text-center">
-                            {idx === 0 && (
-                              <span className="text-[10px] text-emerald-600 font-bold">#1</span>
-                            )}
-                            {idx > 0 && (
-                              <span className="text-[10px] text-muted-foreground">#{idx + 1}</span>
-                            )}
-                          </div>
-                          <p className="text-[12px] font-medium w-32 shrink-0 truncate">{r.userName}</p>
-                          <div className="flex-1">
-                            <ScoreBar score={r.score} />
-                          </div>
-                          {r.specialtyMatch && (
-                            <Badge
-                              className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0"
-                              variant="outline"
-                            >
-                              Match
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Override dropdown */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Label className="text-[11px] text-muted-foreground shrink-0">Assign to</Label>
-                      <Select
-                        value={assignments.get(rec.accountId) ?? ''}
-                        onValueChange={v => setAssignment(rec.accountId, v)}
-                      >
-                        <SelectTrigger className="h-8 text-[12px] flex-1">
-                          <SelectValue placeholder="Select rep..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allRepsForDropdown.map(m => {
-                            const isRecommended = rec.recs.some(r => r.userId === m.id)
-                            const recData = rec.recs.find(r => r.userId === m.id)
-                            return (
-                              <SelectItem key={m.id} value={m.id}>
-                                <span className="font-medium">{m.full_name}</span>
-                                {recData && (
-                                  <span className="ml-2 text-muted-foreground text-[11px]">
-                                    Score {recData.score}
-                                  </span>
-                                )}
-                                {!isRecommended && (
-                                  <span className="ml-2 text-muted-foreground text-[11px]">
-                                    Manual override
-                                  </span>
-                                )}
-                              </SelectItem>
-                            )
-                          })}
-                        </SelectContent>
-                      </Select>
-                      {assignedRep && (
-                        <div className="text-[11px] text-muted-foreground shrink-0 flex items-center gap-1">
-                          <Check className="h-3 w-3 text-emerald-500" />
-                          <span className="text-emerald-700 font-medium">{assignedRep.full_name}</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <RecommendationCards
+                  key={rec.accountId}
+                  accountId={rec.accountId}
+                  accountName={rec.accountName}
+                  accountSegment={account?.segment || 'enterprise'}
+                  accountIndustry={account?.industry || 'Technology'}
+                  accountArr={account?.arr || 0}
+                  recommendations={rec.recs}
+                  currentAssignment={assignments.get(rec.accountId) || null}
+                  onAssign={(userId) => setAssignment(rec.accountId, userId)}
+                />
               )
             })}
           </div>

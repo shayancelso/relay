@@ -18,6 +18,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BriefEditor } from './brief-editor'
 
 interface BriefSectionProps {
   transitionId: string
@@ -792,28 +793,15 @@ export function BriefSection({
 
             {/* Brief content */}
             {editing ? (
-              <div className="space-y-3">
-                <Textarea
-                  value={content}
-                  onChange={e => setContent(e.target.value)}
-                  rows={24}
-                  className="font-mono text-[11px] leading-relaxed"
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="rounded-md border px-3 py-1.5 text-[11px] font-medium hover:bg-muted transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => { setEditing(false); setStatus('reviewed') }}
-                    className="rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-1.5"
-                  >
-                    <Save className="h-3 w-3" /> Save Changes
-                  </button>
-                </div>
-              </div>
+              <BriefEditor
+                content={content}
+                onSave={(updated) => {
+                  setContent(updated)
+                  setEditing(false)
+                  setStatus('reviewed')
+                }}
+                onClose={() => setEditing(false)}
+              />
             ) : (
               <div className="rounded-lg border bg-muted/20 p-5 max-h-[600px] overflow-y-auto">
                 {renderMarkdown(content, regeneratingSection, sectionContents, handleRegenerateSection)}

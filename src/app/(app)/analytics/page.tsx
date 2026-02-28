@@ -13,6 +13,7 @@ import {
   TrendingUp, TrendingDown, Clock, CheckCircle2, ArrowUpRight, BarChart3,
   Target, Zap, Users, Building2,
 } from 'lucide-react'
+import { TransitionAnalytics } from '@/components/analytics/transition-analytics'
 
 // ─── Derived Data ───────────────────────────────────────────────────────────
 
@@ -157,6 +158,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="segments">Segments</TabsTrigger>
           <TabsTrigger value="retention">Retention</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="transitions">Transitions</TabsTrigger>
         </TabsList>
 
         {/* Velocity Tab */}
@@ -389,6 +391,10 @@ export default function AnalyticsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="transitions">
+          <TransitionAnalytics />
         </TabsContent>
       </Tabs>
     </div>
