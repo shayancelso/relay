@@ -10,6 +10,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,7 +26,6 @@ import {
   ArrowLeft,
   PartyPopper,
   Check,
-  Zap,
   Upload,
   Loader2,
   Trash2,
@@ -1414,9 +1414,7 @@ export default function OnboardingPage() {
       <header className="w-full border-b border-stone-200/80 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
+            <Image src="/relay-icon.png" alt="Relay" width={28} height={28} />
             <span className="font-semibold text-stone-900 text-sm tracking-tight">Relay</span>
           </div>
           <div className="flex items-center gap-3">
