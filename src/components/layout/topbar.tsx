@@ -73,6 +73,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           }}
           aria-label="Open command palette"
           aria-keyshortcuts="Meta+k"
+          data-tour="search"
           className="hidden md:flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground/60 transition-colors hover:bg-muted/50 hover:text-muted-foreground"
         >
           <Search className="h-3 w-3" />

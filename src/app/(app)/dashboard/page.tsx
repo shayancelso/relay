@@ -6,6 +6,7 @@ import { useRole } from '@/lib/role-context'
 import { RevOpsDashboard } from '@/components/dashboard/revops-dashboard'
 import { LeadershipDashboard } from '@/components/dashboard/leadership-dashboard'
 import { RepDashboard } from '@/components/dashboard/rep-dashboard'
+import { ProductTour } from '@/components/tour/product-tour'
 import { Zap, X, ArrowRight } from 'lucide-react'
 
 type DashboardMode = 'real-setup' | 'demo' | 'none'
@@ -108,6 +109,7 @@ export default function DashboardPage() {
     <div>
       <DashboardBanner />
       {dashboard}
+      <ProductTour />
     </div>
   )
 }

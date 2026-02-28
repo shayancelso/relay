@@ -826,9 +826,17 @@ function RulesTab() {
   const [rules, setRules] = useState<Rule[]>(DEMO_RULES)
 
   const handleToggle = useCallback((id: string) => {
-    setRules((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r))
-    )
+    setRules((prev) => {
+      const rule = prev.find((r) => r.id === id)
+      const next = prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r))
+      if (rule) {
+        const nowActive = !rule.active
+        toast.success(nowActive ? 'Rule enabled' : 'Rule disabled', {
+          description: `"${rule.name}" is now ${nowActive ? 'active' : 'inactive'}.`,
+        })
+      }
+      return next
+    })
   }, [])
 
   const handleDelete = useCallback((id: string) => {

@@ -51,6 +51,7 @@ import {
   cn,
 } from '@/lib/utils'
 import type { Account, AccountContact, Transition, TransitionActivity, User as UserType } from '@/types'
+import { NotesSection } from '@/components/accounts/notes-section'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,7 +141,7 @@ function HealthRing({ score }: { score: number }) {
 // Tab definitions
 // ---------------------------------------------------------------------------
 
-type Tab = 'overview' | 'contacts' | 'transitions' | 'activity'
+type Tab = 'overview' | 'contacts' | 'transitions' | 'activity' | 'notes'
 
 // ---------------------------------------------------------------------------
 // Role badge helper
@@ -212,6 +213,7 @@ export default function AccountDetailClient({ account, owner, contacts, transiti
     { id: 'contacts', label: 'Contacts', count: contacts.length },
     { id: 'transitions', label: 'Transitions', count: transitions.length },
     { id: 'activity', label: 'Activity', count: activities.length },
+    { id: 'notes', label: 'Notes' },
   ]
 
   return (
@@ -715,6 +717,13 @@ export default function AccountDetailClient({ account, owner, contacts, transiti
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Notes tab ───────────────────────────────────────────────── */}
+      {activeTab === 'notes' && (
+        <div className="fade-in-up">
+          <NotesSection accountId={account.id} accountName={account.name} />
         </div>
       )}
 

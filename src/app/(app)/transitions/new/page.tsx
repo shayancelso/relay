@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -183,6 +183,7 @@ function ScoreBar({ score }: { score: number }) {
 // ---------------------------------------------------------------------------
 export default function NewTransitionPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [step, setStep]                           = useState<Step>('select_rep')
   const [submitting, setSubmitting]               = useState(false)
@@ -195,6 +196,32 @@ export default function NewTransitionPage() {
   const [priority, setPriority]                   = useState<string>('high')
   const [dueDate, setDueDate]                     = useState<string>('')
   const [notes, setNotes]                         = useState<string>('')
+
+  // ---------------------------------------------------------------------------
+  // Pre-select accounts from ?accounts= query param
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const accountsParam = searchParams.get('accounts')
+    if (!accountsParam) return
+
+    const ids = accountsParam.split(',').filter(Boolean)
+    if (ids.length === 0) return
+
+    // Build pre-selected set
+    const validIds = new Set(ids.filter(id => demoAccounts.some(a => a.id === id)))
+    if (validIds.size === 0) return
+
+    setSelectedAccounts(validIds)
+
+    // Try to auto-detect the departing rep from the first account
+    const firstAccount = demoAccounts.find(a => validIds.has(a.id))
+    if (firstAccount?.current_owner_id) {
+      setSelectedRepId(firstAccount.current_owner_id)
+      // If there's a rep, auto-advance to step 2
+      setStep('select_accounts')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ---------------------------------------------------------------------------
   // Derived data

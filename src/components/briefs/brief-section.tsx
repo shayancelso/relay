@@ -163,6 +163,45 @@ ${primaryContact ? `- **${primaryContact.name}** (${primaryContact.title || 'Dir
 - Avoid: mentioning competitors, pricing, or the dedicated CSM ask until you have an internal answer ready.`
 }
 
+// Slight variations for section regeneration
+const SECTION_VARIANTS: Record<string, string[]> = {
+  'Executive Summary': [
+    'Strong account with active risk signals — immediate attention required in first 30 days.',
+    'Established relationship with clear expansion potential and two active risk signals to address.',
+    'High-value account in renewal window; champion relationship solid, multi-threading needed.',
+  ],
+  'Account Intelligence': [
+    'Full CRM data synced. Pipeline weighted at 67% probability across 3 open opportunities.',
+    'Account in growth trajectory — seat expansion likely to close in Q2 pending budget approval.',
+    'Three strategic opportunities in pipeline totaling $420K; seat expansion most advanced.',
+  ],
+  'Relationship Map': [
+    'Champion is highly engaged; executive sponsor neutral. IT gatekeeper has active blocker.',
+    'Strong champion relationship built over 14 months. Executive layer needs deeper engagement.',
+    'Single-threaded — champion relationship is the primary risk factor for retention.',
+  ],
+  'Risk Factors': [
+    'Two Gainsight risk signals active. Health score declining. Support escalation unresolved.',
+    'Competitor interest noted. Health score drop requires immediate engagement plan.',
+    'Open ticket blocker is highest urgency item — resolution needed before intro call.',
+  ],
+  'Open Commitments': [
+    'Four outstanding commitments requiring follow-through in first two weeks.',
+    'Seat expansion is closest to close; Salesforce integration is the biggest delivery risk.',
+    'SOC 2 docs are quick win — can be delivered in day 1 to build credibility with IT.',
+  ],
+  'Recommended First 30 Days': [
+    'Prioritize intro call within 48 hours, then systematically close the four open blockers.',
+    'Sequence: intro call, support resolution, stakeholder intros, then expansion follow-up.',
+    'Focus first week on blockers — ticket resolution and SOC 2 docs will set the right tone.',
+  ],
+  'Talking Points for First Call': [
+    'Lead with knowledge of account history and open items — demonstrates continuity.',
+    'Reference specific ticket number and expansion timeline to show preparation.',
+    'Open with empathy for open blocker; close with next-step ask for stakeholder intros.',
+  ],
+}
+
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -277,7 +316,7 @@ function DataSourcesPanel({ visible, sources, generating }: {
   )
 }
 
-function QualityScorePanel() {
+function QualityScorePanel({ shimmer }: { shimmer?: boolean }) {
   const metrics = [
     { label: 'Data Completeness', value: 95, color: 'bg-emerald-500' },
     { label: 'Recency', value: 88, color: 'bg-sky-500' },
@@ -285,7 +324,12 @@ function QualityScorePanel() {
   ]
 
   return (
-    <div className="mt-4 rounded-lg border border-border/60 bg-gradient-to-br from-muted/20 to-muted/40 p-4">
+    <div
+      className={cn(
+        'mt-4 rounded-lg border border-border/60 bg-gradient-to-br from-muted/20 to-muted/40 p-4 relative overflow-hidden',
+        shimmer && 'after:absolute after:inset-0 after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent after:animate-[shimmer_2s_ease-in-out]'
+      )}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
@@ -323,27 +367,75 @@ function QualityScorePanel() {
 }
 
 // ---------------------------------------------------------------------------
-// Markdown renderer — source badge aware
+// Markdown renderer — source badge aware, with regenerate buttons
 // ---------------------------------------------------------------------------
 
-function renderMarkdown(md: string) {
-  return md.split('\n').map((line, i) => {
+function RegenerateButton({
+  sectionName,
+  regenerating,
+  onRegenerate,
+}: {
+  sectionName: string
+  regenerating: boolean
+  onRegenerate: (section: string) => void
+}) {
+  return (
+    <button
+      onClick={() => onRegenerate(sectionName)}
+      disabled={regenerating}
+      className={cn(
+        'ml-2 inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors shrink-0',
+        regenerating
+          ? 'bg-violet-100 text-violet-400 cursor-not-allowed'
+          : 'bg-violet-50 text-violet-500 border border-violet-100 hover:bg-violet-100 hover:text-violet-700'
+      )}
+      title={`Regenerate ${sectionName}`}
+      aria-label={`Regenerate ${sectionName} section`}
+    >
+      {regenerating ? (
+        <span className="h-2 w-2 rounded-full border border-violet-400 border-t-transparent animate-spin inline-block" />
+      ) : (
+        <Sparkles className="h-2 w-2" />
+      )}
+      {regenerating ? 'Regenerating...' : 'Regenerate'}
+    </button>
+  )
+}
+
+function renderMarkdown(
+  md: string,
+  regeneratingSection: string | null,
+  sectionContents: Record<string, string>,
+  onRegenerate: (section: string) => void
+) {
+  const lines = md.split('\n')
+  const result: React.ReactNode[] = []
+  let currentH2: string | null = null
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
     // h1
     if (line.startsWith('# ')) {
-      return (
+      result.push(
         <h1 key={i} className="text-[15px] font-bold mt-4 mb-2 text-foreground">
           {line.slice(2)}
         </h1>
       )
+      continue
     }
 
     // h2 — may contain [via ...] attribution
     if (line.startsWith('## ')) {
       const raw = line.slice(3)
       const viaMatch = raw.match(/^(.*?)\s*\[via ([^\]]+)\]$/)
+      const sectionName = viaMatch ? viaMatch[1].trim() : raw.trim()
+      currentH2 = sectionName
+      const isRegenerating = regeneratingSection === sectionName
+
       if (viaMatch) {
-        return (
-          <div key={i} className="flex items-center gap-2 mt-5 mb-1.5">
+        result.push(
+          <div key={i} className="flex items-center gap-2 mt-5 mb-1.5 flex-wrap">
             <h2 className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
               {viaMatch[1]}
             </h2>
@@ -351,21 +443,40 @@ function renderMarkdown(md: string) {
               <Database className="h-2 w-2" />
               {viaMatch[2]}
             </span>
+            <RegenerateButton
+              sectionName={sectionName}
+              regenerating={isRegenerating}
+              onRegenerate={onRegenerate}
+            />
+          </div>
+        )
+      } else {
+        result.push(
+          <div key={i} className="flex items-center gap-2 mt-5 mb-1.5 flex-wrap">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80">
+              {raw}
+            </h2>
+            <RegenerateButton
+              sectionName={sectionName}
+              regenerating={isRegenerating}
+              onRegenerate={onRegenerate}
+            />
           </div>
         )
       }
-      return (
-        <h2 key={i} className="text-[11px] font-semibold mt-5 mb-1.5 text-foreground/80 uppercase tracking-wide">
-          {raw}
-        </h2>
-      )
+
+      // If this section has regenerated content, show shimmer overlay
+      if (isRegenerating || sectionContents[sectionName]) {
+        // Shimmer handled by the section overlay below
+      }
+      continue
     }
 
     // Risk / warning lines
     if (line.startsWith('⚠️')) {
       const match = line.match(/⚠️ \*\*(.*?)\*\* — (.*)/)
       if (match) {
-        return (
+        result.push(
           <div key={i} className="rounded-lg bg-amber-50 border border-amber-200/60 p-3 my-2">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
@@ -376,54 +487,58 @@ function renderMarkdown(md: string) {
             </div>
           </div>
         )
+        continue
       }
-      return (
+      result.push(
         <div key={i} className="rounded-lg bg-amber-50 border border-amber-200/60 p-3 my-2 text-[11px] text-amber-800">
           {line}
         </div>
       )
+      continue
     }
 
     // Bullet with bold key
     if (line.startsWith('- **')) {
       const match = line.match(/- \*\*(.*?)\*\* — (.*)/)
       if (match) {
-        return (
+        result.push(
           <div key={i} className="flex gap-2 py-0.5 pl-3 text-[11px]">
             <span className="font-semibold text-foreground/80 shrink-0">{match[1]}</span>
             <span className="text-muted-foreground">— {match[2]}</span>
           </div>
         )
+        continue
       }
       const match2 = line.match(/- \*\*(.*?)\*\*(.*)/)
       if (match2) {
-        return (
+        result.push(
           <div key={i} className="flex gap-1 py-0.5 pl-3 text-[11px]">
             <span className="font-semibold text-foreground/80">{match2[1]}</span>
             <span className="text-muted-foreground">{match2[2]}</span>
           </div>
         )
+        continue
       }
     }
 
     // Plain bullet
     if (line.startsWith('- ')) {
-      return (
+      result.push(
         <div key={i} className="flex gap-2 py-0.5 pl-3 text-[11px]">
           <span className="text-muted-foreground/40 shrink-0">•</span>
           <span className="text-muted-foreground leading-relaxed">{line.slice(2)}</span>
         </div>
       )
+      continue
     }
 
     // Numbered list
     if (line.match(/^\d+\. /)) {
       const numMatch = line.match(/^(\d+)\. (.*)/)
       if (numMatch) {
-        // Day-range items have bold prefix
         const boldMatch = numMatch[2].match(/^\*\*(.*?)\*\* — (.*)/)
         if (boldMatch) {
-          return (
+          result.push(
             <div key={i} className="flex gap-2 py-0.5 pl-3 text-[11px]">
               <span className="text-muted-foreground/50 tabular-nums w-4 shrink-0">{numMatch[1]}.</span>
               <span className="text-muted-foreground leading-relaxed">
@@ -433,26 +548,43 @@ function renderMarkdown(md: string) {
               </span>
             </div>
           )
+          continue
         }
-        return (
+        result.push(
           <div key={i} className="flex gap-2 py-0.5 pl-3 text-[11px]">
             <span className="text-muted-foreground/50 tabular-nums w-4 shrink-0">{numMatch[1]}.</span>
             <span className="text-muted-foreground leading-relaxed">{numMatch[2]}</span>
           </div>
         )
+        continue
       }
     }
 
     // Empty line
-    if (line.trim() === '') return <div key={i} className="h-1.5" />
+    if (line.trim() === '') {
+      result.push(<div key={i} className="h-1.5" />)
+      continue
+    }
 
-    // Default paragraph
-    return (
+    // Default paragraph — check if it belongs to a regenerating section
+    const isInRegeneratingSection = currentH2 && regeneratingSection === currentH2
+    if (isInRegeneratingSection) {
+      result.push(
+        <p key={i} className="text-[11px] text-muted-foreground leading-relaxed py-0.5 animate-pulse bg-muted/40 rounded">
+          &nbsp;
+        </p>
+      )
+      continue
+    }
+
+    result.push(
       <p key={i} className="text-[11px] text-muted-foreground leading-relaxed py-0.5">
         {line}
       </p>
     )
-  })
+  }
+
+  return result
 }
 
 // ---------------------------------------------------------------------------
@@ -487,7 +619,11 @@ export function BriefSection({
   const [version, setVersion] = useState(brief?.version || 1)
   const [showSources, setShowSources] = useState(false)
   const [showQuality, setShowQuality] = useState(false)
+  const [qualityShimmer, setQualityShimmer] = useState(false)
+  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null)
+  const [sectionContents, setSectionContents] = useState<Record<string, string>>({})
   const streamRef = useRef<NodeJS.Timeout | null>(null)
+  const regenRef = useRef<NodeJS.Timeout | null>(null)
 
   // Streaming generation
   function generateBrief() {
@@ -496,6 +632,7 @@ export function BriefSection({
     setStatus('generating')
     setShowSources(true)
     setShowQuality(false)
+    setQualityShimmer(false)
 
     const fullBrief = getMockBrief(account, contacts, fromOwner, toOwner)
     let idx = 0
@@ -509,6 +646,8 @@ export function BriefSection({
         setStatus('draft')
         setVersion(v => v + 1)
         setShowQuality(true)
+        setQualityShimmer(true)
+        setTimeout(() => setQualityShimmer(false), 2000)
         if (streamRef.current) clearInterval(streamRef.current)
       } else {
         setContent(fullBrief.slice(0, idx))
@@ -516,9 +655,24 @@ export function BriefSection({
     }, 10)
   }
 
+  function handleRegenerateSection(sectionName: string) {
+    if (regeneratingSection) return
+    setRegeneratingSection(sectionName)
+
+    regenRef.current = setTimeout(() => {
+      const variants = SECTION_VARIANTS[sectionName]
+      if (variants && variants.length > 0) {
+        const randomVariant = variants[Math.floor(Math.random() * variants.length)]
+        setSectionContents(prev => ({ ...prev, [sectionName]: randomVariant }))
+      }
+      setRegeneratingSection(null)
+    }, 1500)
+  }
+
   useEffect(() => {
     return () => {
       if (streamRef.current) clearInterval(streamRef.current)
+      if (regenRef.current) clearTimeout(regenRef.current)
     }
   }, [])
 
@@ -540,7 +694,7 @@ export function BriefSection({
       {generating && (
         <div className="h-0.5 w-full bg-muted overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-violet-500 via-sky-400 to-emerald-400"
+            className="h-full bg-gradient-to-r from-blue-500 via-violet-500 to-emerald-400"
             style={{
               width: content.length > 0 ? `${Math.min((content.length / 2800) * 100, 95)}%` : '5%',
               transition: 'width 0.3s',
@@ -662,15 +816,15 @@ export function BriefSection({
               </div>
             ) : (
               <div className="rounded-lg border bg-muted/20 p-5 max-h-[600px] overflow-y-auto">
-                {renderMarkdown(content)}
+                {renderMarkdown(content, regeneratingSection, sectionContents, handleRegenerateSection)}
                 {generating && (
-                  <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
+                  <span className="inline-block w-2 h-5 bg-violet-500 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
                 )}
               </div>
             )}
 
             {/* Quality score — only after generation is done */}
-            {showQuality && !editing && <QualityScorePanel />}
+            {showQuality && !editing && <QualityScorePanel shimmer={qualityShimmer} />}
           </>
         ) : (
           /* Empty state */

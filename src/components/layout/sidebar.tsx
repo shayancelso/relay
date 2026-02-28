@@ -144,7 +144,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
       <div className="mx-4 h-px bg-white/[0.06]" />
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 pt-4">
+      <nav className="flex-1 overflow-y-auto px-3 pt-4" data-tour="sidebar">
         {/* Helper: renders a labelled group of nav items */}
         {(
           [
@@ -172,6 +172,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
                       key={item.href + item.label}
                       href={item.href}
                       onClick={handleNavClick}
+                      {...(item.href === '/transitions' ? { 'data-tour': 'nav-transitions' } : {})}
                       className={cn(
                         'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150',
                         isActive
@@ -217,6 +218,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
         <div className="relative mb-2" ref={switcherRef}>
           <button
             onClick={() => setShowSwitcher(!showSwitcher)}
+            data-tour="role-switcher"
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium text-sidebar-foreground/30 transition-colors hover:bg-white/[0.04] hover:text-sidebar-foreground/50"
           >
             <Sparkles className="h-3 w-3" />

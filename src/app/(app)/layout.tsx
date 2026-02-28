@@ -1,10 +1,15 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { RoleProvider } from '@/lib/role-context'
-import { KeyboardShortcuts } from '@/components/layout/keyboard-shortcuts'
 import { useState } from 'react'
+
+const KeyboardShortcuts = dynamic(
+  () => import('@/components/layout/keyboard-shortcuts').then((m) => ({ default: m.KeyboardShortcuts })),
+  { ssr: false }
+)
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)

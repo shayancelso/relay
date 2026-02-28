@@ -7,9 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useRole } from '@/lib/role-context'
 import { formatCurrency, formatStatus, getStatusColor, getPriorityColor, formatSegment, getSegmentColor, cn } from '@/lib/utils'
-import { Search, Plus, ArrowRight, Target } from 'lucide-react'
+import { Search, Plus, ArrowRight, Target, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ContextPanel } from '@/components/transitions/context-panel'
+import { EmptyState } from '@/components/ui/skeletons'
+import { DemoBanner } from '@/components/tour/demo-banner'
 
 const STATUSES = ['all', 'draft', 'pending_approval', 'approved', 'intro_sent', 'meeting_booked', 'in_progress', 'completed', 'stalled'] as const
 
@@ -36,6 +39,7 @@ function StatusDot({ status }: { status: string }) {
 
 export default function TransitionsPage() {
   const { role } = useRole()
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedTransition, setSelectedTransition] = useState<string | null>(null)
@@ -226,27 +230,35 @@ export default function TransitionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/50 mb-4">
-            <Target className="h-5 w-5 text-muted-foreground/40" />
-          </div>
-          <p className="text-[13px] font-medium text-foreground">No transitions found</p>
-          <p className="text-[12px] text-muted-foreground mt-1">Try adjusting your search or filters</p>
-          {(search || statusFilter !== 'all') && (
-            <button
-              onClick={() => { setSearch(''); setStatusFilter('all') }}
-              className="mt-3 text-[12px] text-muted-foreground/60 hover:text-foreground transition-colors underline underline-offset-2"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+        <Card className="overflow-hidden border-border/60">
+          <CardContent className="p-0">
+            {(search || statusFilter !== 'all') ? (
+              <EmptyState
+                icon={Target}
+                title="No transitions found"
+                description="Try adjusting your search or filters to find what you're looking for."
+                action="Clear filters"
+                onAction={() => { setSearch(''); setStatusFilter('all') }}
+              />
+            ) : (
+              <EmptyState
+                icon={ArrowLeftRight}
+                title="No transitions yet"
+                description="Get started by creating your first account transition."
+                action={role !== 'rep' ? 'New Transition' : undefined}
+                onAction={role !== 'rep' ? () => router.push('/transitions/new') : undefined}
+              />
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <ContextPanel
         transition={selectedTransition ? demoTransitions.find(t => t.id === selectedTransition) || null : null}
         onClose={() => setSelectedTransition(null)}
       />
+
+      <DemoBanner />
     </div>
   )
 }

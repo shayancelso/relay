@@ -67,8 +67,8 @@ export function LeadershipDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Team Overview</h1>
-          <p className="text-sm text-muted-foreground mt-1">Pipeline health and team performance metrics</p>
+          <h1 className="text-[22px] font-semibold tracking-tight">Team Overview</h1>
+          <p className="text-[13px] text-muted-foreground mt-0.5">Pipeline health and team performance metrics</p>
         </div>
         <Link href="/transitions/new" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
           <Target className="h-4 w-4" />
@@ -77,7 +77,7 @@ export function LeadershipDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4" data-tour="metrics">
         {[
           { label: 'Completion Rate', value: '78%', sub: 'Last 30 days', icon: CheckCircle2, color: 'text-emerald-600' },
           { label: 'Avg. Time to Complete', value: '6.2d', sub: 'Down from 8.1d', icon: Clock, color: 'text-blue-600' },

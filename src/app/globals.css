@@ -416,3 +416,9 @@
     background: oklch(0.985 0.003 70);
   }
 }
+
+/* ─── Shimmer Animation ──────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

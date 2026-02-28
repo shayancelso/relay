@@ -5,12 +5,12 @@ import { demoAccounts, demoTeamMembers } from '@/lib/demo-data'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useRole } from '@/lib/role-context'
 import { formatCurrency, getSegmentColor, formatSegment, getHealthBg, cn } from '@/lib/utils'
-import {
-  Search, Upload,
-} from 'lucide-react'
+import { Search, Upload, X, Download, UserCog, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 const SEGMENTS = ['all', 'commercial', 'corporate', 'enterprise', 'fins', 'international'] as const
 
@@ -20,6 +20,7 @@ export default function AccountsPage() {
   const [segment, setSegment] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'name' | 'arr' | 'health'>('arr')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const baseAccounts = role === 'rep'
     ? demoAccounts.filter(a => a.current_owner_id === 'user-3')
@@ -43,6 +44,41 @@ export default function AccountsPage() {
     return result
   }, [baseAccounts, search, segment, sortBy, sortDir])
 
+  const displayedAccounts = filtered.slice(0, 50)
+
+  const selectedArr = useMemo(
+    () => demoAccounts.filter(a => selectedIds.has(a.id)).reduce((s, a) => s + a.arr, 0),
+    [selectedIds],
+  )
+
+  const allDisplayedSelected =
+    displayedAccounts.length > 0 &&
+    displayedAccounts.every(a => selectedIds.has(a.id))
+
+  const someDisplayedSelected = displayedAccounts.some(a => selectedIds.has(a.id))
+
+  function toggleSelectAll(checked: boolean) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (checked) displayedAccounts.forEach(a => next.add(a.id))
+      else displayedAccounts.forEach(a => next.delete(a.id))
+      return next
+    })
+  }
+
+  function toggleRow(id: string, checked: boolean) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
+  }
+
   const toggleSort = (field: typeof sortBy) => {
     if (sortBy === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortBy(field); setSortDir('desc') }
@@ -56,8 +92,11 @@ export default function AccountsPage() {
 
   const totalArr = baseAccounts.reduce((s, a) => s + a.arr, 0)
 
+  const selectedCount = selectedIds.size
+  const createTransitionsHref = `/transitions/new?accounts=${Array.from(selectedIds).join(',')}`
+
   return (
-    <div className="space-y-6">
+    <div className={cn('space-y-6', selectedCount > 0 ? 'pb-24' : '')}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -117,7 +156,7 @@ export default function AccountsPage() {
       </div>
 
       {/* Search + Sort toolbar */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
           <Input
@@ -154,6 +193,26 @@ export default function AccountsPage() {
         </span>
       </div>
 
+      {/* Selected count banner */}
+      {selectedCount > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2">
+          <span className="text-[12px] font-medium text-emerald-800">
+            {selectedCount} account{selectedCount !== 1 ? 's' : ''} selected
+          </span>
+          <span className="text-emerald-600/50">·</span>
+          <span className="text-[12px] font-medium tabular-nums text-emerald-700">
+            {formatCurrency(selectedArr)} ARR
+          </span>
+          <button
+            onClick={clearSelection}
+            className="ml-auto flex items-center gap-1 text-[11px] text-emerald-700/70 transition-colors hover:text-emerald-900"
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <Card className="overflow-hidden border-border/60">
         <CardContent className="p-0">
@@ -161,6 +220,20 @@ export default function AccountsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/20">
+                  {/* Checkbox header */}
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={
+                        allDisplayedSelected
+                          ? true
+                          : someDisplayedSelected
+                          ? 'indeterminate'
+                          : false
+                      }
+                      onCheckedChange={(checked) => toggleSelectAll(checked === true)}
+                      aria-label="Select all accounts"
+                    />
+                  </th>
                   <th className="text-left text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 px-4 py-3">
                     Account
                   </th>
@@ -188,13 +261,25 @@ export default function AccountsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filtered.slice(0, 50).map((account) => {
+                {displayedAccounts.map((account) => {
                   const owner = demoTeamMembers.find(m => m.id === account.current_owner_id)
+                  const isSelected = selectedIds.has(account.id)
                   return (
                     <tr
                       key={account.id}
-                      className="group transition-colors hover:bg-muted/30"
+                      className={cn(
+                        'group transition-colors hover:bg-muted/30',
+                        isSelected && 'bg-emerald-50/60 hover:bg-emerald-50',
+                      )}
                     >
+                      <td className="w-10 px-4 py-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => toggleRow(account.id, !!checked)}
+                          aria-label={`Select ${account.name}`}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <Link
                           href={`/accounts/${account.id}`}
@@ -265,6 +350,75 @@ export default function AccountsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Sticky Bulk Action Bar ──────────────────────────────────────── */}
+      {selectedCount > 0 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-white/10 bg-gray-900 px-6 py-4 shadow-2xl"
+          style={{ animation: 'relay-slide-up 200ms cubic-bezier(0.16,1,0.3,1)' }}
+        >
+          <style>{`
+            @keyframes relay-slide-up {
+              from { transform: translateY(100%); opacity: 0; }
+              to   { transform: translateY(0);    opacity: 1; }
+            }
+          `}</style>
+
+          {/* Left: selection summary */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-white">
+              {selectedCount} account{selectedCount !== 1 ? 's' : ''} selected
+            </span>
+            <span className="text-white/30">·</span>
+            <span className="text-sm font-medium tabular-nums text-emerald-400">
+              {formatCurrency(selectedArr)} ARR
+            </span>
+          </div>
+
+          {/* Right: action buttons */}
+          <div className="flex items-center gap-2">
+            <Link
+              href={createTransitionsHref}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-emerald-500"
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" />
+              Create Transitions
+            </Link>
+
+            <button
+              onClick={() =>
+                toast.success(`Exporting ${selectedCount} accounts`, {
+                  description: 'CSV download will begin shortly.',
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 px-3.5 py-2 text-[12px] font-medium text-white transition-colors hover:bg-white/20"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </button>
+
+            <button
+              onClick={() =>
+                toast.success('Assign owner', {
+                  description: `Owner assignment dialog would open for ${selectedCount} account${selectedCount !== 1 ? 's' : ''}.`,
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/10 px-3.5 py-2 text-[12px] font-medium text-white transition-colors hover:bg-white/20"
+            >
+              <UserCog className="h-3.5 w-3.5" />
+              Assign Owner
+            </button>
+
+            <button
+              onClick={clearSelection}
+              aria-label="Clear selection"
+              className="ml-1 flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

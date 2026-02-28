@@ -21,6 +21,10 @@ import {
   AlertTriangle,
   Clock,
   ChevronRight,
+  Check,
+  X,
+  ChevronDown,
+  Minus,
 } from 'lucide-react'
 
 import { BlurFade } from '@/components/ui/blur-fade'
@@ -187,6 +191,384 @@ const HeroCardStack = () => {
         })}
       </AnimatePresence>
     </div>
+  )
+}
+
+// ─── Pricing Section ──────────────────────────────────────────────────────────
+
+const pricingTiers = [
+  {
+    name: 'Free',
+    price: '$0',
+    period: '/mo',
+    description: 'For small teams getting started',
+    popular: false,
+    features: [
+      '5 accounts',
+      '1 user',
+      'Basic briefs',
+      'Email templates',
+      'Community support',
+    ],
+    cta: 'Get Started',
+    ctaVariant: 'secondary' as const,
+    href: '/onboarding',
+  },
+  {
+    name: 'Team',
+    price: '$49',
+    period: '/mo',
+    description: 'For growing teams',
+    popular: true,
+    features: [
+      '100 accounts',
+      '10 users',
+      'AI briefs',
+      'Custom templates',
+      'Priority support',
+      'Assignment engine',
+    ],
+    cta: 'Start Free Trial',
+    ctaVariant: 'primary' as const,
+    href: '/onboarding',
+  },
+  {
+    name: 'Enterprise',
+    price: 'Custom',
+    period: '',
+    description: 'For large organizations',
+    popular: false,
+    features: [
+      'Unlimited accounts',
+      'Unlimited users',
+      'Advanced AI',
+      'Custom integrations',
+      'Dedicated CSM',
+      'SSO & SAML',
+      'SLA guarantee',
+    ],
+    cta: 'Contact Sales',
+    ctaVariant: 'secondary' as const,
+    href: '#',
+  },
+]
+
+function PricingSection({ onStartTrial }: { onStartTrial: () => void }) {
+  return (
+    <section id="pricing" className="py-16 md:py-32 border-t border-white/[0.04]">
+      <div className="max-w-7xl mx-auto px-6">
+        <BlurFade delay={0} duration={0.55} inView>
+          <div className="text-center mb-10 md:mb-16">
+            <p className="text-xs font-semibold tracking-[0.2em] text-white/25 uppercase mb-4">Pricing</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white/95 max-w-2xl mx-auto leading-[1.1]">
+              Simple, transparent pricing
+            </h2>
+            <p className="mt-5 text-lg text-white/45 max-w-lg mx-auto leading-relaxed">
+              Start free. Scale as you grow. No surprises.
+            </p>
+          </div>
+        </BlurFade>
+
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {pricingTiers.map((tier, i) => (
+            <BlurFade key={tier.name} delay={0.08 + i * 0.08} duration={0.55} inView>
+              <div
+                className={cn(
+                  'relative flex flex-col rounded-2xl border p-7 transition-all duration-300 hover:border-white/20',
+                  tier.popular
+                    ? 'border-emerald-500 bg-emerald-500/[0.06] hover:bg-emerald-500/[0.09]'
+                    : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.05]'
+                )}
+              >
+                {tier.popular && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400 backdrop-blur-sm">
+                      <Sparkles className="h-3 w-3" />
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-white/90 tracking-tight">{tier.name}</h3>
+                  <p className="mt-1 text-sm text-white/40">{tier.description}</p>
+                  <div className="mt-4 flex items-baseline gap-0.5">
+                    <span className={cn('font-black tracking-tight', tier.price === 'Custom' ? 'text-3xl text-white/95' : 'text-4xl text-white/95')}>
+                      {tier.price}
+                    </span>
+                    {tier.period && (
+                      <span className="text-sm text-white/35 ml-1">{tier.period}</span>
+                    )}
+                  </div>
+                </div>
+
+                <ul className="flex-1 space-y-3 mb-8">
+                  {tier.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2.5">
+                      <div className="h-4 w-4 rounded-full bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                        <Check className="h-2.5 w-2.5 text-emerald-400" />
+                      </div>
+                      <span className="text-sm text-white/55">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {tier.ctaVariant === 'primary' ? (
+                  <ShimmerButton
+                    shimmerColor="#34d399"
+                    background="rgba(16,185,129,0.9)"
+                    borderRadius="10px"
+                    className="text-sm font-semibold py-3 text-white border-emerald-400/40 w-full justify-center"
+                    onClick={onStartTrial}
+                  >
+                    {tier.cta}
+                  </ShimmerButton>
+                ) : (
+                  <a
+                    href={tier.href === '/onboarding' ? undefined : tier.href}
+                    onClick={tier.href === '/onboarding' ? onStartTrial : undefined}
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-[10px] border py-3 text-sm font-semibold transition-all duration-200 cursor-pointer',
+                      'border-white/[0.10] text-white/60 hover:border-white/[0.20] hover:text-white/90 hover:bg-white/[0.04]'
+                    )}
+                  >
+                    {tier.cta}
+                  </a>
+                )}
+              </div>
+            </BlurFade>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── FAQ Section ──────────────────────────────────────────────────────────────
+
+const FAQ_ITEMS = [
+  {
+    q: 'How does Relay handle account transitions?',
+    a: "Relay automates the full handoff workflow: it pulls account data from your CRM, generates an AI-powered brief summarizing history, stakeholders, risks, and open items, then matches the account to the best available rep using your configured rules. The new rep gets a personalized intro email template ready to send — all in minutes, not weeks.",
+  },
+  {
+    q: 'What CRMs does Relay integrate with?',
+    a: 'Relay natively integrates with Salesforce and HubSpot via secure OAuth. We also support Gainsight, Gong, Outreach, Intercom, Zendesk, and more. For other CRMs or internal systems, you can import a CSV export or use our API. Enterprise customers can request custom connectors through their dedicated CSM.',
+  },
+  {
+    q: 'How does the AI brief generation work?',
+    a: "Relay's brief engine pulls structured data from your CRM (ARR, health scores, renewal dates, account history) and synthesizes it with relationship context, support ticket summaries, and call recordings when available. Claude AI then generates a structured brief covering account health, key stakeholders, open risks, relationship history, and recommended next actions — tailored to your rep's role.",
+  },
+  {
+    q: 'Is my data secure?',
+    a: "Yes. Relay is SOC 2 Type II certified. All data is encrypted in transit (TLS 1.3) and at rest (AES-256). We operate in isolated, single-tenant environments for Enterprise customers. We never train AI models on your customer data. Full details are available in our Security documentation and Trust Center.",
+  },
+  {
+    q: 'Can I customize the assignment rules?',
+    a: "Absolutely. Relay includes a fully configurable rules engine. You can set rules based on ARR caps per rep, health score distribution thresholds, renewal urgency windows, account segment matching, geographic proximity, and custom fields from your CRM. Rules can be enabled, disabled, and tuned with numeric parameters — no engineering required.",
+  },
+  {
+    q: 'What happens during the free trial?',
+    a: 'You get full access to all Team plan features for 14 days — no credit card required. You can connect your CRM, run real transitions, generate AI briefs, and invite up to 10 teammates. At the end of the trial your data is preserved. You can upgrade, downgrade to Free, or export everything.',
+  },
+  {
+    q: 'How long does setup take?',
+    a: "Most teams are fully operational in under 30 minutes. Connect your CRM via OAuth (2 minutes), review the auto-detected field mappings (5 minutes), configure your assignment rules (10 minutes), and invite your team. If you're using a CSV import, add another 5 minutes. Enterprise onboarding includes a guided session with your dedicated CSM.",
+  },
+  {
+    q: 'Do you offer team training?',
+    a: 'Yes. Team plan customers get access to our self-serve knowledge base, video walkthroughs, and live onboarding webinars. Enterprise customers get a dedicated Customer Success Manager who runs personalized onboarding sessions, trains your admins and reps, and stays engaged throughout your contract with quarterly business reviews.',
+  },
+]
+
+function FAQItem({ item, isOpen, onToggle }: { item: typeof FAQ_ITEMS[0]; isOpen: boolean; onToggle: () => void }) {
+  return (
+    <div className="border-b border-white/[0.06] last:border-0">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-4 py-5 text-left group"
+        aria-expanded={isOpen}
+      >
+        <span className="text-base font-medium text-white/80 group-hover:text-white/95 transition-colors duration-200">
+          {item.q}
+        </span>
+        <ChevronDown
+          className={cn(
+            'h-5 w-5 text-white/30 shrink-0 transition-transform duration-300 group-hover:text-white/50',
+            isOpen && 'rotate-180 text-emerald-400'
+          )}
+        />
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <p className="pb-5 text-sm text-white/45 leading-relaxed">
+              {item.a}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
+  const toggle = (i: number) => setOpenIndex((prev) => (prev === i ? null : i))
+
+  return (
+    <section id="faq" className="py-16 md:py-32 border-t border-white/[0.04]">
+      <div className="max-w-3xl mx-auto px-6">
+        <BlurFade delay={0} duration={0.55} inView>
+          <div className="text-center mb-10 md:mb-14">
+            <p className="text-xs font-semibold tracking-[0.2em] text-white/25 uppercase mb-4">FAQ</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white/95 leading-[1.1]">
+              Common questions
+            </h2>
+          </div>
+        </BlurFade>
+
+        <BlurFade delay={0.1} duration={0.55} inView>
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] divide-y-0 overflow-hidden px-6 sm:px-8">
+            {FAQ_ITEMS.map((item, i) => (
+              <FAQItem
+                key={item.q}
+                item={item}
+                isOpen={openIndex === i}
+                onToggle={() => toggle(i)}
+              />
+            ))}
+          </div>
+        </BlurFade>
+      </div>
+    </section>
+  )
+}
+
+// ─── Comparison Table ─────────────────────────────────────────────────────────
+
+type CellValue = '✓' | '✗' | '~' | string
+
+const COMPARISON_ROWS: { feature: string; relay: CellValue; manual: CellValue; spreadsheets: CellValue }[] = [
+  { feature: 'AI-Powered Briefs',    relay: '✓', manual: '✗', spreadsheets: '✗' },
+  { feature: 'Automated Emails',     relay: '✓', manual: '✗', spreadsheets: '✗' },
+  { feature: 'Assignment Engine',    relay: '✓', manual: '✗', spreadsheets: '✗' },
+  { feature: 'Real-time Status',     relay: '✓', manual: '✗', spreadsheets: '~' },
+  { feature: 'CRM Integration',      relay: '✓', manual: '~', spreadsheets: '✗' },
+  { feature: 'Audit Trail',          relay: '✓', manual: '✗', spreadsheets: '~' },
+  { feature: 'Time to Complete',     relay: '2 days', manual: '2 weeks', spreadsheets: '1 week' },
+  { feature: 'Risk of Errors',       relay: 'Minimal', manual: 'High', spreadsheets: 'Medium' },
+]
+
+function ComparisonCell({ value, isRelay }: { value: CellValue; isRelay?: boolean }) {
+  if (value === '✓') {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="h-6 w-6 rounded-full bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center">
+          <Check className="h-3.5 w-3.5 text-emerald-400" />
+        </div>
+      </div>
+    )
+  }
+  if (value === '✗') {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="h-6 w-6 rounded-full bg-red-500/10 border border-red-500/15 flex items-center justify-center">
+          <X className="h-3.5 w-3.5 text-red-400/70" />
+        </div>
+      </div>
+    )
+  }
+  if (value === '~') {
+    return (
+      <div className="flex items-center justify-center">
+        <div className="h-6 w-6 rounded-full bg-amber-500/10 border border-amber-500/15 flex items-center justify-center">
+          <Minus className="h-3.5 w-3.5 text-amber-400/70" />
+        </div>
+      </div>
+    )
+  }
+  // Text value
+  return (
+    <span
+      className={cn(
+        'text-sm font-semibold',
+        isRelay ? 'text-emerald-400' : value === 'High' ? 'text-red-400/80' : 'text-white/40'
+      )}
+    >
+      {value}
+    </span>
+  )
+}
+
+function ComparisonTable() {
+  return (
+    <section id="comparison" className="py-16 md:py-32 border-t border-white/[0.04]">
+      <div className="max-w-4xl mx-auto px-6">
+        <BlurFade delay={0} duration={0.55} inView>
+          <div className="text-center mb-10 md:mb-14">
+            <p className="text-xs font-semibold tracking-[0.2em] text-white/25 uppercase mb-4">Why Relay</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white/95 leading-[1.1]">
+              Relay vs. the alternatives
+            </h2>
+            <p className="mt-5 text-lg text-white/40 max-w-xl mx-auto leading-relaxed">
+              See how Relay stacks up against manual handoffs and spreadsheet-based workflows.
+            </p>
+          </div>
+        </BlurFade>
+
+        <BlurFade delay={0.1} duration={0.55} inView>
+          <div className="rounded-2xl border border-white/[0.08] overflow-hidden">
+            {/* Header row */}
+            <div className="grid grid-cols-4 border-b border-white/[0.08]">
+              <div className="px-5 py-4 text-xs font-semibold text-white/30 uppercase tracking-[0.15em]">
+                Feature
+              </div>
+              <div className="px-3 py-4 text-center bg-emerald-500/[0.07] border-l border-emerald-500/20">
+                <span className="text-sm font-bold text-emerald-400">Relay</span>
+              </div>
+              <div className="px-3 py-4 text-center border-l border-white/[0.06] bg-white/[0.02]">
+                <span className="text-sm font-medium text-white/35">Manual Handoffs</span>
+              </div>
+              <div className="px-3 py-4 text-center border-l border-white/[0.06] bg-white/[0.02]">
+                <span className="text-sm font-medium text-white/35">Spreadsheets</span>
+              </div>
+            </div>
+
+            {/* Data rows */}
+            {COMPARISON_ROWS.map((row, i) => (
+              <div
+                key={row.feature}
+                className={cn(
+                  'grid grid-cols-4 border-b border-white/[0.05] last:border-0',
+                  i % 2 === 0 ? 'bg-white/[0.01]' : ''
+                )}
+              >
+                <div className="px-5 py-4 flex items-center">
+                  <span className="text-sm text-white/55 font-medium">{row.feature}</span>
+                </div>
+                <div className="px-3 py-4 flex items-center justify-center bg-emerald-500/[0.04] border-l border-emerald-500/10">
+                  <ComparisonCell value={row.relay} isRelay />
+                </div>
+                <div className="px-3 py-4 flex items-center justify-center border-l border-white/[0.05]">
+                  <ComparisonCell value={row.manual} />
+                </div>
+                <div className="px-3 py-4 flex items-center justify-center border-l border-white/[0.05]">
+                  <ComparisonCell value={row.spreadsheets} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </BlurFade>
+      </div>
+    </section>
   )
 }
 
@@ -1148,8 +1530,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 10. Final CTA ────────────────────────────────────────────────── */}
-      <section id="pricing" className="py-16 md:py-32 border-t border-white/[0.04]">
+      {/* ─── 10. Pricing Section ──────────────────────────────────────────── */}
+      <PricingSection onStartTrial={() => router.push('/onboarding')} />
+
+      {/* ─── 11. FAQ Accordion ────────────────────────────────────────────── */}
+      <FAQSection />
+
+      {/* ─── 12. Comparison Table ─────────────────────────────────────────── */}
+      <ComparisonTable />
+
+      {/* ─── 13. Final CTA ────────────────────────────────────────────────── */}
+      <section id="final-cta" className="py-16 md:py-32 border-t border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <BlurFade delay={0} duration={0.6} inView>
             <div className="relative inline-block mb-6">

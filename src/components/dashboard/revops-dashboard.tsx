@@ -100,12 +100,12 @@ export function RevOpsDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Operations Overview</h1>
-        <p className="text-sm text-muted-foreground mt-1">Real-time view across all segments and teams</p>
+        <h1 className="text-[22px] font-semibold tracking-tight">Operations Overview</h1>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Real-time view across all segments and teams</p>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" data-tour="metrics">
         {metricCards.map((card) => (
           <Card key={card.label} className="card-hover overflow-hidden">
             <CardContent className="p-4">

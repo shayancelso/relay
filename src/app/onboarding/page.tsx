@@ -8,8 +8,9 @@
 // On finish: saves to localStorage('relay-trial-data'), redirects to /dashboard.
 // Escape hatch on step 3: "Explore with sample data" sets relay-demo-mode and skips to dashboard.
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -215,7 +216,27 @@ function StepAboutYou({
   onChange: (u: Partial<OnboardingData>) => void
   onNext: () => void
 }) {
-  const canProceed = data.fullName.trim() && data.workEmail.trim() && data.companyName.trim()
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+
+  const getErrors = () => ({
+    fullName: !data.fullName.trim() ? 'Full name is required' : '',
+    workEmail: !data.workEmail.trim()
+      ? 'Work email is required'
+      : !data.workEmail.includes('@')
+      ? 'Please enter a valid email address'
+      : '',
+    companyName: !data.companyName.trim() ? 'Company name is required' : '',
+  })
+
+  const errors = getErrors()
+  const canProceed = !errors.fullName && !errors.workEmail && !errors.companyName
+
+  const handleBlur = (field: string) => setTouched((prev) => ({ ...prev, [field]: true }))
+
+  const handleSubmit = () => {
+    setTouched({ fullName: true, workEmail: true, companyName: true })
+    if (canProceed) onNext()
+  }
 
   return (
     <div className="space-y-6 fade-in-up">
@@ -236,10 +257,14 @@ function StepAboutYou({
               id="fullName"
               value={data.fullName}
               onChange={(e) => onChange({ fullName: e.target.value })}
+              onBlur={() => handleBlur('fullName')}
               placeholder="Alex Johnson"
-              className="h-10 text-sm"
+              className={cn('h-10 text-sm', touched.fullName && errors.fullName ? 'border-rose-400 focus-visible:ring-rose-400/20' : '')}
               autoFocus
             />
+            {touched.fullName && errors.fullName && (
+              <p className="text-xs text-rose-500 mt-0.5">{errors.fullName}</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="workEmail" className="text-stone-700 font-medium text-sm">
@@ -250,9 +275,13 @@ function StepAboutYou({
               type="email"
               value={data.workEmail}
               onChange={(e) => onChange({ workEmail: e.target.value })}
+              onBlur={() => handleBlur('workEmail')}
               placeholder="alex@company.com"
-              className="h-10 text-sm"
+              className={cn('h-10 text-sm', touched.workEmail && errors.workEmail ? 'border-rose-400 focus-visible:ring-rose-400/20' : '')}
             />
+            {touched.workEmail && errors.workEmail && (
+              <p className="text-xs text-rose-500 mt-0.5">{errors.workEmail}</p>
+            )}
           </div>
         </div>
 
@@ -265,9 +294,13 @@ function StepAboutYou({
               id="companyName"
               value={data.companyName}
               onChange={(e) => onChange({ companyName: e.target.value })}
+              onBlur={() => handleBlur('companyName')}
               placeholder="Acme Financial Group"
-              className="h-10 text-sm"
+              className={cn('h-10 text-sm', touched.companyName && errors.companyName ? 'border-rose-400 focus-visible:ring-rose-400/20' : '')}
             />
+            {touched.companyName && errors.companyName && (
+              <p className="text-xs text-rose-500 mt-0.5">{errors.companyName}</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="jobTitle" className="text-stone-700 font-medium text-sm">
@@ -304,9 +337,9 @@ function StepAboutYou({
 
       <div className="flex justify-end pt-2">
         <Button
-          onClick={onNext}
-          disabled={!canProceed}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6"
+          onClick={handleSubmit}
+          disabled={touched.fullName !== undefined && touched.workEmail !== undefined && touched.companyName !== undefined && !canProceed}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Continue
           <ChevronRight className="w-4 h-4 ml-1" />
@@ -1367,10 +1400,40 @@ function StepYoureIn({
 // Main Page
 // ---------------------------------------------------------------------------
 
+const ONBOARDING_STEP_KEY = 'relay-onboarding-step'
+
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [data, setData] = useState<OnboardingData>(INITIAL_DATA)
+  const hydrated = useRef(false)
+
+  // Restore step from localStorage on mount
+  useEffect(() => {
+    if (hydrated.current) return
+    hydrated.current = true
+    try {
+      const saved = localStorage.getItem(ONBOARDING_STEP_KEY)
+      if (saved) {
+        const parsed = parseInt(saved, 10)
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= TOTAL_STEPS) {
+          setStep(parsed)
+        }
+      }
+    } catch {
+      // localStorage unavailable — continue with default
+    }
+  }, [])
+
+  // Persist step to localStorage whenever it changes
+  useEffect(() => {
+    if (!hydrated.current) return
+    try {
+      localStorage.setItem(ONBOARDING_STEP_KEY, String(step))
+    } catch {
+      // ignore
+    }
+  }, [step])
 
   const update = (updates: Partial<OnboardingData>) =>
     setData((prev) => ({ ...prev, ...updates }))
@@ -1395,6 +1458,7 @@ export default function OnboardingPage() {
     if (!localStorage.getItem('relay-demo-role')) {
       localStorage.setItem('relay-demo-role', 'revops_admin')
     }
+    localStorage.removeItem(ONBOARDING_STEP_KEY)
     router.push('/dashboard')
   }
 
@@ -1402,6 +1466,7 @@ export default function OnboardingPage() {
   const handleFinish = () => {
     localStorage.setItem('relay-trial-data', JSON.stringify(data))
     localStorage.removeItem('relay-demo-mode')
+    localStorage.removeItem(ONBOARDING_STEP_KEY)
     if (!localStorage.getItem('relay-demo-role')) {
       localStorage.setItem('relay-demo-role', 'revops_admin')
     }
@@ -1413,9 +1478,20 @@ export default function OnboardingPage() {
       {/* Header */}
       <header className="w-full border-b border-stone-200/80 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Image src="/relay-icon.png" alt="Relay" width={28} height={28} />
-            <span className="font-semibold text-stone-900 text-sm tracking-tight">Relay</span>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition-colors duration-150 group"
+              aria-label="Back to Relay home"
+            >
+              <ArrowLeft className="w-3 h-3 transition-transform duration-150 group-hover:-translate-x-0.5" />
+              Back to Relay
+            </Link>
+            <div className="h-4 w-px bg-stone-200" />
+            <div className="flex items-center gap-2">
+              <Image src="/relay-icon.png" alt="Relay" width={28} height={28} />
+              <span className="font-semibold text-stone-900 text-sm tracking-tight">Relay</span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {/* Step dots — desktop */}

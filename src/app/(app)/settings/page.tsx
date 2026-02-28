@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -44,7 +45,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage your profile, organization, and preferences</p>
       </div>
 
@@ -91,7 +92,12 @@ export default function SettingsPage() {
                   <Input defaultValue="400" type="number" className="h-9 text-[13px]" />
                 </div>
               </div>
-              <button className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Save Changes</button>
+              <button
+                onClick={() => toast.success('Settings saved', { description: 'Your changes have been applied.' })}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Save Changes
+              </button>
             </CardContent>
           </Card>
 
@@ -150,7 +156,12 @@ export default function SettingsPage() {
                   <Input defaultValue="wealthsimple.com" className="h-9 text-[13px]" />
                 </div>
               </div>
-              <button className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Save Organization</button>
+              <button
+                onClick={() => toast.success('Organization saved', { description: 'Your organization details have been updated.' })}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Save Organization
+              </button>
             </CardContent>
           </Card>
 

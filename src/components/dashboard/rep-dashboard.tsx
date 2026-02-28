@@ -49,11 +49,11 @@ export function RepDashboard() {
   return (
     <div className="space-y-6">
       {/* Personalized Header */}
-      <div className="rounded-2xl bg-gradient-to-r from-primary/[0.03] to-transparent border border-border/50 p-6">
+      <div className="rounded-2xl bg-gradient-to-r from-primary/[0.03] to-transparent border border-border/50 p-6" data-tour="metrics">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">Good morning,</p>
-            <h1 className="text-2xl font-bold tracking-tight mt-0.5">{me.full_name}</h1>
+            <h1 className="text-[22px] font-semibold tracking-tight mt-0.5">{me.full_name}</h1>
             <p className="text-sm text-muted-foreground mt-1">You have <span className="font-semibold text-foreground">{activeTransitions.length} active transitions</span> and <span className="font-semibold text-amber-600">{actionItems.filter(a => a.dueIn === 'Today').length} items due today</span></p>
           </div>
           <div className="flex gap-3">
