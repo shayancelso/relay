@@ -247,13 +247,21 @@ export function NotificationPanel() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Real-time simulation: add a new notification every 30 seconds
+  // Real-time simulation: add a new notification every 60 seconds, starting after 2 min
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newNotif = generateRandomNotification()
-      setNotifications((prev) => [newNotif, ...prev])
-    }, 30000)
-    return () => clearInterval(interval)
+    const delay = setTimeout(() => {
+      const interval = setInterval(() => {
+        const newNotif = generateRandomNotification()
+        setNotifications((prev) => [newNotif, ...prev].slice(0, 50))
+      }, 60000)
+      // Store interval id so we can clear on unmount
+      cleanupRef.current = () => clearInterval(interval)
+    }, 120000)
+    const cleanupRef = { current: () => {} }
+    return () => {
+      clearTimeout(delay)
+      cleanupRef.current()
+    }
   }, [])
 
   const markAllRead = useCallback(() => {

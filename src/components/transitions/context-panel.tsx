@@ -50,7 +50,7 @@ export function ContextPanel({ transition, onClose }: ContextPanelProps) {
       <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[2px] animate-in fade-in duration-200" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-[440px] border-l border-border/60 bg-card shadow-2xl shadow-black/10 overflow-hidden animate-in slide-in-from-right duration-300 ease-out flex flex-col">
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full sm:w-[440px] border-l border-border/60 bg-card shadow-2xl shadow-black/10 overflow-hidden animate-in slide-in-from-right duration-300 ease-out flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-5 py-3.5 shrink-0">
           <div className="flex items-center gap-2.5">

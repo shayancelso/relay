@@ -175,10 +175,18 @@ export function ProductTour() {
 
   useEffect(() => {
     if (!active) return
-    measureTarget()
+    // Delay measurement by one frame to let DOM settle after step change
+    let rafId = requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
+        measureTarget()
+      })
+    })
     window.addEventListener('resize', measureTarget)
-    return () => window.removeEventListener('resize', measureTarget)
-  }, [active, measureTarget])
+    return () => {
+      cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', measureTarget)
+    }
+  }, [active, stepIndex, measureTarget])
 
   function complete() {
     try {
@@ -224,7 +232,7 @@ export function ProductTour() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="fixed inset-0 z-[9998]"
-            style={{ pointerEvents: 'none' }}
+            style={{ pointerEvents: 'none', willChange: 'transform' }}
           >
             {/* Top shadow */}
             {spotlightRect && (

@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -7,21 +8,21 @@ import {
   TrendingUp, AlertTriangle, Clock, CheckCircle2, Users, Target,
   ArrowUpRight,
 } from 'lucide-react'
-import { formatCurrency, formatRelativeDate, formatStatus, getStatusColor, getPriorityColor, getInitials, cn, formatSegment, getSegmentColor } from '@/lib/utils'
+import { formatCurrency, formatStatus, getStatusColor, getPriorityColor, getInitials, cn, formatSegment, getSegmentColor } from '@/lib/utils'
 import {
-  getDemoMetrics, getDemoPipeline, getDemoWorkload,
-  demoTransitions, demoAccounts, demoTeamMembers,
+  getDemoMetrics, getDemoWorkload,
+  demoTransitions, demoAccounts, demoTeamMembers
 } from '@/lib/demo-data'
 import { NumberTicker } from '@/components/ui/number-ticker'
 import Link from 'next/link'
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell,
-} from 'recharts'
+
+const LeadershipCharts = dynamic(
+  () => import('./leadership-charts').then(m => ({ default: m.LeadershipCharts })),
+  { ssr: false, loading: () => <div className="lg:col-span-3 h-[320px] rounded-xl bg-muted/30 animate-pulse" /> }
+)
 
 export function LeadershipDashboard() {
   const metrics = getDemoMetrics()
-  const pipeline = getDemoPipeline()
   const workload = getDemoWorkload()
 
   // Team performance summary
@@ -46,21 +47,6 @@ export function LeadershipDashboard() {
       inTransition: demoTransitions.some(t => t.account_id === a.id && !['completed', 'cancelled'].includes(t.status)),
     }))
 
-  // Pipeline velocity mock data (monthly)
-  const velocityData = [
-    { month: 'Sep', completed: 8, started: 12 },
-    { month: 'Oct', completed: 11, started: 9 },
-    { month: 'Nov', completed: 6, started: 14 },
-    { month: 'Dec', completed: 13, started: 7 },
-    { month: 'Jan', completed: 9, started: 11 },
-    { month: 'Feb', completed: 10, started: 8 },
-  ]
-
-  const STATUS_COLORS: Record<string, string> = {
-    draft: '#9ca3af', pending_approval: '#eab308', approved: '#3b82f6',
-    intro_sent: '#6366f1', meeting_booked: '#a855f7', in_progress: '#06b6d4',
-    completed: '#22c55e', stalled: '#ef4444', cancelled: '#6b7280',
-  }
 
   return (
     <div className="space-y-6">
@@ -77,7 +63,7 @@ export function LeadershipDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4" data-tour="metrics">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" data-tour="metrics">
         {[
           { label: 'Completion Rate', value: '78%', sub: 'Last 30 days', icon: CheckCircle2, color: 'text-emerald-600' },
           { label: 'Avg. Time to Complete', value: '6.2d', sub: 'Down from 8.1d', icon: Clock, color: 'text-blue-600' },
@@ -103,34 +89,8 @@ export function LeadershipDashboard() {
 
       {/* Charts + Team Performance */}
       <div className="grid gap-4 lg:grid-cols-5">
-        {/* Pipeline Velocity */}
-        <Card className="lg:col-span-3 card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Pipeline Velocity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={velocityData}>
-                <defs>
-                  <linearGradient id="completedGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="startedGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 70)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid oklch(0.92 0.01 70)', fontSize: '12px' }} />
-                <Area type="monotone" dataKey="completed" stroke="#22c55e" fill="url(#completedGradient)" strokeWidth={2} name="Completed" />
-                <Area type="monotone" dataKey="started" stroke="#6366f1" fill="url(#startedGradient)" strokeWidth={2} name="Started" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {/* Pipeline Velocity — lazy loaded */}
+        <LeadershipCharts />
 
         {/* Team Performance Table */}
         <Card className="lg:col-span-2 card-hover">

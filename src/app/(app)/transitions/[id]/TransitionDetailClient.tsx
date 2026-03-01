@@ -130,12 +130,12 @@ export function TransitionDetailClient({
                     }}
                     transition={{ duration: 0.3 }}
                     className={cn(
-                      'flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-shadow',
+                      'flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full text-[10px] sm:text-xs font-medium transition-shadow',
                       i === currentStepIdx && 'ring-2 ring-primary/30',
                       i !== currentStepIdx && 'group-hover:opacity-80 cursor-pointer'
                     )}
                   >
-                    {i < currentStepIdx ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    {i < currentStepIdx ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : i + 1}
                   </motion.div>
                   <motion.span
                     animate={{
@@ -145,7 +145,7 @@ export function TransitionDetailClient({
                           : 'hsl(var(--muted-foreground))',
                     }}
                     transition={{ duration: 0.3 }}
-                    className="text-xs whitespace-nowrap text-center px-1 font-medium"
+                    className="hidden sm:block text-xs whitespace-nowrap text-center px-1 font-medium"
                   >
                     {formatStatus(s)}
                   </motion.span>

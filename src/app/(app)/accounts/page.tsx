@@ -354,7 +354,7 @@ export default function AccountsPage() {
       {/* ── Sticky Bulk Action Bar ──────────────────────────────────────── */}
       {selectedCount > 0 && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-white/10 bg-gray-900 px-6 py-4 shadow-2xl"
+          className="fixed bottom-0 left-0 right-0 z-50 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 border-t border-white/10 bg-gray-900 px-4 sm:px-6 py-3 sm:py-4 shadow-2xl"
           style={{ animation: 'relay-slide-up 200ms cubic-bezier(0.16,1,0.3,1)' }}
         >
           <style>{`
@@ -376,7 +376,7 @@ export default function AccountsPage() {
           </div>
 
           {/* Right: action buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href={createTransitionsHref}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-emerald-500"

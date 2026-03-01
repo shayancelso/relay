@@ -59,12 +59,26 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             {getRoleLabel(role)}
           </div>
           <div className="hidden sm:block h-4 w-px bg-border/60" />
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">
+          <h2 className="text-sm font-semibold tracking-tight text-foreground truncate max-w-[120px] sm:max-w-none">
             {pageTitle}
           </h2>
         </div>
 
         {/* Center: Command palette trigger */}
+        {/* Mobile: icon-only button */}
+        <button
+          onClick={() => {
+            document.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })
+            )
+          }}
+          aria-label="Open command palette"
+          data-tour="search"
+          className="flex md:hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-muted/50 hover:text-muted-foreground"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+        {/* Desktop: full search bar */}
         <button
           onClick={() => {
             document.dispatchEvent(

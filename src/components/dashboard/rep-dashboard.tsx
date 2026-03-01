@@ -50,7 +50,7 @@ export function RepDashboard() {
     <div className="space-y-6">
       {/* Personalized Header */}
       <div className="rounded-2xl bg-gradient-to-r from-primary/[0.03] to-transparent border border-border/50 p-6" data-tour="metrics">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Good morning,</p>
             <h1 className="text-[22px] font-semibold tracking-tight mt-0.5">{me.full_name}</h1>
