@@ -53,6 +53,7 @@ interface EmailSectionProps {
   fromOwner: any
   toOwner: any
   briefContent?: string | null
+  triggerCompose?: number // increment to trigger composer from parent
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +227,7 @@ export function EmailSection({
   fromOwner,
   toOwner,
   briefContent,
+  triggerCompose,
 }: EmailSectionProps) {
   const [composing, setComposing] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -237,6 +239,15 @@ export function EmailSection({
   const [previewMode, setPreviewMode] = useState<'plain' | 'styled'>('plain')
   const [variant, setVariant] = useState<EmailVariant>('warm')
   const streamRef = useRef<NodeJS.Timeout | null>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  // Respond to external trigger from parent (Draft Email action button)
+  useEffect(() => {
+    if (triggerCompose && triggerCompose > 0) {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setTimeout(() => setComposing(true), 400)
+    }
+  }, [triggerCompose])
 
   useEffect(() => {
     return () => {
@@ -296,7 +307,7 @@ export function EmailSection({
   const previewEmail = emailList.find(e => e.id === previewId)
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card ref={cardRef} className="card-hover overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">

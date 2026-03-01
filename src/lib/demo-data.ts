@@ -69,13 +69,83 @@ export const demoOrg: Organization = {
 // ---------------------------------------------------------------------------
 // Team Members
 // ---------------------------------------------------------------------------
+// Helper to build a user object
+function u(id: string, name: string, email: string, role: 'admin' | 'manager' | 'rep', capacity: number, specialties: string[], created: string, cal?: string): User {
+  return { id, org_id: 'org-1', full_name: name, email, role, capacity, specialties, calendar_link: cal || null, avatar_url: null, created_at: created }
+}
+
 export const demoTeamMembers: User[] = [
-  { id: 'user-1', full_name: 'Sarah Chen', email: 'sarah.chen@wealthsimple.com', role: 'admin' as const, capacity: 0, specialties: ['Enterprise', 'FINS'], calendar_link: null, avatar_url: null, org_id: 'org-1', created_at: '2024-01-15' },
-  { id: 'user-2', full_name: 'Marcus Johnson', email: 'marcus.j@wealthsimple.com', role: 'manager' as const, capacity: 50, specialties: ['Corporate', 'Enterprise'], calendar_link: 'https://cal.com/marcus-j', avatar_url: null, org_id: 'org-1', created_at: '2024-02-01' },
-  { id: 'user-3', full_name: 'Elena Rodriguez', email: 'elena.r@wealthsimple.com', role: 'rep' as const, capacity: 400, specialties: ['Commercial', 'Corporate'], calendar_link: 'https://cal.com/elena-r', avatar_url: null, org_id: 'org-1', created_at: '2024-03-01' },
-  { id: 'user-4', full_name: 'David Kim', email: 'david.k@wealthsimple.com', role: 'rep' as const, capacity: 350, specialties: ['FINS', 'Enterprise'], calendar_link: 'https://cal.com/david-k', avatar_url: null, org_id: 'org-1', created_at: '2024-04-01' },
-  { id: 'user-5', full_name: 'Priya Patel', email: 'priya.p@wealthsimple.com', role: 'rep' as const, capacity: 400, specialties: ['Commercial', 'International'], calendar_link: 'https://cal.com/priya-p', avatar_url: null, org_id: 'org-1', created_at: '2024-05-01' },
-  { id: 'user-6', full_name: 'James O\'Brien', email: 'james.o@wealthsimple.com', role: 'rep' as const, capacity: 400, specialties: ['Corporate', 'FINS'], calendar_link: 'https://cal.com/james-o', avatar_url: null, org_id: 'org-1', created_at: '2024-06-01' },
+  // ── RevOps / Admin ──────────────────────────────────────────────────────
+  u('user-1', 'Sarah Chen', 'sarah.chen@wealthsimple.com', 'admin', 0, ['Enterprise', 'FINS'], '2024-01-15'),
+  u('user-49', 'Jasmine Okafor', 'jasmine.o@wealthsimple.com', 'admin', 0, ['Commercial', 'Corporate'], '2024-09-01'),
+  u('user-50', 'Liam Tremblay', 'liam.t@wealthsimple.com', 'admin', 0, ['FINS', 'International'], '2025-01-15'),
+
+  // ── Directors / Managers ────────────────────────────────────────────────
+  u('user-2', 'Marcus Johnson', 'marcus.j@wealthsimple.com', 'manager', 50, ['Corporate', 'Enterprise'], '2024-02-01', 'https://cal.com/marcus-j'),
+  u('user-4', 'David Kim', 'david.k@wealthsimple.com', 'manager', 200, ['Enterprise'], '2024-04-01', 'https://cal.com/david-k'),
+  u('user-5', 'Rachel Singh', 'rachel.s@wealthsimple.com', 'manager', 200, ['FINS'], '2024-03-15', 'https://cal.com/rachel-s'),
+  u('user-6', 'James O\'Brien', 'james.o@wealthsimple.com', 'manager', 200, ['Corporate'], '2024-06-01', 'https://cal.com/james-o'),
+  u('user-7', 'David Park', 'david.p@wealthsimple.com', 'manager', 180, ['Commercial'], '2024-05-01', 'https://cal.com/david-p'), // Recently promoted from rep → TL
+  u('user-8', 'Nina Volkov', 'nina.v@wealthsimple.com', 'manager', 200, ['International'], '2024-07-01', 'https://cal.com/nina-v'),
+
+  // ── Enterprise AMs ──────────────────────────────────────────────────────
+  u('user-3', 'Elena Rodriguez', 'elena.r@wealthsimple.com', 'rep', 400, ['Commercial', 'Corporate'], '2024-03-01', 'https://cal.com/elena-r'),
+  u('user-9', 'Nathan Brooks', 'nathan.b@wealthsimple.com', 'rep', 380, ['Enterprise'], '2024-04-15', 'https://cal.com/nathan-b'),
+  u('user-10', 'Aisha Mbeki', 'aisha.m@wealthsimple.com', 'rep', 400, ['Enterprise'], '2024-05-01', 'https://cal.com/aisha-m'),
+  u('user-11', 'Ryan O\'Sullivan', 'ryan.os@wealthsimple.com', 'rep', 350, ['Enterprise'], '2024-06-01', 'https://cal.com/ryan-os'),
+  u('user-12', 'Mei-Lin Wu', 'meilin.w@wealthsimple.com', 'rep', 380, ['Enterprise'], '2024-07-15', 'https://cal.com/meilin-w'),
+
+  // ── FINS AMs ────────────────────────────────────────────────────────────
+  u('user-13', 'Priya Patel', 'priya.p@wealthsimple.com', 'rep', 400, ['FINS'], '2024-05-01', 'https://cal.com/priya-p'),
+  u('user-14', 'Connor Walsh', 'connor.w@wealthsimple.com', 'rep', 380, ['FINS'], '2024-06-15', 'https://cal.com/connor-w'),
+  u('user-15', 'Sofia Gutierrez', 'sofia.g@wealthsimple.com', 'rep', 370, ['FINS', 'Enterprise'], '2024-08-01', 'https://cal.com/sofia-g'),
+  u('user-16', 'Takeshi Nakamura', 'takeshi.n@wealthsimple.com', 'rep', 360, ['FINS'], '2024-09-01', 'https://cal.com/takeshi-n'),
+
+  // ── Corporate AMs ───────────────────────────────────────────────────────
+  u('user-17', 'Amara Osei', 'amara.o@wealthsimple.com', 'rep', 400, ['Corporate'], '2024-04-01', 'https://cal.com/amara-o'),
+  u('user-18', 'Blake Harrison', 'blake.h@wealthsimple.com', 'rep', 380, ['Corporate'], '2024-05-15', 'https://cal.com/blake-h'),
+  u('user-19', 'Claire Beaumont', 'claire.b@wealthsimple.com', 'rep', 370, ['Corporate'], '2024-07-01', 'https://cal.com/claire-b'),
+  u('user-20', 'Derek Fong', 'derek.f@wealthsimple.com', 'rep', 390, ['Corporate', 'Commercial'], '2024-08-15', 'https://cal.com/derek-f'),
+  u('user-21', 'Emma Lindqvist', 'emma.l@wealthsimple.com', 'rep', 360, ['Corporate'], '2024-10-01', 'https://cal.com/emma-l'),
+  u('user-22', 'Farid Ansari', 'farid.a@wealthsimple.com', 'rep', 350, ['Corporate', 'FINS'], '2025-01-15', 'https://cal.com/farid-a'),
+
+  // ── Commercial AMs ──────────────────────────────────────────────────────
+  u('user-23', 'Grace Hwang', 'grace.h@wealthsimple.com', 'rep', 400, ['Commercial'], '2024-03-15', 'https://cal.com/grace-h'),
+  u('user-24', 'Hassan Iqbal', 'hassan.i@wealthsimple.com', 'rep', 380, ['Commercial'], '2024-05-01', 'https://cal.com/hassan-i'),
+  u('user-25', 'Isla Cameron', 'isla.c@wealthsimple.com', 'rep', 370, ['Commercial'], '2024-06-15', 'https://cal.com/isla-c'),
+  u('user-26', 'Javier Moreno', 'javier.m@wealthsimple.com', 'rep', 390, ['Commercial'], '2024-08-01', 'https://cal.com/javier-m'),
+  u('user-27', 'Katya Petrov', 'katya.p@wealthsimple.com', 'rep', 360, ['Commercial'], '2024-09-15', 'https://cal.com/katya-p'),
+  u('user-28', 'Lucas Martin', 'lucas.m@wealthsimple.com', 'rep', 380, ['Commercial'], '2024-11-01', 'https://cal.com/lucas-m'),
+  u('user-29', 'Maya Sharma', 'maya.s@wealthsimple.com', 'rep', 350, ['Commercial', 'International'], '2025-02-01', 'https://cal.com/maya-s'),
+  u('user-30', 'Oscar Delgado', 'oscar.d@wealthsimple.com', 'rep', 370, ['Commercial'], '2025-03-01', 'https://cal.com/oscar-d'),
+
+  // ── International AMs ───────────────────────────────────────────────────
+  u('user-31', 'Pia Johansson', 'pia.j@wealthsimple.com', 'rep', 380, ['International'], '2024-06-01', 'https://cal.com/pia-j'),
+  u('user-32', 'Ravi Krishnan', 'ravi.k@wealthsimple.com', 'rep', 370, ['International', 'FINS'], '2024-07-15', 'https://cal.com/ravi-k'),
+  u('user-33', 'Saoirse Murphy', 'saoirse.m@wealthsimple.com', 'rep', 360, ['International'], '2024-09-01', 'https://cal.com/saoirse-m'),
+  u('user-34', 'Tomas Eriksen', 'tomas.e@wealthsimple.com', 'rep', 380, ['International'], '2024-10-15', 'https://cal.com/tomas-e'),
+  u('user-35', 'Uma Devi', 'uma.d@wealthsimple.com', 'rep', 350, ['International'], '2025-01-01', 'https://cal.com/uma-d'),
+
+  // ── General / Cross-segment AMs ─────────────────────────────────────────
+  u('user-36', 'Victor Zheng', 'victor.z@wealthsimple.com', 'rep', 380, ['Enterprise', 'Corporate'], '2024-08-01', 'https://cal.com/victor-z'),
+  u('user-37', 'Wendy Adler', 'wendy.a@wealthsimple.com', 'rep', 370, ['Commercial', 'Corporate'], '2024-09-15', 'https://cal.com/wendy-a'),
+  u('user-38', 'Xavier Dupont', 'xavier.d@wealthsimple.com', 'rep', 360, ['FINS', 'International'], '2024-11-01', 'https://cal.com/xavier-d'),
+  u('user-39', 'Yara El-Amin', 'yara.e@wealthsimple.com', 'rep', 350, ['Corporate', 'FINS'], '2025-01-15', 'https://cal.com/yara-e'),
+  u('user-40', 'Zach Kowalski', 'zach.k@wealthsimple.com', 'rep', 380, ['Enterprise', 'Commercial'], '2025-02-01', 'https://cal.com/zach-k'),
+
+  // ── New Hires (joined Jan 2026 — smaller capacity, onboarding) ──────────
+  u('user-41', 'Aaliyah Washington', 'aaliyah.w@wealthsimple.com', 'rep', 200, ['Commercial'], '2026-01-06'),
+  u('user-42', 'Benoit Lafleur', 'benoit.l@wealthsimple.com', 'rep', 200, ['Corporate'], '2026-01-06'),
+  u('user-43', 'Chloe Tanaka', 'chloe.t@wealthsimple.com', 'rep', 180, ['FINS'], '2026-01-13'),
+
+  // ── Sales Engineers ─────────────────────────────────────────────────────
+  u('user-46', 'Diego Restrepo', 'diego.r@wealthsimple.com', 'rep', 300, ['Enterprise', 'FINS', 'Corporate'], '2024-06-01'),
+  u('user-47', 'Freya Andersen', 'freya.a@wealthsimple.com', 'rep', 300, ['Commercial', 'International'], '2024-08-01'),
+  u('user-48', 'Gavin Tate', 'gavin.t@wealthsimple.com', 'rep', 280, ['Enterprise', 'FINS'], '2025-03-01'),
+
+  // ── Departed ────────────────────────────────────────────────────────────
+  // Tyler Chen left the company in January 2026. His accounts are being redistributed.
+  u('user-51', 'Tyler Chen', 'tyler.c@wealthsimple.com', 'rep', 0, ['Enterprise', 'FINS'], '2024-02-15'),
 ]
 
 // ---------------------------------------------------------------------------
@@ -604,8 +674,13 @@ function generateAccounts(): Account[] {
   const usedNames = new Set<string>()
   let globalIndex = 0
 
-  // Reps that can own accounts (ids user-2 through user-6, skip admin user-1)
-  const repIds = ['user-2', 'user-3', 'user-4', 'user-5', 'user-6']
+  // Reps that can own accounts — expanded team
+  const enterpriseReps = ['user-9', 'user-10', 'user-11', 'user-12', 'user-36', 'user-40']
+  const finsReps = ['user-13', 'user-14', 'user-15', 'user-16', 'user-38']
+  const corporateReps = ['user-3', 'user-17', 'user-18', 'user-19', 'user-20', 'user-21', 'user-22', 'user-37', 'user-39']
+  const commercialReps = ['user-3', 'user-23', 'user-24', 'user-25', 'user-26', 'user-27', 'user-28', 'user-29', 'user-30']
+  const internationalReps = ['user-31', 'user-32', 'user-33', 'user-34', 'user-35']
+  const allReps = [...new Set([...enterpriseReps, ...finsReps, ...corporateReps, ...commercialReps, ...internationalReps])]
 
   for (const seg of segments) {
     // Track per-segment name index for segment-specific name pools
@@ -747,23 +822,22 @@ function generateAccounts(): Account[] {
         ? pick(finsIndustries, rng)
         : pick(generalIndustries, rng)
 
-      // Owner - distribute across reps based on segment specialties
+      // Owner - distribute across expanded team based on segment
       let ownerId: string
       if (seg.segment === 'enterprise') {
-        // Enterprise goes to user-2 (manager) or user-4 (FINS/Enterprise rep)
-        ownerId = rng() < 0.4 ? 'user-2' : (rng() < 0.5 ? 'user-4' : pick(repIds, rng))
+        // ~8% to Tyler (departed, accounts being transitioned), rest to enterprise reps
+        const r = rng()
+        ownerId = r < 0.08 ? 'user-51' : pick(enterpriseReps, rng)
       } else if (seg.segment === 'fins') {
-        // FINS goes primarily to user-4 and user-6
-        ownerId = rng() < 0.45 ? 'user-4' : (rng() < 0.6 ? 'user-6' : pick(repIds, rng))
+        const r = rng()
+        ownerId = r < 0.06 ? 'user-51' : pick(finsReps, rng)
       } else if (seg.segment === 'commercial') {
-        // Commercial goes primarily to user-3 and user-5
-        ownerId = rng() < 0.4 ? 'user-3' : (rng() < 0.5 ? 'user-5' : pick(repIds, rng))
+        ownerId = pick(commercialReps, rng)
       } else if (seg.segment === 'international') {
-        // International goes primarily to user-5
-        ownerId = rng() < 0.5 ? 'user-5' : pick(repIds, rng)
+        ownerId = pick(internationalReps, rng)
       } else {
-        // Corporate spread across user-3, user-6, user-2
-        ownerId = rng() < 0.35 ? 'user-3' : (rng() < 0.5 ? 'user-6' : (rng() < 0.6 ? 'user-2' : pick(repIds, rng)))
+        // Corporate
+        ownerId = pick(corporateReps, rng)
       }
 
       // Renewal date spread across next 12 months from Jan 2026
@@ -812,37 +886,38 @@ function generateContacts(): AccountContact[] {
   const contacts: AccountContact[] = []
   const rng = seededRandom(7777)
 
-  // Pick key accounts - top accounts by ARR across different segments
+  // Top 200 accounts by ARR get 2-4 contacts each (~600 total)
   const sortedByArr = [...demoAccounts].sort((a, b) => b.arr - a.arr)
-  const keyAccounts = sortedByArr.slice(0, 20)
-  // Also add some mid-tier accounts
-  const midAccounts = sortedByArr.slice(100, 110)
-  const contactAccounts = [...keyAccounts, ...midAccounts]
+  const contactAccounts = sortedByArr.slice(0, 200)
 
   const roles: Array<'champion' | 'decision_maker' | 'end_user' | 'exec_sponsor'> = [
     'champion', 'decision_maker', 'end_user', 'exec_sponsor',
   ]
 
-  for (let i = 0; i < 30; i++) {
-    const account = contactAccounts[i % contactAccounts.length]
-    const firstName = firstNames[pickIndex(firstNames.length, rng)]
-    const lastName = lastNames[pickIndex(lastNames.length, rng)]
-    const name = `${firstName} ${lastName}`
-    const title = contactTitles[pickIndex(contactTitles.length, rng)]
-    const role = roles[pickIndex(roles.length, rng)]
-    const emailDomain = account.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15)
+  let contactIdx = 0
+  for (const account of contactAccounts) {
+    const numContacts = rangeInt(2, 4, rng)
+    for (let j = 0; j < numContacts; j++) {
+      contactIdx++
+      const firstName = firstNames[pickIndex(firstNames.length, rng)]
+      const lastName = lastNames[pickIndex(lastNames.length, rng)]
+      const name = `${firstName} ${lastName}`
+      const title = contactTitles[pickIndex(contactTitles.length, rng)]
+      const role = j === 0 ? 'decision_maker' as const : roles[pickIndex(roles.length, rng)]
+      const emailDomain = account.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15)
 
-    contacts.push({
-      id: `contact-${i + 1}`,
-      account_id: account.id,
-      name,
-      title,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/'/g, '')}@${emailDomain}.com`,
-      phone: `+1-${rangeInt(200, 999, rng)}-${rangeInt(100, 999, rng)}-${rangeInt(1000, 9999, rng)}`,
-      role,
-      is_primary: i % contactAccounts.length === 0, // First contact per account is primary
-      created_at: '2025-06-15',
-    })
+      contacts.push({
+        id: `contact-${contactIdx}`,
+        account_id: account.id,
+        name,
+        title,
+        email: `${firstName.toLowerCase()}.${lastName.toLowerCase().replace(/'/g, '')}@${emailDomain}.com`,
+        phone: `+1-${rangeInt(200, 999, rng)}-${rangeInt(100, 999, rng)}-${rangeInt(1000, 9999, rng)}`,
+        role,
+        is_primary: j === 0,
+        created_at: '2025-06-15',
+      })
+    }
   }
 
   return contacts
@@ -857,71 +932,144 @@ export const demoContacts: AccountContact[] = generateContacts()
 function generateTransitions(): Transition[] {
   const transitions: Transition[] = []
   const rng = seededRandom(9999)
+  let idx = 0
 
-  const statuses: Array<'draft' | 'pending_approval' | 'approved' | 'intro_sent' | 'meeting_booked' | 'in_progress' | 'completed' | 'stalled'> = [
-    'draft', 'pending_approval', 'approved', 'intro_sent',
-    'meeting_booked', 'in_progress', 'completed', 'stalled',
-  ]
+  const allActiveReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0).map(m => m.id)
+  const enterprisePool = ['user-9', 'user-10', 'user-11', 'user-12', 'user-36', 'user-40']
+  const finsPool = ['user-13', 'user-14', 'user-15', 'user-16', 'user-38']
+  const corporatePool = ['user-17', 'user-18', 'user-19', 'user-20', 'user-21', 'user-22']
+  const commercialPool = ['user-23', 'user-24', 'user-25', 'user-26', 'user-27', 'user-28', 'user-29', 'user-30']
+  const internationalPool = ['user-31', 'user-32', 'user-33', 'user-34', 'user-35']
+  const newHires = ['user-41', 'user-42', 'user-43']
 
-  const reasons: Array<'territory_change' | 'rep_departure' | 'rebalance' | 'promotion' | 'performance'> = [
-    'territory_change', 'rep_departure', 'rebalance', 'promotion', 'performance',
-  ]
+  // Sort accounts by ARR for picking transition targets
+  const byArr = [...demoAccounts].sort((a, b) => b.arr - a.arr)
+  const tylerAccounts = demoAccounts.filter(a => a.current_owner_id === 'user-51')
+  const davidAccounts = demoAccounts.filter(a => a.current_owner_id === 'user-7').slice(0, 30)
+  const elenaAccounts = demoAccounts.filter(a => a.current_owner_id === 'user-3')
 
-  const priorities: Array<'critical' | 'high' | 'medium' | 'low'> = [
-    'critical', 'high', 'medium', 'low',
-  ]
-
-  const repIds = ['user-2', 'user-3', 'user-4', 'user-5', 'user-6']
-
-  // Pick accounts for transitions - mix of high-value and mid-value
-  const sortedByArr = [...demoAccounts].sort((a, b) => b.arr - a.arr)
-  const transitionAccounts = [
-    ...sortedByArr.slice(0, 8),    // top 8
-    ...sortedByArr.slice(50, 56),  // mid-high 6
-    ...sortedByArr.slice(200, 206), // mid 6
-  ]
-
-  for (let i = 0; i < 20; i++) {
-    const account = transitionAccounts[i % transitionAccounts.length]
-    const status = statuses[i % statuses.length]
-    const reason = reasons[pickIndex(reasons.length, rng)]
-    const priority = priorities[pickIndex(priorities.length, rng)]
-
-    // From owner is current owner, to owner is different
-    const fromOwnerId = account.current_owner_id || 'user-3'
-    let toOwnerId: string
-    do {
-      toOwnerId = repIds[pickIndex(repIds.length, rng)]
-    } while (toOwnerId === fromOwnerId)
-
-    const createdDay = rangeInt(1, 28, rng)
-    const createdMonth = rangeInt(9, 12, rng)
-    const createdAt = dateStr(2025, createdMonth, createdDay)
-
-    const dueMonth = rangeInt(1, 3, rng)
-    const dueDay = rangeInt(1, 28, rng)
-    const dueDate = dateStr(2026, dueMonth, dueDay)
-
-    const completedAt = status === 'completed'
-      ? dateStr(2025, rangeInt(11, 12, rng), rangeInt(1, 28, rng))
-      : null
-
-    transitions.push({
-      id: `trans-${i + 1}`,
-      org_id: 'org-1',
-      account_id: account.id,
-      from_owner_id: fromOwnerId,
-      to_owner_id: toOwnerId,
-      status,
-      reason,
-      priority,
-      due_date: dueDate,
-      completed_at: completedAt,
-      notes: transitionNotes[i % transitionNotes.length],
-      created_at: createdAt,
-      updated_at: createdAt,
-    })
+  function pickTo(from: string, pool: string[]): string {
+    let to: string
+    do { to = pool[pickIndex(pool.length, rng)] } while (to === from && pool.length > 1)
+    return to
   }
+
+  function addTransition(
+    accountPool: Account[], count: number,
+    reason: 'territory_change' | 'rep_departure' | 'rebalance' | 'promotion' | 'performance',
+    statusDist: Record<string, number>,
+    priorityDist: Array<'critical' | 'high' | 'medium' | 'low'>,
+    createdRange: { yearStart: number; monthStart: number; monthEnd: number },
+    toPool: string[],
+    opts?: { forceFrom?: string; notePrefix?: string }
+  ) {
+    // Build status array from distribution
+    const statusArr: string[] = []
+    for (const [s, n] of Object.entries(statusDist)) for (let k = 0; k < n; k++) statusArr.push(s)
+
+    for (let i = 0; i < count && i < accountPool.length; i++) {
+      idx++
+      const account = accountPool[i % accountPool.length]
+      const status = (statusArr[i % statusArr.length] || 'draft') as Transition['status']
+      const priority = priorityDist[i % priorityDist.length]
+      const fromOwnerId = opts?.forceFrom || account.current_owner_id || 'user-3'
+      const toOwnerId = pickTo(fromOwnerId, toPool)
+      const cMonth = rangeInt(createdRange.monthStart, createdRange.monthEnd, rng)
+      const cDay = rangeInt(1, 28, rng)
+      const createdAt = dateStr(createdRange.yearStart, cMonth, cDay)
+      const dueDate = dateStr(2026, Math.min(12, cMonth + rangeInt(1, 3, rng)), rangeInt(1, 28, rng))
+      const completedAt = status === 'completed' ? dateStr(2026, Math.min(12, cMonth + 1), rangeInt(1, 28, rng)) : null
+      const noteBase = opts?.notePrefix ? `${opts.notePrefix} ` : ''
+
+      transitions.push({
+        id: `trans-${idx}`,
+        org_id: 'org-1',
+        account_id: account.id,
+        from_owner_id: fromOwnerId,
+        to_owner_id: toOwnerId,
+        status,
+        reason,
+        priority,
+        due_date: dueDate,
+        completed_at: completedAt,
+        notes: noteBase + transitionNotes[idx % transitionNotes.length],
+        created_at: createdAt,
+        updated_at: completedAt || createdAt,
+      })
+    }
+  }
+
+  // ── Wave 1: Q4 2025 Territory Realignment (~75) ────────────────────────
+  addTransition(byArr.slice(20, 95), 75, 'territory_change',
+    { completed: 50, in_progress: 15, stalled: 10 },
+    ['medium', 'medium', 'high', 'medium', 'low'],
+    { yearStart: 2025, monthStart: 10, monthEnd: 11 },
+    allActiveReps,
+    { notePrefix: '[Q4 Territory Realignment]' }
+  )
+
+  // ── Wave 2: Tyler Chen's Departure (~45) ──────────────────────────────
+  addTransition(tylerAccounts.length > 0 ? tylerAccounts : byArr.slice(0, 45), Math.min(45, tylerAccounts.length || 45), 'rep_departure',
+    { completed: 10, in_progress: 15, meeting_booked: 5, intro_sent: 5, approved: 5, stalled: 5 },
+    ['critical', 'high', 'critical', 'high', 'medium'],
+    { yearStart: 2026, monthStart: 1, monthEnd: 1 },
+    [...enterprisePool, ...finsPool],
+    { forceFrom: 'user-51', notePrefix: '[Tyler Chen Departure]' }
+  )
+
+  // ── Wave 3: David Park's Promotion (~30) ──────────────────────────────
+  addTransition(davidAccounts.length > 0 ? davidAccounts : byArr.slice(300, 330), Math.min(30, davidAccounts.length || 30), 'promotion',
+    { draft: 10, pending_approval: 8, approved: 5, intro_sent: 4, meeting_booked: 3 },
+    ['medium', 'low', 'medium', 'low', 'medium'],
+    { yearStart: 2026, monthStart: 2, monthEnd: 2 },
+    commercialPool,
+    { forceFrom: 'user-7', notePrefix: '[David Park Promotion to TL]' }
+  )
+
+  // ── Wave 4: Q1 Rebalancing (~50) ─────────────────────────────────────
+  addTransition(byArr.slice(100, 150), 50, 'rebalance',
+    { completed: 8, in_progress: 12, meeting_booked: 8, intro_sent: 7, approved: 5, pending_approval: 5, draft: 5 },
+    ['medium', 'medium', 'high', 'low', 'medium'],
+    { yearStart: 2026, monthStart: 1, monthEnd: 2 },
+    allActiveReps,
+    { notePrefix: '[Q1 Rebalancing]' }
+  )
+
+  // ── Wave 5: Performance Reassignments (~20) ──────────────────────────
+  const lowHealthAccounts = demoAccounts.filter(a => a.health_score < 40).slice(0, 20)
+  addTransition(lowHealthAccounts.length > 0 ? lowHealthAccounts : byArr.slice(400, 420), 20, 'performance',
+    { in_progress: 10, stalled: 6, approved: 4 },
+    ['high', 'high', 'critical', 'high'],
+    { yearStart: 2025, monthStart: 12, monthEnd: 12 },
+    [...enterprisePool.slice(0, 2), ...corporatePool.slice(0, 2)],
+    { notePrefix: '[Performance Reassignment]' }
+  )
+
+  // ── Wave 6: New Hire Onboarding (~50) ─────────────────────────────────
+  addTransition(byArr.slice(500, 550), 50, 'rebalance',
+    { draft: 20, pending_approval: 15, approved: 8, intro_sent: 4, meeting_booked: 3 },
+    ['low', 'low', 'medium', 'low'],
+    { yearStart: 2026, monthStart: 1, monthEnd: 2 },
+    newHires,
+    { notePrefix: '[New Hire Onboarding]' }
+  )
+
+  // ── Wave 7: Misc / Elena's transitions (~30) ─────────────────────────
+  // Elena (user-3) involved in ~15 transitions for the rep persona view
+  const elenaPool = elenaAccounts.length > 0 ? elenaAccounts.slice(0, 15) : byArr.slice(200, 215)
+  addTransition(elenaPool, 15, 'rebalance',
+    { in_progress: 4, meeting_booked: 3, intro_sent: 3, pending_approval: 2, draft: 2, completed: 1 },
+    ['medium', 'high', 'medium', 'low'],
+    { yearStart: 2026, monthStart: 1, monthEnd: 2 },
+    ['user-3'],
+    { notePrefix: '[Account Assignment]' }
+  )
+  addTransition(byArr.slice(600, 615), 15, 'territory_change',
+    { completed: 5, in_progress: 4, approved: 3, stalled: 3 },
+    ['medium', 'medium', 'high', 'low'],
+    { yearStart: 2025, monthStart: 11, monthEnd: 12 },
+    allActiveReps
+  )
 
   return transitions
 }
@@ -936,32 +1084,132 @@ function generateActivities(): TransitionActivity[] {
   const activities: TransitionActivity[] = []
   const rng = seededRandom(5555)
 
-  const activityTypes: Array<'status_change' | 'brief_generated' | 'email_sent' | 'meeting_booked' | 'note_added'> = [
-    'status_change', 'brief_generated', 'email_sent', 'meeting_booked', 'note_added',
-  ]
+  // Status progression order for building realistic activity trails
+  const statusOrder = ['draft', 'pending_approval', 'approved', 'intro_sent', 'meeting_booked', 'in_progress', 'completed']
 
-  const repIds = ['user-1', 'user-2', 'user-3', 'user-4', 'user-5', 'user-6']
+  const allUserIds = demoTeamMembers.map(m => m.id)
 
-  for (let i = 0; i < 15; i++) {
-    const transitionIdx = i % demoTransitions.length
-    const transition = demoTransitions[transitionIdx]
-    const type = activityTypes[i % activityTypes.length]
+  let actIdx = 0
 
-    const day = rangeInt(1, 28, rng)
-    const month = rangeInt(10, 12, rng)
+  for (const transition of demoTransitions) {
+    // Determine how far this transition has progressed
+    const currentIdx = statusOrder.indexOf(transition.status)
+    const stagesReached = currentIdx >= 0 ? currentIdx + 1 : 1
 
-    activities.push({
-      id: `activity-${i + 1}`,
-      org_id: 'org-1',
-      transition_id: transition.id,
-      type,
-      description: activityDescriptions[i % activityDescriptions.length],
-      metadata: type === 'status_change'
-        ? { from_status: 'draft', to_status: transition.status }
-        : {},
-      created_by: repIds[pickIndex(repIds.length, rng)],
-      created_at: dateStr(2025, month, day),
-    })
+    // Parse transition created_at to build date progression
+    const parts = transition.created_at.split('-').map(Number)
+    let baseYear = parts[0]
+    let baseMonth = parts[1]
+    let baseDay = parts[2]
+
+    // Generate status_change activities for each stage reached
+    for (let stage = 0; stage < stagesReached; stage++) {
+      actIdx++
+      const fromStatus = stage === 0 ? 'draft' : statusOrder[stage - 1]
+      const toStatus = statusOrder[stage]
+
+      // Advance date by 1-4 days per stage
+      baseDay += rangeInt(1, 4, rng)
+      if (baseDay > 28) { baseDay = baseDay - 28; baseMonth++ }
+      if (baseMonth > 12) { baseMonth = 1; baseYear++ }
+
+      activities.push({
+        id: `activity-${actIdx}`,
+        org_id: 'org-1',
+        transition_id: transition.id,
+        type: 'status_change',
+        description: `Status changed from ${fromStatus.replace(/_/g, ' ')} to ${toStatus.replace(/_/g, ' ')}`,
+        metadata: { from_status: fromStatus, to_status: toStatus },
+        created_by: allUserIds[pickIndex(allUserIds.length, rng)],
+        created_at: dateStr(baseYear, baseMonth, Math.min(28, baseDay)),
+      })
+    }
+
+    // Add brief_generated after approval stage
+    if (currentIdx >= 2) {
+      actIdx++
+      baseDay += rangeInt(0, 1, rng)
+      activities.push({
+        id: `activity-${actIdx}`,
+        org_id: 'org-1',
+        transition_id: transition.id,
+        type: 'brief_generated',
+        description: 'Account brief generated by AI',
+        metadata: {},
+        created_by: 'user-1',
+        created_at: dateStr(baseYear, baseMonth, Math.min(28, baseDay)),
+      })
+    }
+
+    // Add email_sent after intro_sent
+    if (currentIdx >= 3) {
+      actIdx++
+      baseDay += rangeInt(1, 2, rng)
+      if (baseDay > 28) { baseDay = baseDay - 28; baseMonth++ }
+      if (baseMonth > 12) { baseMonth = 1; baseYear++ }
+      activities.push({
+        id: `activity-${actIdx}`,
+        org_id: 'org-1',
+        transition_id: transition.id,
+        type: 'email_sent',
+        description: 'Introduction email sent to client contacts',
+        metadata: {},
+        created_by: transition.to_owner_id || allUserIds[pickIndex(allUserIds.length, rng)],
+        created_at: dateStr(baseYear, baseMonth, Math.min(28, baseDay)),
+      })
+    }
+
+    // Add meeting_booked
+    if (currentIdx >= 4) {
+      actIdx++
+      baseDay += rangeInt(2, 5, rng)
+      if (baseDay > 28) { baseDay = baseDay - 28; baseMonth++ }
+      if (baseMonth > 12) { baseMonth = 1; baseYear++ }
+      activities.push({
+        id: `activity-${actIdx}`,
+        org_id: 'org-1',
+        transition_id: transition.id,
+        type: 'meeting_booked',
+        description: 'Introductory meeting scheduled with client',
+        metadata: {},
+        created_by: transition.to_owner_id || allUserIds[pickIndex(allUserIds.length, rng)],
+        created_at: dateStr(baseYear, baseMonth, Math.min(28, baseDay)),
+      })
+    }
+
+    // Add 1-3 note_added activities for variety
+    const extraNotes = rangeInt(1, 3, rng)
+    for (let n = 0; n < extraNotes; n++) {
+      actIdx++
+      baseDay += rangeInt(1, 3, rng)
+      if (baseDay > 28) { baseDay = baseDay - 28; baseMonth++ }
+      if (baseMonth > 12) { baseMonth = 1; baseYear++ }
+      activities.push({
+        id: `activity-${actIdx}`,
+        org_id: 'org-1',
+        transition_id: transition.id,
+        type: 'note_added',
+        description: activityDescriptions[pickIndex(activityDescriptions.length, rng)],
+        metadata: {},
+        created_by: allUserIds[pickIndex(allUserIds.length, rng)],
+        created_at: dateStr(baseYear, baseMonth, Math.min(28, baseDay)),
+      })
+    }
+
+    // Stalled transitions get an extra note about being stuck
+    if (transition.status === 'stalled') {
+      actIdx++
+      activities.push({
+        id: `activity-${actIdx}`,
+        org_id: 'org-1',
+        transition_id: transition.id,
+        type: 'note_added',
+        description: 'Transition stalled — client unresponsive after multiple outreach attempts',
+        metadata: {},
+        created_by: transition.to_owner_id || 'user-2',
+        created_at: dateStr(baseYear, baseMonth, Math.min(28, baseDay)),
+      })
+    }
   }
 
   return activities
@@ -983,7 +1231,7 @@ export const demoRules: AssignmentRule[] = [
         field: 'segment',
         operator: 'equals' as const,
         value: 'fins',
-        action: { type: 'assign_pool' as const, target_ids: ['user-4', 'user-6'] },
+        action: { type: 'assign_pool' as const, target_ids: ['user-13', 'user-14', 'user-15', 'user-16'] },
       },
     ],
     is_active: true,
@@ -1000,7 +1248,7 @@ export const demoRules: AssignmentRule[] = [
         field: 'segment',
         operator: 'equals' as const,
         value: 'enterprise',
-        action: { type: 'assign_pool' as const, target_ids: ['user-2', 'user-4'] },
+        action: { type: 'assign_pool' as const, target_ids: ['user-9', 'user-10', 'user-11', 'user-12'] },
       },
     ],
     is_active: true,
@@ -1017,7 +1265,7 @@ export const demoRules: AssignmentRule[] = [
         field: 'segment',
         operator: 'equals' as const,
         value: 'international',
-        action: { type: 'assign_pool' as const, target_ids: ['user-5'] },
+        action: { type: 'assign_pool' as const, target_ids: ['user-31', 'user-32', 'user-33', 'user-34', 'user-35'] },
       },
     ],
     is_active: true,
@@ -1034,7 +1282,7 @@ export const demoRules: AssignmentRule[] = [
         field: 'arr',
         operator: 'greater_than' as const,
         value: 500000,
-        action: { type: 'assign_pool' as const, target_ids: ['user-2', 'user-4'] },
+        action: { type: 'assign_pool' as const, target_ids: ['user-9', 'user-10', 'user-36'] },
       },
     ],
     is_active: true,
@@ -1068,13 +1316,114 @@ export const demoRules: AssignmentRule[] = [
         field: 'health_score',
         operator: 'less_than' as const,
         value: 30,
-        action: { type: 'assign_pool' as const, target_ids: ['user-2', 'user-3'] },
+        action: { type: 'assign_pool' as const, target_ids: ['user-9', 'user-10', 'user-17'] },
       },
     ],
     is_active: true,
     priority: 6,
     created_at: '2025-03-15',
     updated_at: '2025-03-15',
+  },
+  {
+    id: 'rule-7',
+    org_id: 'org-1',
+    name: 'New hire account cap (max 20)',
+    rules: [
+      {
+        field: 'segment',
+        operator: 'in' as const,
+        value: ['commercial', 'corporate'],
+        action: { type: 'round_robin' as const, target_ids: ['user-41', 'user-42', 'user-43'] },
+      },
+    ],
+    is_active: true,
+    priority: 7,
+    created_at: '2026-01-10',
+    updated_at: '2026-01-10',
+  },
+  {
+    id: 'rule-8',
+    org_id: 'org-1',
+    name: 'Renewal proximity escalation (< 60 days)',
+    rules: [
+      {
+        field: 'arr',
+        operator: 'greater_than' as const,
+        value: 100000,
+      },
+    ],
+    is_active: true,
+    priority: 8,
+    created_at: '2025-06-01',
+    updated_at: '2025-11-15',
+  },
+  {
+    id: 'rule-9',
+    org_id: 'org-1',
+    name: 'Critical health auto-alert (score < 25)',
+    rules: [
+      {
+        field: 'health_score',
+        operator: 'less_than' as const,
+        value: 25,
+        action: { type: 'assign_pool' as const, target_ids: ['user-1', 'user-49'] },
+      },
+    ],
+    is_active: true,
+    priority: 9,
+    created_at: '2025-08-01',
+    updated_at: '2025-08-01',
+  },
+  {
+    id: 'rule-10',
+    org_id: 'org-1',
+    name: 'EMEA routing to International team',
+    rules: [
+      {
+        field: 'segment',
+        operator: 'equals' as const,
+        value: 'international',
+        action: { type: 'assign_pool' as const, target_ids: ['user-31', 'user-32', 'user-33', 'user-34', 'user-35'] },
+      },
+    ],
+    is_active: true,
+    priority: 10,
+    created_at: '2025-09-01',
+    updated_at: '2025-09-01',
+  },
+  {
+    id: 'rule-11',
+    org_id: 'org-1',
+    name: 'Strategic accounts ($1M+ ARR)',
+    rules: [
+      {
+        field: 'arr',
+        operator: 'greater_than' as const,
+        value: 1000000,
+        action: { type: 'assign_pool' as const, target_ids: ['user-9', 'user-10', 'user-36'] },
+      },
+    ],
+    is_active: true,
+    priority: 11,
+    created_at: '2025-10-01',
+    updated_at: '2025-10-01',
+  },
+  {
+    id: 'rule-12',
+    org_id: 'org-1',
+    name: 'Stalled transition auto-escalation',
+    rules: [
+      {
+        field: 'health_score',
+        operator: 'less_than' as const,
+        value: 50,
+        action: { type: 'assign_pool' as const, target_ids: ['user-2', 'user-4', 'user-5'] },
+      },
+    ],
+    is_active: true,
+    priority: 12,
+    created_at: '2025-11-01',
+    updated_at: '2025-11-01',
   },
 ]
 
@@ -1275,10 +1624,10 @@ export function getDemoWorkload(): RepWorkload[] {
 }
 
 /**
- * Get the most recent activities (last 20)
+ * Get the most recent activities (last 50)
  */
 export function getDemoRecentActivities(): TransitionActivity[] {
   return [...demoActivities]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 20)
+    .slice(0, 50)
 }

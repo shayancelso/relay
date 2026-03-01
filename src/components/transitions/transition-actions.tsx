@@ -210,6 +210,10 @@ interface TransitionActionsProps {
   currentStatus: string
   hasBrief: boolean
   createdAt: string
+  onGenerateBrief?: () => void
+  onDraftEmail?: () => void
+  onScheduleMeeting?: () => void
+  onAddNote?: () => void
 }
 
 // ─── main component ──────────────────────────────────────────────────────────
@@ -219,6 +223,10 @@ export function TransitionActions({
   currentStatus: initialStatus,
   hasBrief: _hasBrief,
   createdAt,
+  onGenerateBrief,
+  onDraftEmail,
+  onScheduleMeeting,
+  onAddNote,
 }: TransitionActionsProps) {
   const [status, setStatus] = useState(initialStatus)
 
@@ -257,27 +265,19 @@ export function TransitionActions({
   // ── quick action handlers ───────────────────────────────────────────────
 
   function handleGenerateBrief() {
-    toast.success('Generating transition brief…', {
-      description: 'This will appear in the Briefs section shortly.',
-    })
+    onGenerateBrief?.()
   }
 
   function handleDraftEmail() {
-    toast.success('Opening email composer…', {
-      description: 'Draft email template loaded.',
-    })
+    onDraftEmail?.()
   }
 
   function handleScheduleMeeting() {
-    toast.success('Opening meeting scheduler…', {
-      description: 'Checking calendar availability.',
-    })
+    onScheduleMeeting?.()
   }
 
   function handleAddNote() {
-    toast.success('Opening note editor…', {
-      description: 'Add a note to this transition.',
-    })
+    onAddNote?.()
   }
 
   // ── render ──────────────────────────────────────────────────────────────

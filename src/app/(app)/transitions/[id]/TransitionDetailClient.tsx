@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import {
   formatCurrency,
   formatDate,
@@ -12,7 +15,7 @@ import {
   getPriorityColor,
   getHealthBg,
 } from '@/lib/utils'
-import { ArrowRight, Building2, Calendar, DollarSign, Check } from 'lucide-react'
+import { ArrowRight, Building2, Calendar, DollarSign, Check, X, Send, MessageSquare, Video } from 'lucide-react'
 import { TransitionActions } from '@/components/transitions/transition-actions'
 import { TransitionTimeline } from '@/components/transitions/transition-timeline'
 import { ApprovalHistory } from '@/components/transitions/approval-history'
@@ -53,6 +56,16 @@ export function TransitionDetailClient({
   emails,
 }: TransitionDetailClientProps) {
   const [currentStatus, setCurrentStatus] = useState<string>(transition.status)
+  const [briefTrigger, setBriefTrigger] = useState(0)
+  const [emailTrigger, setEmailTrigger] = useState(0)
+  const [showMeetingScheduler, setShowMeetingScheduler] = useState(false)
+  const [meetingDate, setMeetingDate] = useState('')
+  const [meetingTime, setMeetingTime] = useState('')
+  const [showNoteInput, setShowNoteInput] = useState(false)
+  const [noteText, setNoteText] = useState('')
+  const [addedNotes, setAddedNotes] = useState<{ text: string; time: string }[]>([])
+  const meetingRef = useRef<HTMLDivElement>(null)
+  const noteRef = useRef<HTMLDivElement>(null)
 
   const currentStepIdx = STATUS_STEPS.indexOf(currentStatus)
 
@@ -206,6 +219,16 @@ export function TransitionDetailClient({
         currentStatus={currentStatus}
         hasBrief={!!brief}
         createdAt={transition.created_at}
+        onGenerateBrief={() => setBriefTrigger(n => n + 1)}
+        onDraftEmail={() => setEmailTrigger(n => n + 1)}
+        onScheduleMeeting={() => {
+          setShowMeetingScheduler(true)
+          setTimeout(() => meetingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+        }}
+        onAddNote={() => {
+          setShowNoteInput(true)
+          setTimeout(() => noteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+        }}
       />
 
       {/* Main content */}
@@ -221,6 +244,7 @@ export function TransitionDetailClient({
               fromOwner={fromOwner}
               toOwner={toOwner}
               notes={transition.notes}
+              triggerGenerate={briefTrigger}
             />
           </div>
 
@@ -233,16 +257,152 @@ export function TransitionDetailClient({
             fromOwner={fromOwner}
             toOwner={toOwner}
             briefContent={brief?.content}
+            triggerCompose={emailTrigger}
           />
 
+          {/* Meeting Scheduler */}
+          {showMeetingScheduler && (
+            <Card ref={meetingRef} className="border-violet-200 bg-violet-50/30">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4 text-violet-600" />
+                    <CardTitle className="text-sm">Schedule Handoff Meeting</CardTitle>
+                  </div>
+                  <button
+                    onClick={() => setShowMeetingScheduler(false)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
+                    <Input
+                      type="date"
+                      value={meetingDate}
+                      onChange={e => setMeetingDate(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Time</label>
+                    <Input
+                      type="time"
+                      value={meetingTime}
+                      onChange={e => setMeetingTime(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!meetingDate || !meetingTime) {
+                        toast.error('Please select a date and time')
+                        return
+                      }
+                      toast.success('Meeting scheduled', {
+                        description: `Handoff meeting set for ${meetingDate} at ${meetingTime}. Calendar invites sent to ${fromOwner?.full_name || 'outgoing AM'}, ${toOwner?.full_name || 'incoming AM'}, and key contacts.`,
+                      })
+                      setShowMeetingScheduler(false)
+                      setMeetingDate('')
+                      setMeetingTime('')
+                    }}
+                    className="h-8 text-xs gap-1.5"
+                  >
+                    <Calendar className="h-3.5 w-3.5" />
+                    Schedule & Send Invites
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowMeetingScheduler(false)}
+                    className="h-8 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Add Note */}
+          {showNoteInput && (
+            <Card ref={noteRef} className="border-stone-200 bg-stone-50/30">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-stone-500" />
+                    <CardTitle className="text-sm">Add Note</CardTitle>
+                  </div>
+                  <button
+                    onClick={() => { setShowNoteInput(false); setNoteText('') }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Textarea
+                  placeholder="Add a note about this transition..."
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  rows={3}
+                  className="text-sm resize-none"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!noteText.trim()) {
+                        toast.error('Please enter a note')
+                        return
+                      }
+                      setAddedNotes(prev => [...prev, { text: noteText.trim(), time: new Date().toLocaleString() }])
+                      toast.success('Note added')
+                      setNoteText('')
+                      setShowNoteInput(false)
+                    }}
+                    className="h-8 text-xs gap-1.5"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Save Note
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setShowNoteInput(false); setNoteText('') }}
+                    className="h-8 text-xs"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Notes */}
-          {transition.notes && (
+          {(transition.notes || addedNotes.length > 0) && (
             <Card>
               <CardHeader>
                 <CardTitle>Notes</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm whitespace-pre-wrap">{transition.notes}</p>
+              <CardContent className="space-y-3">
+                {transition.notes && (
+                  <p className="text-sm whitespace-pre-wrap">{transition.notes}</p>
+                )}
+                {addedNotes.map((note, i) => (
+                  <div key={i} className="rounded-lg border bg-muted/20 p-3">
+                    <p className="text-sm whitespace-pre-wrap">{note.text}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{note.time}</p>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           )}

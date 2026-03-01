@@ -35,6 +35,7 @@ interface BriefSectionProps {
   fromOwner: any
   toOwner: any
   notes: string | null
+  triggerGenerate?: number // increment to trigger generation from parent
 }
 
 // ---------------------------------------------------------------------------
@@ -611,6 +612,7 @@ export function BriefSection({
   fromOwner,
   toOwner,
   notes,
+  triggerGenerate,
 }: BriefSectionProps) {
   const [content, setContent] = useState(brief?.content || '')
   const [generating, setGenerating] = useState(false)
@@ -625,6 +627,16 @@ export function BriefSection({
   const [sectionContents, setSectionContents] = useState<Record<string, string>>({})
   const streamRef = useRef<NodeJS.Timeout | null>(null)
   const regenRef = useRef<NodeJS.Timeout | null>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  // Respond to external trigger from parent (Generate Brief action button)
+  useEffect(() => {
+    if (triggerGenerate && triggerGenerate > 0) {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setTimeout(() => generateBrief(), 400)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerGenerate])
 
   // Streaming generation
   function generateBrief() {
@@ -690,7 +702,7 @@ export function BriefSection({
   const hasContent = generating || !!content
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card ref={cardRef} className="card-hover overflow-hidden">
       {/* Generation progress bar */}
       {generating && (
         <div className="h-0.5 w-full bg-muted overflow-hidden">
