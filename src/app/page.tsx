@@ -27,6 +27,7 @@ import {
   Minus,
 } from 'lucide-react'
 
+import { RequestDemoModal } from '@/components/landing/request-demo-modal'
 import { BlurFade } from '@/components/ui/blur-fade'
 import { DotPattern } from '@/components/ui/dot-pattern'
 import { ShimmerButton } from '@/components/ui/shimmer-button'
@@ -253,7 +254,7 @@ const pricingTiers = [
   },
 ]
 
-function PricingSection({ onStartTrial }: { onStartTrial: () => void }) {
+function PricingSection({ onStartTrial, onContactSales }: { onStartTrial: () => void; onContactSales: () => void }) {
   return (
     <section id="pricing" className="py-16 md:py-32 border-t border-white/[0.04]">
       <div className="max-w-7xl mx-auto px-6">
@@ -326,7 +327,13 @@ function PricingSection({ onStartTrial }: { onStartTrial: () => void }) {
                 ) : (
                   <a
                     href={tier.href === '/onboarding' ? undefined : tier.href}
-                    onClick={tier.href === '/onboarding' ? onStartTrial : undefined}
+                    onClick={
+                      tier.href === '/onboarding'
+                        ? onStartTrial
+                        : tier.href === '#'
+                        ? (e) => { e.preventDefault(); onContactSales() }
+                        : undefined
+                    }
                     className={cn(
                       'inline-flex items-center justify-center rounded-[10px] border py-3 text-sm font-semibold transition-all duration-200 cursor-pointer',
                       'border-white/[0.10] text-white/60 hover:border-white/[0.20] hover:text-white/90 hover:bg-white/[0.04]'
@@ -576,6 +583,7 @@ function ComparisonTable() {
 
 export default function LandingPage() {
   const router = useRouter()
+  const [demoModalOpen, setDemoModalOpen] = useState(false)
 
   const selectRole = (role: DemoRole) => {
     localStorage.setItem('relay-demo-role', role)
@@ -624,6 +632,7 @@ export default function LandingPage() {
             background="rgba(16,185,129,0.12)"
             borderRadius="8px"
             className="text-sm font-medium px-5 py-2.5 border-emerald-500/30 text-emerald-300 hover:text-white"
+            onClick={() => setDemoModalOpen(true)}
           >
             Request Demo
           </ShimmerButton>
@@ -1531,7 +1540,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 10. Pricing Section ──────────────────────────────────────────── */}
-      <PricingSection onStartTrial={() => router.push('/onboarding')} />
+      <PricingSection onStartTrial={() => router.push('/onboarding')} onContactSales={() => setDemoModalOpen(true)} />
 
       {/* ─── 11. FAQ Accordion ────────────────────────────────────────────── */}
       <FAQSection />
@@ -1569,7 +1578,10 @@ export default function LandingPage() {
               >
                 Start Free Trial
               </ShimmerButton>
-              <button className="inline-flex items-center gap-2 text-base font-medium text-white/50 hover:text-white/80 transition-colors duration-200 px-8 py-4 rounded-xl border border-white/[0.08] hover:border-white/[0.18] hover:bg-white/[0.03] w-full sm:w-auto justify-center">
+              <button
+                className="inline-flex items-center gap-2 text-base font-medium text-white/50 hover:text-white/80 transition-colors duration-200 px-8 py-4 rounded-xl border border-white/[0.08] hover:border-white/[0.18] hover:bg-white/[0.03] w-full sm:w-auto justify-center"
+                onClick={() => setDemoModalOpen(true)}
+              >
                 Talk to Sales
                 <ArrowRight className="h-4 w-4" />
               </button>
@@ -1657,6 +1669,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
+      <RequestDemoModal open={demoModalOpen} onClose={() => setDemoModalOpen(false)} />
     </div>
   )
 }
