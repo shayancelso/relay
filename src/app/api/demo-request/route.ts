@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendTransitionEmail } from '@/lib/email/resend'
 
 export async function POST(req: NextRequest) {
-  const { name, email, company, teamSize, monthlyTransitions, challenges, notes } = await req.json()
+  const { name, email, company, teamSize, accountCount, challenges, notes } = await req.json()
 
   const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL ?? 'https://calendly.com/relay/demo'
   const notificationEmail = process.env.DEMO_NOTIFICATION_EMAIL
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     `Email:             ${email}`,
     `Company:           ${company}`,
     `Team size:         ${teamSize}`,
-    `Monthly transitions: ${monthlyTransitions || '(not provided)'}`,
+    `Customer accounts:   ${accountCount || '(not provided)'}`,
     `Challenges:\n${challengeList}`,
     `Notes:             ${notes || '(none)'}`,
   ].join('\n')

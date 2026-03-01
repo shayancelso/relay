@@ -32,7 +32,7 @@ interface FormData {
   email: string
   company: string
   teamSize: string
-  monthlyTransitions: string
+  accountCount: string
   challenges: string[]
   notes: string
 }
@@ -42,7 +42,7 @@ const EMPTY_FORM: FormData = {
   email: '',
   company: '',
   teamSize: '',
-  monthlyTransitions: '',
+  accountCount: '',
   challenges: [],
   notes: '',
 }
@@ -203,20 +203,22 @@ export function RequestDemoModal({ open, onClose }: Props) {
               </div>
             </div>
 
-            {/* Row 3: Monthly transitions */}
+            {/* Row 3: Account count */}
             <div className="space-y-1.5">
-              <Label htmlFor="demo-transitions" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Account transitions per month <span className="normal-case font-normal">(optional)</span>
+              <Label htmlFor="demo-account-count" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Customer accounts (logos) <span className="normal-case font-normal">(optional)</span>
               </Label>
-              <Select value={form.monthlyTransitions} onValueChange={(v) => setForm({ ...form, monthlyTransitions: v })}>
-                <SelectTrigger id="demo-transitions" className="w-full">
-                  <SelectValue placeholder="How often do accounts change hands?" />
+              <Select value={form.accountCount} onValueChange={(v) => setForm({ ...form, accountCount: v })}>
+                <SelectTrigger id="demo-account-count" className="w-full">
+                  <SelectValue placeholder="How many accounts does your team manage?" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1-10">Fewer than 10 / month</SelectItem>
-                  <SelectItem value="10-50">10–50 / month</SelectItem>
-                  <SelectItem value="50-200">50–200 / month</SelectItem>
-                  <SelectItem value="200+">200+ / month</SelectItem>
+                  <SelectItem value="under-50">Under 50</SelectItem>
+                  <SelectItem value="50-200">50 – 200</SelectItem>
+                  <SelectItem value="200-500">200 – 500</SelectItem>
+                  <SelectItem value="500-2000">500 – 2,000</SelectItem>
+                  <SelectItem value="2000-10000">2,000 – 10,000</SelectItem>
+                  <SelectItem value="10000+">10,000+</SelectItem>
                 </SelectContent>
               </Select>
             </div>
