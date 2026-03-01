@@ -14,8 +14,25 @@ import {
   getStatusColor,
   getPriorityColor,
   getHealthBg,
+  getInitials,
+  getSegmentColor,
+  formatSegment,
 } from '@/lib/utils'
-import { ArrowRight, Building2, Calendar, DollarSign, Check, X, Send, MessageSquare, Video } from 'lucide-react'
+import {
+  ArrowRight,
+  Building2,
+  Calendar,
+  DollarSign,
+  Check,
+  X,
+  Send,
+  MessageSquare,
+  Video,
+  Heart,
+  Clock,
+  GitBranch,
+  TrendingUp,
+} from 'lucide-react'
 import { TransitionActions } from '@/components/transitions/transition-actions'
 import { TransitionTimeline } from '@/components/transitions/transition-timeline'
 import { ApprovalHistory } from '@/components/transitions/approval-history'
@@ -81,25 +98,80 @@ export function TransitionDetailClient({
   return (
     <div className="space-y-6" data-tour="transitions">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Building2 className="h-6 w-6" />
-            {account?.name}
-          </h1>
-          <div className="flex items-center gap-2 mt-1 text-muted-foreground">
-            <span>{fromOwner?.full_name}</span>
-            <ArrowRight className="h-4 w-4" />
-            <span>{toOwner?.full_name}</span>
+      <div className="rounded-xl border bg-card overflow-hidden">
+        {/* Top accent bar */}
+        <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
+
+        <div className="p-5 sm:p-6">
+          {/* Top row: Account name + badges */}
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100">
+                <Building2 className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold tracking-tight truncate">{account?.name}</h1>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  {account?.segment && (
+                    <Badge variant="outline" className={cn('text-[10px] capitalize', getSegmentColor(account.segment))}>
+                      {formatSegment(account.segment)}
+                    </Badge>
+                  )}
+                  {account?.industry && (
+                    <span className="text-[11px] text-muted-foreground">{account.industry}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Badge variant="outline" className={cn('text-[10px] uppercase tracking-wide font-semibold', getPriorityColor(transition.priority))}>
+                {transition.priority}
+              </Badge>
+              <Badge variant="outline" className={cn('text-[10px] font-semibold', getStatusColor(currentStatus))}>
+                {formatStatus(currentStatus)}
+              </Badge>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge className={getPriorityColor(transition.priority)}>
-            {transition.priority}
-          </Badge>
-          <Badge className={getStatusColor(currentStatus)}>
-            {formatStatus(currentStatus)}
-          </Badge>
+
+          {/* Handoff participants */}
+          <div className="flex items-center gap-3 rounded-lg bg-muted/40 border border-border/50 px-4 py-3">
+            {/* From */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rose-100 to-orange-100 text-[11px] font-bold text-rose-700 ring-2 ring-background">
+                {getInitials(fromOwner?.full_name || '??')}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">From</p>
+                <p className="text-[13px] font-semibold truncate">{fromOwner?.full_name}</p>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex items-center gap-1.5 px-2 shrink-0">
+              <div className="h-px w-4 sm:w-8 bg-border" />
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted border border-border">
+                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              </div>
+              <div className="h-px w-4 sm:w-8 bg-border" />
+            </div>
+
+            {/* To */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 text-[11px] font-bold text-blue-700 ring-2 ring-background">
+                {getInitials(toOwner?.full_name || '??')}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">To</p>
+                <p className="text-[13px] font-semibold truncate">{toOwner?.full_name}</p>
+              </div>
+            </div>
+
+            {/* Reason pill — right side */}
+            <div className="ml-auto hidden sm:flex items-center gap-1.5 rounded-full bg-background border px-3 py-1">
+              <GitBranch className="h-3 w-3 text-muted-foreground/50" />
+              <span className="text-[11px] font-medium text-muted-foreground capitalize">{transition.reason?.replace(/_/g, ' ')}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -180,48 +252,58 @@ export function TransitionDetailClient({
         </CardContent>
       </Card>
 
-      {/* Info cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <DollarSign className="h-4 w-4" /> ARR
+      {/* Key metrics strip */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="group flex items-center gap-3 rounded-xl border bg-card p-4 card-hover">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-100">
+            <DollarSign className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">ARR</p>
+            <p className="text-lg font-bold tabular-nums tracking-tight">{formatCurrency(account?.arr || 0)}</p>
+          </div>
+        </div>
+
+        <div className="group flex items-center gap-3 rounded-xl border bg-card p-4 card-hover">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-500 transition-colors group-hover:bg-rose-100">
+            <Heart className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">Health</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-lg font-bold tabular-nums">{account?.health_score ?? '—'}</span>
+              <div className="flex-1 h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all',
+                    (account?.health_score ?? 0) >= 70 ? 'bg-emerald-500' : (account?.health_score ?? 0) >= 40 ? 'bg-amber-500' : 'bg-red-500',
+                  )}
+                  style={{ width: `${Math.min(account?.health_score ?? 0, 100)}%` }}
+                />
+              </div>
             </div>
-            <p className="text-xl font-bold">
-              {formatCurrency(account?.arr || 0)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              Health
-            </div>
-            <Badge className={getHealthBg(account?.health_score || 0)}>
-              {account?.health_score}
-            </Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Calendar className="h-4 w-4" /> Due Date
-            </div>
-            <p className="text-sm font-medium">
-              {transition.due_date ? formatDate(transition.due_date) : 'Not set'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              Reason
-            </div>
-            <p className="text-sm font-medium capitalize">
-              {transition.reason.replace(/_/g, ' ')}
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        <div className="group flex items-center gap-3 rounded-xl border bg-card p-4 card-hover">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-500 transition-colors group-hover:bg-blue-100">
+            <Calendar className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">Due Date</p>
+            <p className="text-[13px] font-semibold">{transition.due_date ? formatDate(transition.due_date) : 'Not set'}</p>
+          </div>
+        </div>
+
+        <div className="group flex items-center gap-3 rounded-xl border bg-card p-4 card-hover">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-500 transition-colors group-hover:bg-violet-100">
+            <TrendingUp className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">Contacts</p>
+            <p className="text-lg font-bold tabular-nums">{contacts.length}</p>
+          </div>
+        </div>
       </div>
 
       {/* Actions */}
@@ -273,12 +355,15 @@ export function TransitionDetailClient({
 
           {/* Meeting Scheduler */}
           {showMeetingScheduler && (
-            <Card ref={meetingRef} className="border-violet-200 bg-violet-50/30">
+            <Card ref={meetingRef} className="border-violet-200/60 bg-violet-50/20 overflow-hidden">
+              <div className="h-0.5 bg-gradient-to-r from-violet-400 to-purple-400" />
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4 text-violet-600" />
-                    <CardTitle className="text-sm">Schedule Handoff Meeting</CardTitle>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100">
+                      <Video className="h-4 w-4 text-violet-600" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">Schedule Handoff Meeting</CardTitle>
                   </div>
                   <button
                     onClick={() => setShowMeetingScheduler(false)}
@@ -344,12 +429,15 @@ export function TransitionDetailClient({
 
           {/* Add Note */}
           {showNoteInput && (
-            <Card ref={noteRef} className="border-stone-200 bg-stone-50/30">
+            <Card ref={noteRef} className="border-stone-200/60 bg-stone-50/20 overflow-hidden">
+              <div className="h-0.5 bg-gradient-to-r from-stone-300 to-stone-400" />
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-stone-500" />
-                    <CardTitle className="text-sm">Add Note</CardTitle>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100">
+                      <MessageSquare className="h-4 w-4 text-stone-500" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">Add Note</CardTitle>
                   </div>
                   <button
                     onClick={() => { setShowNoteInput(false); setNoteText('') }}
@@ -400,18 +488,28 @@ export function TransitionDetailClient({
 
           {/* Notes */}
           {(transition.notes || addedNotes.length > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notes</CardTitle>
+            <Card className="card-hover">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-100">
+                    <MessageSquare className="h-4 w-4 text-stone-500" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">Notes</CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {transition.notes && (
-                  <p className="text-sm whitespace-pre-wrap">{transition.notes}</p>
+                  <div className="rounded-lg bg-muted/30 border border-border/50 p-3.5">
+                    <p className="text-[12px] leading-relaxed whitespace-pre-wrap text-foreground/80">{transition.notes}</p>
+                  </div>
                 )}
                 {addedNotes.map((note, i) => (
-                  <div key={i} className="rounded-lg border bg-muted/20 p-3">
-                    <p className="text-sm whitespace-pre-wrap">{note.text}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{note.time}</p>
+                  <div key={i} className="rounded-lg bg-muted/30 border border-border/50 p-3.5">
+                    <p className="text-[12px] leading-relaxed whitespace-pre-wrap text-foreground/80">{note.text}</p>
+                    <p className="text-[10px] text-muted-foreground/50 mt-2 flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" />
+                      {note.time}
+                    </p>
                   </div>
                 ))}
               </CardContent>
