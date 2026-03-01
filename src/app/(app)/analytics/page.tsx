@@ -10,6 +10,8 @@ import {
   TrendingUp, Clock, CheckCircle2, ArrowUpRight,
   Target, Zap, Users,
 } from 'lucide-react'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 const chartLoading = <div className="h-[380px] rounded-xl bg-muted/30 animate-pulse" />
 
@@ -77,6 +79,7 @@ const SEGMENT_COLORS: Record<string, string> = {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
+  const { isTrialMode, enterDemoMode } = useTrialMode()
   const totalCompleted = demoTransitions.filter(t => t.status === 'completed').length
   const totalActive = demoTransitions.filter(t => !['completed', 'cancelled'].includes(t.status)).length
   const avgCompletionDays = 5.1
@@ -87,6 +90,10 @@ export default function AnalyticsPage() {
       const acct = demoAccounts.find(a => a.id === t.account_id)
       return s + (acct?.arr || 0)
     }, 0)
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={TrendingUp} title="Analytics" description="Performance metrics will populate once your CRM is connected and transitions are underway." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-6">

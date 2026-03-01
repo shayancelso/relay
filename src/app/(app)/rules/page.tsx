@@ -54,6 +54,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { demoTeamMembers } from '@/lib/demo-data'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1604,7 +1606,12 @@ function HistoryTab() {
 
 export default function RulesPage() {
   const [newRuleClick, setNewRuleClick] = useState(false)
+  const { isTrialMode, enterDemoMode } = useTrialMode()
   const activeCount = DEMO_RULES.filter((r) => r.active).length
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Users} title="Assignment Rules" description="Configure routing rules to automatically assign accounts to the right reps during transitions." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <TooltipProvider>

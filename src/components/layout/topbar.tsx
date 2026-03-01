@@ -4,9 +4,11 @@ import { usePathname } from 'next/navigation'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Command, Search, Menu } from 'lucide-react'
 import { useRole, getRoleLabel } from '@/lib/role-context'
+import { useTrialMode } from '@/lib/trial-context'
 import { cn } from '@/lib/utils'
 import { NotificationPanel } from './notifications'
 import { CommandPalette } from './command-palette'
+import Link from 'next/link'
 
 function getPageTitle(pathname: string): string {
   if (pathname === '/dashboard') return 'Dashboard'
@@ -36,6 +38,7 @@ const roleBadgeColors: Record<string, string> = {
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname()
   const { role, user } = useRole()
+  const { isDemoMode, hasTrial, exitDemoMode } = useTrialMode()
   const pageTitle = getPageTitle(pathname)
 
   return (
@@ -99,6 +102,30 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
         {/* Right: Notifications + user */}
         <div className="flex items-center gap-3">
+          {/* Demo mode indicator */}
+          {isDemoMode && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                Demo
+              </span>
+              <div className="h-3 w-px bg-amber-200" />
+              {hasTrial ? (
+                <button
+                  onClick={exitDemoMode}
+                  className="text-[11px] font-medium text-amber-700 hover:text-amber-900 transition-colors whitespace-nowrap"
+                >
+                  ← Back to my setup
+                </button>
+              ) : (
+                <Link
+                  href="/onboarding"
+                  className="text-[11px] font-medium text-amber-700 hover:text-amber-900 transition-colors whitespace-nowrap"
+                >
+                  Start real setup →
+                </Link>
+              )}
+            </div>
+          )}
           <NotificationPanel />
           <div className="h-5 w-px bg-border/40" />
           <div className="flex items-center gap-2.5">

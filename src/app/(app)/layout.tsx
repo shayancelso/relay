@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { RoleProvider } from '@/lib/role-context'
+import { TrialModeProvider } from '@/lib/trial-context'
 import { useState } from 'react'
 
 const KeyboardShortcuts = dynamic(
@@ -15,6 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
+    <TrialModeProvider>
     <RoleProvider>
       <KeyboardShortcuts />
       <div className="flex h-screen">
@@ -34,5 +36,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </RoleProvider>
+    </TrialModeProvider>
   )
 }

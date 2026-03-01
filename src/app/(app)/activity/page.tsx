@@ -25,6 +25,8 @@ import {
   demoAccounts,
   demoTeamMembers,
 } from '@/lib/demo-data'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -136,6 +138,7 @@ export default function ActivityPage() {
   const [typeFilter, setTypeFilter] = useState<ActivityType | 'all'>('all')
   const [dateRange, setDateRange] = useState<DateRange>('all')
   const [search, setSearch] = useState('')
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   // Filtered list
   const filtered = useMemo(() => {
@@ -222,6 +225,10 @@ export default function ActivityPage() {
     email_sent: 'bg-emerald-400',
     meeting_booked: 'bg-amber-400',
     note_added: 'bg-rose-400',
+  }
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Activity} title="Activity Feed" description="All account and transition activity will appear here once your workspace is connected." ctaLabel="View dashboard" ctaHref="/dashboard" onExploreDemo={enterDemoMode} />
   }
 
   return (

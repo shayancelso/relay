@@ -64,6 +64,8 @@ import {
   getHealthBg,
   cn,
 } from '@/lib/utils'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1098,6 +1100,7 @@ export default function ReportsPage() {
   const [generating, setGenerating] = useState(false)
   const [ready, setReady] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange>('30d')
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const handleGenerate = useCallback((id: ReportType) => {
     setActiveReport(id)
@@ -1110,6 +1113,10 @@ export default function ReportsPage() {
   }, [])
 
   const activeTemplate = REPORT_TEMPLATES.find(t => t.id === activeReport)
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={BarChart3} title="Reports" description="Generate transition reports and export data once your workspace is connected." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-8">

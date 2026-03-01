@@ -6,9 +6,13 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useRole } from '@/lib/role-context'
 import { formatCurrency, getInitials, cn } from '@/lib/utils'
+import { Users } from 'lucide-react'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 export default function TeamPage() {
   const { role } = useRole()
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const teamData = demoTeamMembers.map(member => {
     const accounts = demoAccounts.filter(a => a.current_owner_id === member.id)
@@ -37,6 +41,10 @@ export default function TeamPage() {
   })
 
   const activeReps = demoTeamMembers.filter(m => m.role === 'rep').length
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Users} title="Your Team" description="Invite team members to collaborate on account transitions." ctaLabel="Manage team" ctaHref="/settings" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-6">

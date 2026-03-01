@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useRole } from '@/lib/role-context'
 import { formatCurrency, getSegmentColor, formatSegment, getHealthBg, cn } from '@/lib/utils'
-import { Search, Upload, X, Download, UserCog, ArrowLeftRight } from 'lucide-react'
+import { Search, Upload, X, Download, UserCog, ArrowLeftRight, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 const SEGMENTS = ['all', 'commercial', 'corporate', 'enterprise', 'fins', 'international'] as const
 
@@ -21,6 +23,7 @@ export default function AccountsPage() {
   const [sortBy, setSortBy] = useState<'name' | 'arr' | 'health'>('arr')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const baseAccounts = role === 'rep'
     ? demoAccounts.filter(a => a.current_owner_id === 'user-3')
@@ -94,6 +97,10 @@ export default function AccountsPage() {
 
   const selectedCount = selectedIds.size
   const createTransitionsHref = `/transitions/new?accounts=${Array.from(selectedIds).join(',')}`
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Building2} title="Your Accounts" description="Connect your CRM to see your book of business here." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className={cn('space-y-6', selectedCount > 0 ? 'pb-24' : '')}>

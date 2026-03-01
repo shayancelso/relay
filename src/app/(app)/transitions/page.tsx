@@ -9,6 +9,8 @@ import { useRole } from '@/lib/role-context'
 import { formatCurrency, formatStatus, getStatusColor, getPriorityColor, formatSegment, getSegmentColor, cn } from '@/lib/utils'
 import { Search, Plus, ArrowRight, Target, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 import { useRouter } from 'next/navigation'
 import { ContextPanel } from '@/components/transitions/context-panel'
 import { EmptyState } from '@/components/ui/skeletons'
@@ -43,6 +45,7 @@ export default function TransitionsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedTransition, setSelectedTransition] = useState<string | null>(null)
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const baseTransitions = role === 'rep'
     ? demoTransitions.filter(t => t.to_owner_id === 'user-3' || t.from_owner_id === 'user-3')
@@ -79,6 +82,10 @@ export default function TransitionsPage() {
   }, {} as Record<string, number>)
 
   const activeCount = baseTransitions.filter(t => !['completed', 'cancelled'].includes(t.status)).length
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={ArrowLeftRight} title="Account Transitions" description="Create your first transition once your team and accounts are connected." ctaLabel="Create transition" ctaHref="/transitions/new" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-6">

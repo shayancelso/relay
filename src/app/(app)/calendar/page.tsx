@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { cn, getStatusColor } from '@/lib/utils'
 import { demoTransitions, demoAccounts, demoTeamMembers } from '@/lib/demo-data'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -219,6 +221,7 @@ const TODAY_STR = '2026-02-26'
 
 export default function CalendarPage() {
   const [view, setView] = useState<CalendarView>('month')
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const calendarGrid = buildCalendarGrid(DEMO_YEAR, DEMO_MONTH)
 
@@ -234,6 +237,10 @@ export default function CalendarPage() {
     if (a.date !== b.date) return a.date.localeCompare(b.date)
     return a.time.localeCompare(b.time)
   })
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={CalendarIcon} title="Calendar" description="Scheduled meetings and transition milestones will appear here once transitions are created." ctaLabel="Create transition" ctaHref="/transitions/new" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-6">
