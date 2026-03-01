@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
+import { motion } from 'motion/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -104,67 +104,78 @@ export function TransitionDetailClient({
       </div>
 
       {/* Status stepper */}
-      <Card>
-        <CardContent className="pt-6 pb-4">
-          <div className="flex items-start justify-between overflow-x-auto gap-0">
-            {STATUS_STEPS.map((s, i) => (
-              <div key={s} className="flex items-start flex-1">
-                {i > 0 && (
-                  <AnimatePresence initial={false}>
-                    <motion.div
-                      key={`connector-${s}-${i <= currentStepIdx}`}
-                      initial={false}
-                      animate={{
-                        backgroundColor: i <= currentStepIdx
-                          ? 'hsl(var(--primary))'
-                          : 'hsl(var(--border))',
-                      }}
-                      transition={{ duration: 0.4 }}
-                      className="h-px flex-1 mt-4"
-                    />
-                  </AnimatePresence>
-                )}
+      <Card className="overflow-hidden">
+        <CardContent className="pt-6 pb-5 px-4 sm:px-6">
+          <div className="relative flex items-start justify-between">
+            {/* Background track */}
+            <div className="absolute top-[14px] sm:top-[18px] left-[20px] sm:left-[24px] right-[20px] sm:right-[24px] h-[2px] bg-border/60 rounded-full" />
+            {/* Filled track */}
+            <motion.div
+              className="absolute top-[14px] sm:top-[18px] left-[20px] sm:left-[24px] h-[2px] rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500"
+              initial={false}
+              animate={{
+                width: currentStepIdx === 0
+                  ? '0%'
+                  : `${(currentStepIdx / (STATUS_STEPS.length - 1)) * 100}%`,
+              }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+              style={{ maxWidth: 'calc(100% - 40px)' }}
+            />
+
+            {STATUS_STEPS.map((s, i) => {
+              const isCompleted = i < currentStepIdx
+              const isCurrent = i === currentStepIdx
+              const isFuture = i > currentStepIdx
+
+              return (
                 <button
+                  key={s}
                   onClick={() => handleStepClick(s, i)}
-                  className="flex flex-col items-center gap-1 shrink-0 group"
+                  className="flex flex-col items-center gap-1.5 sm:gap-2 z-10 group flex-1"
                   aria-label={`Set status to ${formatStatus(s)}`}
-                  aria-pressed={i === currentStepIdx}
+                  aria-pressed={isCurrent}
                 >
                   <motion.div
+                    initial={false}
                     animate={{
-                      backgroundColor:
-                        i <= currentStepIdx
-                          ? 'hsl(var(--primary))'
-                          : 'hsl(var(--muted))',
-                      color:
-                        i <= currentStepIdx
-                          ? 'hsl(var(--primary-foreground))'
-                          : 'hsl(var(--muted-foreground))',
+                      scale: isCurrent ? 1 : 1,
                     }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.3, type: 'spring', stiffness: 300 }}
                     className={cn(
-                      'flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full text-[10px] sm:text-xs font-medium transition-shadow',
-                      i === currentStepIdx && 'ring-2 ring-primary/30',
-                      i !== currentStepIdx && 'group-hover:opacity-80 cursor-pointer'
+                      'relative flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-full text-[10px] sm:text-xs font-semibold transition-all duration-300',
+                      isCompleted && 'bg-emerald-500 text-white shadow-sm shadow-emerald-200',
+                      isCurrent && 'bg-primary text-primary-foreground shadow-md shadow-primary/25 ring-[3px] ring-primary/20',
+                      isFuture && 'bg-background border-2 border-border text-muted-foreground/60 group-hover:border-muted-foreground/40 group-hover:text-muted-foreground cursor-pointer',
                     )}
                   >
-                    {i < currentStepIdx ? <Check className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : i + 1}
+                    {isCompleted ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ duration: 0.3, type: 'spring' }}
+                      >
+                        <Check className="h-3 w-3 sm:h-4 sm:w-4" strokeWidth={3} />
+                      </motion.div>
+                    ) : (
+                      <span>{i + 1}</span>
+                    )}
+                    {isCurrent && (
+                      <span className="absolute inset-0 rounded-full animate-ping bg-primary/10" />
+                    )}
                   </motion.div>
-                  <motion.span
-                    animate={{
-                      color:
-                        i <= currentStepIdx
-                          ? 'hsl(var(--primary))'
-                          : 'hsl(var(--muted-foreground))',
-                    }}
-                    transition={{ duration: 0.3 }}
-                    className="hidden sm:block text-xs whitespace-nowrap text-center px-1 font-medium"
+                  <span
+                    className={cn(
+                      'hidden sm:block text-[10px] whitespace-nowrap text-center px-0.5 transition-colors duration-300',
+                      isCompleted && 'text-emerald-600 font-semibold',
+                      isCurrent && 'text-primary font-semibold',
+                      isFuture && 'text-muted-foreground/50 font-medium group-hover:text-muted-foreground/70',
+                    )}
                   >
                     {formatStatus(s)}
-                  </motion.span>
+                  </span>
                 </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </CardContent>
       </Card>
