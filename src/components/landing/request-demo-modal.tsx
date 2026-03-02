@@ -110,7 +110,7 @@ export function RequestDemoModal({ open, onClose }: Props) {
   if (screen === 'success') {
     return (
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl flex flex-col max-h-[90dvh]">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -120,11 +120,12 @@ export function RequestDemoModal({ open, onClose }: Props) {
           <p className="text-sm text-muted-foreground">
             We'll be in touch. Book a time below if you'd like to get on the calendar now.
           </p>
-          <div className="rounded-xl overflow-hidden border border-border">
+          <div className="rounded-xl overflow-hidden border border-border flex-1 min-h-0">
             <iframe
               src={CALENDLY_URL}
               width="100%"
-              height="520"
+              height="100%"
+              style={{ minHeight: '400px' }}
               frameBorder="0"
               title="Book a demo"
             />
@@ -136,18 +137,18 @@ export function RequestDemoModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-lg gap-0 p-0 overflow-hidden flex flex-col max-h-[90dvh]">
 
-        {/* Header */}
-        <div className="px-6 pt-6 pb-5 border-b border-border">
+        {/* Header — pinned */}
+        <div className="px-6 pt-6 pb-5 border-b border-border shrink-0">
           <DialogTitle className="text-xl font-semibold">See Relay in action</DialogTitle>
           <p className="mt-1 text-sm text-muted-foreground">
             Tell us a little about yourself and we'll set up a personalized demo.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
 
             {/* Row 1: Name + Email */}
             <div className="grid grid-cols-2 gap-3">
@@ -266,8 +267,8 @@ export function RequestDemoModal({ open, onClose }: Props) {
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 pb-6">
+          {/* Footer — pinned */}
+          <div className="px-6 pb-6 pt-2 border-t border-border shrink-0">
             <Button
               type="submit"
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11 text-sm font-semibold"
