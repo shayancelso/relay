@@ -2839,37 +2839,34 @@ function BookOfBusinessTab({
     format:    (v: number) => string
     meanVal:   () => number
   }
-  const activeMetricCols = useMemo((): MetricColDef[] => {
-    const cols: MetricColDef[] = []
-    if (arrRule) cols.push({
-      key: 'arr', label: 'ARR', tolerance: arrRule.tolerance,
-      getValue:  r => r.arr,          getDev:    r => r.arrDev,         isFlagged: r => r.isArrFlagged,
-      format:    v => formatBookARR(v), meanVal: () => means.arr,
+  // Computed inline (not memoized) so it always reflects the latest rule toggles
+  const activeMetricCols: MetricColDef[] = []
+  if (arrRule) activeMetricCols.push({
+    key: 'arr', label: 'ARR', tolerance: arrRule.tolerance,
+    getValue:  r => r.arr,       getDev:    r => r.arrDev,         isFlagged: r => r.isArrFlagged,
+    format:    v => formatBookARR(v), meanVal: () => means.arr,
+  })
+  if (accountsRule) activeMetricCols.push({
+    key: 'accounts', label: 'Accounts', tolerance: accountsRule.tolerance,
+    getValue:  r => r.accounts,  getDev:    r => r.accountsDev,    isFlagged: r => r.isAccountsFlagged,
+    format:    v => String(v),   meanVal: () => means.accounts,
+  })
+  if (employeesRule) activeMetricCols.push({
+    key: 'employees', label: 'Employees', tolerance: employeesRule.tolerance,
+    getValue:  r => r.employees, getDev:    r => r.employeesDev,   isFlagged: r => r.isEmployeesFlagged,
+    format:    v => v.toLocaleString(), meanVal: () => means.employees,
+  })
+  if (customRule) {
+    const rawName = customRule.customFieldName ?? 'custom'
+    const label   = rawName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    const unit    = customRule.customFieldUnit
+    activeMetricCols.push({
+      key: 'custom', label, tolerance: customRule.tolerance,
+      getValue:  r => r.open_tickets,       getDev:    r => r.openTicketsDev,  isFlagged: r => r.isOpenTicketsFlagged,
+      format:    v => unit ? `${v.toLocaleString()} ${unit}` : v.toLocaleString(),
+      meanVal: () => means.open_tickets,
     })
-    if (accountsRule) cols.push({
-      key: 'accounts', label: 'Accounts', tolerance: accountsRule.tolerance,
-      getValue:  r => r.accounts,     getDev:    r => r.accountsDev,    isFlagged: r => r.isAccountsFlagged,
-      format:    v => String(v),        meanVal: () => means.accounts,
-    })
-    if (employeesRule) cols.push({
-      key: 'employees', label: 'Employees', tolerance: employeesRule.tolerance,
-      getValue:  r => r.employees,    getDev:    r => r.employeesDev,   isFlagged: r => r.isEmployeesFlagged,
-      format:    v => v.toLocaleString(), meanVal: () => means.employees,
-    })
-    if (customRule) {
-      const rawName = customRule.customFieldName ?? 'custom'
-      const label   = rawName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-      const unit    = customRule.customFieldUnit
-      cols.push({
-        key: 'custom', label, tolerance: customRule.tolerance,
-        getValue:  r => r.open_tickets,       getDev:    r => r.openTicketsDev,  isFlagged: r => r.isOpenTicketsFlagged,
-        format:    v => unit ? `${v.toLocaleString()} ${unit}` : v.toLocaleString(),
-        meanVal: () => means.open_tickets,
-      })
-    }
-    return cols
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arrRule, accountsRule, employeesRule, customRule, means])
+  }
 
   const displayReps = useMemo(() => {
     const filtered = showFlaggedOnly ? repMatrix.filter(r => r.hasFlag) : repMatrix
