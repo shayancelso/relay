@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { IntegrationConfigureSheet } from '@/components/settings/integration-configure-sheet'
 import {
   ArrowRight,
   Check,
@@ -223,7 +225,7 @@ const totalCount = integrationGroups.flatMap((g) => g.items).length
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function IntegrationCard({ integration }: { integration: Integration }) {
+function IntegrationCard({ integration, onConfigure }: { integration: Integration; onConfigure: (id: string) => void }) {
   return (
     <Card className={cn('card-hover group relative overflow-hidden', integration.connected && 'border-border/60')}>
       {integration.connected && (
@@ -300,12 +302,18 @@ function IntegrationCard({ integration }: { integration: Integration }) {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {integration.connected ? (
-                  <button className="rounded-md border border-border px-2.5 py-1 text-[11px] font-medium hover:bg-muted transition-colors flex items-center gap-1">
+                  <button
+                    onClick={() => onConfigure(integration.id)}
+                    className="rounded-md border border-border px-2.5 py-1 text-[11px] font-medium hover:bg-muted transition-colors flex items-center gap-1"
+                  >
                     <Settings className="h-3 w-3" />
                     Configure
                   </button>
                 ) : (
-                  <button className="rounded-md bg-primary text-primary-foreground px-2.5 py-1 text-[11px] font-medium hover:bg-primary/90 transition-colors flex items-center gap-1 press-scale">
+                  <button
+                    onClick={() => onConfigure(integration.id)}
+                    className="rounded-md bg-primary text-primary-foreground px-2.5 py-1 text-[11px] font-medium hover:bg-primary/90 transition-colors flex items-center gap-1 press-scale"
+                  >
                     <Plus className="h-3 w-3" />
                     Connect
                   </button>
@@ -582,6 +590,8 @@ function DataFlowStats() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
+  const [openIntegration, setOpenIntegration] = useState<string | null>(null)
+
   return (
     <div className="space-y-7 max-w-6xl">
 
@@ -635,7 +645,7 @@ export default function IntegrationsPage() {
               )}
             >
               {group.items.map((integration) => (
-                <IntegrationCard key={integration.id} integration={integration} />
+                <IntegrationCard key={integration.id} integration={integration} onConfigure={setOpenIntegration} />
               ))}
             </div>
           </div>
@@ -666,6 +676,10 @@ export default function IntegrationsPage() {
         </CardContent>
       </Card>
 
+      <IntegrationConfigureSheet
+        integrationId={openIntegration}
+        onClose={() => setOpenIntegration(null)}
+      />
     </div>
   )
 }

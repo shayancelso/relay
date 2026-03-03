@@ -15,6 +15,7 @@ import {
   User, Building2, Link2, CreditCard, Check, ExternalLink, Shield, Bell,
   Zap, Globe, Database, Mail, Calendar, MessageSquare, ArrowRight,
 } from 'lucide-react'
+import { IntegrationConfigureSheet } from '@/components/settings/integration-configure-sheet'
 
 const integrations = [
   { id: 'salesforce', name: 'Salesforce', description: 'Sync accounts, contacts, and opportunities', icon: Database, connected: true, status: 'Last synced 2h ago' },
@@ -41,6 +42,7 @@ export default function SettingsPage() {
     weeklyDigest: true,
     slackAlerts: true,
   })
+  const [openIntegration, setOpenIntegration] = useState<string | null>(null)
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -210,12 +212,14 @@ export default function SettingsPage() {
                       <p className="text-[11px] text-muted-foreground mt-0.5">{integration.description}</p>
                       <p className="text-[10px] text-muted-foreground/60 mt-1">{integration.status}</p>
                     </div>
-                    <button className={cn(
-                      'rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors shrink-0',
-                      integration.connected
-                        ? 'border border-border hover:bg-muted'
-                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    )}>
+                    <button
+                      onClick={() => setOpenIntegration(integration.id)}
+                      className={cn(
+                        'rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors shrink-0',
+                        integration.connected
+                          ? 'border border-border hover:bg-muted'
+                          : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      )}>
                       {integration.connected ? 'Configure' : 'Connect'}
                     </button>
                   </div>
@@ -291,6 +295,11 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <IntegrationConfigureSheet
+        integrationId={openIntegration}
+        onClose={() => setOpenIntegration(null)}
+      />
     </div>
   )
 }
