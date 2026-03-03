@@ -48,6 +48,9 @@ const CORE_FIELDS: {
   { relayName: 'Industry',             sfDefault: 'Industry',               hsDefault: 'industry',            type: 'text' },
   { relayName: 'Region / Geography',   sfDefault: 'BillingCountry',         hsDefault: 'country',             type: 'text' },
   { relayName: 'Contract Renewal Date',sfDefault: 'Contract_End_Date__c',   hsDefault: 'contract_renewal_date', type: 'date' },
+  { relayName: 'Customer Since',       sfDefault: 'Contract_Start_Date__c', hsDefault: 'createdate',          type: 'date' },
+  { relayName: 'Last Activity Date',   sfDefault: 'LastActivityDate',       hsDefault: 'notes_last_updated',  type: 'date' },
+  { relayName: 'Number of Seats',      sfDefault: 'Num_Seats__c',           hsDefault: 'num_seats',           type: 'number' },
   { relayName: 'CSM / Account Manager',sfDefault: 'CSM_Name__c',            hsDefault: 'csm_name',            type: 'text' },
 ]
 
