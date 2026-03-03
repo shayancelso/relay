@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { demoTransitions, demoAccounts, demoTeamMembers } from '@/lib/demo-data'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -42,8 +43,11 @@ function StatusDot({ status }: { status: string }) {
 export default function TransitionsPage() {
   const { role } = useRole()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>(
+    searchParams.get('status') ?? 'all'
+  )
   const [selectedTransition, setSelectedTransition] = useState<string | null>(null)
   const { isTrialMode, enterDemoMode } = useTrialMode()
 

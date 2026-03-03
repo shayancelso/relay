@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { demoAccounts, demoTeamMembers } from '@/lib/demo-data'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,10 +19,15 @@ const SEGMENTS = ['all', 'commercial', 'corporate', 'enterprise', 'fins', 'inter
 
 export default function AccountsPage() {
   const { role } = useRole()
+  const searchParams = useSearchParams()
   const [search, setSearch] = useState('')
   const [segment, setSegment] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<'name' | 'arr' | 'health'>('arr')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [sortBy, setSortBy] = useState<'name' | 'arr' | 'health'>(
+    (searchParams.get('sort') as 'name' | 'arr' | 'health') ?? 'arr'
+  )
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(
+    (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc'
+  )
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { isTrialMode, enterDemoMode } = useTrialMode()
 

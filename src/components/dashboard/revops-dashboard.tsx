@@ -41,12 +41,12 @@ export function RevOpsDashboard() {
     }))
 
   const metricCards = [
-    { label: 'Active Transitions', value: metrics.active_transitions, icon: ArrowLeftRight, change: '+3', up: true },
-    { label: 'Intros Sent', value: metrics.intros_sent_this_week, icon: Mail, change: '+5', up: true, sub: 'this week' },
-    { label: 'Meetings Booked', value: metrics.meetings_booked, icon: Calendar, change: '+2', up: true },
-    { label: 'Stalled', value: metrics.stalled_count, icon: AlertTriangle, change: '-1', up: false, danger: true },
-    { label: 'At Risk', value: metrics.at_risk_count, icon: TrendingUp, change: '+2', up: true, warning: true },
-    { label: 'ARR in Transition', value: null, displayValue: formatCurrency(metrics.total_arr_in_transition), icon: DollarSign },
+    { label: 'Active Transitions', value: metrics.active_transitions, icon: ArrowLeftRight, change: '+3', up: true, href: '/transitions' },
+    { label: 'Intros Sent', value: metrics.intros_sent_this_week, icon: Mail, change: '+5', up: true, sub: 'this week', href: '/transitions?status=intro_sent' },
+    { label: 'Meetings Booked', value: metrics.meetings_booked, icon: Calendar, change: '+2', up: true, href: '/transitions?status=meeting_booked' },
+    { label: 'Stalled', value: metrics.stalled_count, icon: AlertTriangle, change: '-1', up: false, danger: true, href: '/transitions?status=stalled' },
+    { label: 'At Risk', value: metrics.at_risk_count, icon: TrendingUp, change: '+2', up: true, warning: true, href: '/accounts?sort=health&dir=asc' },
+    { label: 'ARR in Transition', value: null, displayValue: formatCurrency(metrics.total_arr_in_transition), icon: DollarSign, href: '/analytics' },
   ]
 
   return (
@@ -60,37 +60,42 @@ export function RevOpsDashboard() {
       {/* Metric Cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" data-tour="metrics">
         {metricCards.map((card) => (
-          <Card key={card.label} className="card-hover overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{card.label}</span>
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted/50">
-                  <card.icon className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <Link key={card.label} href={card.href} className="group">
+            <Card className="card-hover overflow-hidden cursor-pointer h-full transition-shadow group-hover:shadow-md group-hover:border-border/80">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{card.label}</span>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-muted transition-colors">
+                    <card.icon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-end gap-2">
-                <span className={cn(
-                  'text-2xl font-bold tracking-tight tabular-nums',
-                  card.danger && 'text-red-600',
-                  card.warning && 'text-amber-600',
-                )}>
-                  {card.displayValue || <NumberTicker value={card.value!} />}
-                </span>
-                {card.change && (
+                <div className="flex items-end gap-2">
                   <span className={cn(
-                    'flex items-center gap-0.5 text-[10px] font-semibold mb-1 rounded-full px-1.5 py-0.5',
-                    card.up && !card.danger && !card.warning ? 'text-emerald-600 bg-emerald-50' : '',
-                    card.danger ? 'text-emerald-600 bg-emerald-50' : '',
-                    card.warning ? 'text-amber-600 bg-amber-50' : '',
+                    'text-2xl font-bold tracking-tight tabular-nums',
+                    card.danger && 'text-red-600',
+                    card.warning && 'text-amber-600',
                   )}>
-                    {card.up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
-                    {card.change}
+                    {card.displayValue || <NumberTicker value={card.value!} />}
                   </span>
-                )}
-              </div>
-              {card.sub && <p className="text-[10px] text-muted-foreground mt-1">{card.sub}</p>}
-            </CardContent>
-          </Card>
+                  {card.change && (
+                    <span className={cn(
+                      'flex items-center gap-0.5 text-[10px] font-semibold mb-1 rounded-full px-1.5 py-0.5',
+                      card.up && !card.danger && !card.warning ? 'text-emerald-600 bg-emerald-50' : '',
+                      card.danger ? 'text-emerald-600 bg-emerald-50' : '',
+                      card.warning ? 'text-amber-600 bg-amber-50' : '',
+                    )}>
+                      {card.up ? <ArrowUpRight className="h-2.5 w-2.5" /> : <ArrowDownRight className="h-2.5 w-2.5" />}
+                      {card.change}
+                    </span>
+                  )}
+                </div>
+                {card.sub && <p className="text-[10px] text-muted-foreground mt-1">{card.sub}</p>}
+                <p className="text-[10px] text-muted-foreground/0 group-hover:text-muted-foreground/50 mt-2 transition-colors">
+                  View details →
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
