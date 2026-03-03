@@ -79,6 +79,8 @@ import { cn } from '@/lib/utils'
 import { demoTeamMembers, demoAccounts } from '@/lib/demo-data'
 import { useTrialMode } from '@/lib/trial-context'
 import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
+import { useEquityRules } from '@/lib/equity-context'
+import type { EquityMetric, TargetType, SegmentTarget, EquityRule } from '@/lib/equity-types'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -145,20 +147,7 @@ type Rule = {
   mustFollow: boolean // true = hard constraint, cannot be violated by equity pass
 }
 
-type EquityMetric = 'arr' | 'account_count' | 'employee_count' | 'custom'
-
-type EquityRule = {
-  id: string
-  name: string
-  metric: EquityMetric
-  customFieldName?: string  // e.g. "open_tickets"
-  customFieldUnit?: string  // e.g. "tickets"
-  tolerance: number         // e.g. 20 = within ±20% of the team mean
-  weight: number            // 1–100
-  mustFollow: boolean
-  active: boolean
-  description: string
-}
+// EquityMetric, TargetType, SegmentTarget, EquityRule — imported from @/lib/equity-types
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -531,50 +520,7 @@ const DEMO_RULES: Rule[] = [
 // Equity Rules + Book of Business Data
 // ---------------------------------------------------------------------------
 
-const DEMO_EQUITY_RULES: EquityRule[] = [
-  {
-    id: 'eq-1',
-    name: 'ARR Balance',
-    metric: 'arr',
-    tolerance: 20,
-    weight: 85,
-    mustFollow: true,
-    active: true,
-    description: "No rep's total managed ARR should exceed ±20% of the team mean ($1.95M)",
-  },
-  {
-    id: 'eq-2',
-    name: 'Account Count Balance',
-    metric: 'account_count',
-    tolerance: 15,
-    weight: 90,
-    mustFollow: true,
-    active: true,
-    description: 'All reps should carry within ±15% of the average account count',
-  },
-  {
-    id: 'eq-3',
-    name: 'Employee Headcount',
-    metric: 'employee_count',
-    tolerance: 25,
-    weight: 60,
-    mustFollow: false,
-    active: true,
-    description: 'Cumulative employee count across each book should be within ±25% of the mean',
-  },
-  {
-    id: 'eq-4',
-    name: 'Custom: Open Tickets',
-    metric: 'custom',
-    customFieldName: 'open_tickets',
-    customFieldUnit: 'tickets',
-    tolerance: 20,
-    weight: 35,
-    mustFollow: false,
-    active: false,
-    description: 'Example: if you track open support tickets per account, this rule balances books by total support load',
-  },
-]
+// DEMO_EQUITY_RULES — imported via equity context
 
 // James O'Brien is ~23.8% over mean ARR and ~24% over mean account count → triggers EQ-1 and EQ-2
 const BOOK_DATA = [
@@ -2704,6 +2650,14 @@ function AddEquityRuleSheet({
   onClose: () => void
   onSave: (rule: EquityRule) => void
 }) {
+  const FORM_SEGMENTS = [
+    { key: 'enterprise', label: 'Enterprise', color: '#fbbf24' },
+    { key: 'fins', label: 'FINS', color: '#34d399' },
+    { key: 'corporate', label: 'Corporate', color: '#a78bfa' },
+    { key: 'international', label: 'International', color: '#fb7185' },
+    { key: 'commercial', label: 'Commercial', color: '#38bdf8' },
+  ]
+
   const [name, setName]                   = useState('')
   const [metric, setMetric]               = useState<EquityMetric>('arr')
   const [customFieldName, setCustomFieldName] = useState('')
@@ -2712,6 +2666,19 @@ function AddEquityRuleSheet({
   const [weight, setWeight]               = useState(70)
   const [mustFollow, setMustFollow]       = useState(false)
   const [description, setDescription]     = useState('')
+  const [targetType, setTargetType]       = useState<TargetType>('mean_relative')
+  const [defaultTarget, setDefaultTarget] = useState(70)
+  const [segmentTargets, setSegmentTargets] = useState<Record<string, string>>({})
+
+  // Auto-switch target mode when metric changes
+  const handleMetricChange = (m: EquityMetric) => {
+    setMetric(m)
+    if (m === 'custom') {
+      setTargetType('absolute')
+    } else {
+      setTargetType('mean_relative')
+    }
+  }
 
   // Live mean preview from real account data
   const liveMean = useMemo(() => {
@@ -2751,6 +2718,9 @@ function AddEquityRuleSheet({
     setWeight(70)
     setMustFollow(false)
     setDescription('')
+    setTargetType('mean_relative')
+    setDefaultTarget(70)
+    setSegmentTargets({})
   }
 
   const handleSave = () => {
@@ -2759,14 +2729,31 @@ function AddEquityRuleSheet({
       toast.error('Custom field name required')
       return
     }
-    const autoDesc =
-      metric === 'arr'
+
+    const isAbsolute = targetType === 'absolute'
+
+    const autoDesc = isAbsolute
+      ? (() => {
+          const overrides = FORM_SEGMENTS
+            .filter(s => segmentTargets[s.key] && segmentTargets[s.key].trim() !== '')
+            .map(s => `${s.label}: ${segmentTargets[s.key]}`)
+            .join(', ')
+          return `Target: ${defaultTarget} (±${tolerance}${metric === 'custom' ? customFieldUnit || 'pts' : '%'})${overrides ? `. ${overrides}` : ''}`
+        })()
+      : metric === 'arr'
         ? `No rep's total managed ARR should exceed ±${tolerance}% of the team mean (${formatMean(liveMean)})`
         : metric === 'account_count'
         ? `All reps should carry within ±${tolerance}% of the average account count (${Math.round(liveMean)})`
         : metric === 'employee_count'
         ? `Cumulative employee count across each book should be within ±${tolerance}% of the mean`
         : `Balance ${customFieldName} across rep books within ±${tolerance}% of the mean`
+
+    const parsedSegmentTargets: SegmentTarget[] | undefined = isAbsolute
+      ? FORM_SEGMENTS
+          .filter(s => segmentTargets[s.key] && segmentTargets[s.key].trim() !== '')
+          .map(s => ({ segment: s.key, target: parseFloat(segmentTargets[s.key]) }))
+          .filter(s => !isNaN(s.target))
+      : undefined
 
     const newRule: EquityRule = {
       id: `eq-${Date.now()}`,
@@ -2779,6 +2766,11 @@ function AddEquityRuleSheet({
       mustFollow,
       active: true,
       description: description.trim() || autoDesc,
+      ...(isAbsolute ? {
+        targetType: 'absolute' as const,
+        defaultTarget,
+        segmentTargets: parsedSegmentTargets && parsedSegmentTargets.length > 0 ? parsedSegmentTargets : undefined,
+      } : {}),
     }
     onSave(newRule)
     toast.success('Equity rule created', { description: `"${name.trim()}" is now active.` })
@@ -2830,7 +2822,7 @@ function AddEquityRuleSheet({
                 ] as const).map(({ v, label, desc }) => (
                   <button
                     key={v}
-                    onClick={() => setMetric(v)}
+                    onClick={() => handleMetricChange(v)}
                     className={cn(
                       'flex flex-col items-start p-3 rounded-lg border text-left transition-colors',
                       metric === v
@@ -2871,22 +2863,95 @@ function AddEquityRuleSheet({
               </div>
             )}
 
+            {/* Target Mode */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-semibold text-stone-700">Target Mode</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { v: 'mean_relative' as const, label: 'Team Mean (±%)', desc: 'Relative to team average' },
+                  { v: 'absolute' as const, label: 'Fixed Target', desc: 'Absolute value per segment' },
+                ] as const).map(({ v, label, desc }) => (
+                  <button
+                    key={v}
+                    onClick={() => setTargetType(v)}
+                    className={cn(
+                      'flex flex-col items-start p-3 rounded-lg border text-left transition-colors',
+                      targetType === v
+                        ? 'bg-stone-800 text-white border-stone-800'
+                        : 'border-stone-200 hover:bg-stone-50 text-stone-700'
+                    )}
+                  >
+                    <span className="text-xs font-semibold">{label}</span>
+                    <span className={cn('text-[10px] mt-0.5', targetType === v ? 'text-stone-300' : 'text-muted-foreground')}>
+                      {desc}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Default Target (absolute mode only) */}
+            {targetType === 'absolute' && (
+              <div className="flex flex-col gap-2">
+                <Label className="text-xs font-semibold text-stone-700">Base Target (all segments)</Label>
+                <Input
+                  type="number"
+                  value={defaultTarget}
+                  onChange={e => setDefaultTarget(parseInt(e.target.value) || 0)}
+                  className="h-9 text-sm w-32"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Default target for segments without a specific override.
+                </p>
+              </div>
+            )}
+
+            {/* Per-Segment Targets (absolute mode only) */}
+            {targetType === 'absolute' && (
+              <div className="flex flex-col gap-2">
+                <Label className="text-xs font-semibold text-stone-700">Per-Segment Targets</Label>
+                <div className="space-y-2 p-3 rounded-lg bg-stone-50 border border-stone-200">
+                  {FORM_SEGMENTS.map(seg => (
+                    <div key={seg.key} className="flex items-center gap-3">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: seg.color }}
+                      />
+                      <span className="text-xs font-medium text-stone-700 w-24 shrink-0">{seg.label}</span>
+                      <Input
+                        type="number"
+                        placeholder={String(defaultTarget)}
+                        value={segmentTargets[seg.key] || ''}
+                        onChange={e => setSegmentTargets(prev => ({ ...prev, [seg.key]: e.target.value }))}
+                        className="h-7 text-xs w-20"
+                      />
+                      <span className="text-[10px] text-muted-foreground">
+                        {segmentTargets[seg.key] ? '' : `= ${defaultTarget}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Tolerance slider + live preview */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold text-stone-700">Tolerance</Label>
-                <span className="text-sm font-bold text-stone-800">±{tolerance}%</span>
+                <span className="text-sm font-bold text-stone-800">
+                  ±{tolerance}{targetType === 'absolute' ? (customFieldUnit || 'pts') : '%'}
+                </span>
               </div>
               <input
                 type="range"
-                min={5}
-                max={50}
-                step={5}
+                min={targetType === 'absolute' ? 1 : 5}
+                max={targetType === 'absolute' ? 25 : 50}
+                step={targetType === 'absolute' ? 1 : 5}
                 value={tolerance}
                 onChange={e => setTolerance(parseInt(e.target.value))}
                 className="w-full accent-stone-800"
               />
-              {liveMean > 0 && (
+              {targetType === 'mean_relative' && liveMean > 0 && (
                 <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-stone-50 border border-stone-200 mt-1">
                   <div className="text-center">
                     <p className="text-[10px] text-muted-foreground">Floor</p>
@@ -2903,6 +2968,22 @@ function AddEquityRuleSheet({
                     <p className="text-xs font-bold text-stone-700">
                       {formatMean(liveMean * (1 + tolerance / 100))}
                     </p>
+                  </div>
+                </div>
+              )}
+              {targetType === 'absolute' && (
+                <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-stone-50 border border-stone-200 mt-1">
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground">Floor</p>
+                    <p className="text-xs font-bold text-stone-700">{defaultTarget - tolerance}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground">Target</p>
+                    <p className="text-xs font-bold text-emerald-700">{defaultTarget}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground">Ceiling</p>
+                    <p className="text-xs font-bold text-stone-700">{defaultTarget + tolerance}</p>
                   </div>
                 </div>
               )}
@@ -3441,7 +3522,7 @@ export default function RulesPage() {
 
   // Lifted state — shared across tabs
   const [rules, setRules]               = useState<Rule[]>(DEMO_RULES)
-  const [equityRules, setEquityRules]   = useState<EquityRule[]>(DEMO_EQUITY_RULES)
+  const { equityRules, setEquityRules } = useEquityRules()
   const [newRuleOpen, setNewRuleOpen]   = useState(false)
   const [addEquityOpen, setAddEquityOpen] = useState(false)
 

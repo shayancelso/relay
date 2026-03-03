@@ -62,7 +62,7 @@ export const demoOrg: Organization = {
   name: 'Wealthsimple',
   slug: 'wealthsimple',
   logo_url: null,
-  settings: { default_capacity: 400, auto_assign: true, brief_auto_generate: true },
+  settings: { default_capacity: 85, auto_assign: true, brief_auto_generate: true },
   created_at: '2024-01-01',
 }
 
@@ -81,67 +81,67 @@ export const demoTeamMembers: User[] = [
   u('user-50', 'Liam Tremblay', 'liam.t@wealthsimple.com', 'admin', 0, ['FINS', 'International'], '2025-01-15'),
 
   // ── Directors / Managers ────────────────────────────────────────────────
-  u('user-2', 'Marcus Johnson', 'marcus.j@wealthsimple.com', 'manager', 50, ['Corporate', 'Enterprise'], '2024-02-01', 'https://cal.com/marcus-j'),
-  u('user-4', 'David Kim', 'david.k@wealthsimple.com', 'manager', 200, ['Enterprise'], '2024-04-01', 'https://cal.com/david-k'),
-  u('user-5', 'Rachel Singh', 'rachel.s@wealthsimple.com', 'manager', 200, ['FINS'], '2024-03-15', 'https://cal.com/rachel-s'),
-  u('user-6', 'James O\'Brien', 'james.o@wealthsimple.com', 'manager', 200, ['Corporate'], '2024-06-01', 'https://cal.com/james-o'),
-  u('user-7', 'David Park', 'david.p@wealthsimple.com', 'manager', 180, ['Commercial'], '2024-05-01', 'https://cal.com/david-p'), // Recently promoted from rep → TL
-  u('user-8', 'Nina Volkov', 'nina.v@wealthsimple.com', 'manager', 200, ['International'], '2024-07-01', 'https://cal.com/nina-v'),
+  u('user-2', 'Marcus Johnson', 'marcus.j@wealthsimple.com', 'manager', 25, ['Corporate', 'Enterprise'], '2024-02-01', 'https://cal.com/marcus-j'),
+  u('user-4', 'David Kim', 'david.k@wealthsimple.com', 'manager', 35, ['Enterprise'], '2024-04-01', 'https://cal.com/david-k'),
+  u('user-5', 'Rachel Singh', 'rachel.s@wealthsimple.com', 'manager', 35, ['FINS'], '2024-03-15', 'https://cal.com/rachel-s'),
+  u('user-6', 'James O\'Brien', 'james.o@wealthsimple.com', 'manager', 30, ['Corporate'], '2024-06-01', 'https://cal.com/james-o'),
+  u('user-7', 'David Park', 'david.p@wealthsimple.com', 'manager', 30, ['Commercial'], '2024-05-01', 'https://cal.com/david-p'), // Recently promoted from rep → TL
+  u('user-8', 'Nina Volkov', 'nina.v@wealthsimple.com', 'manager', 30, ['International'], '2024-07-01', 'https://cal.com/nina-v'),
 
   // ── Enterprise AMs ──────────────────────────────────────────────────────
-  u('user-3', 'Elena Rodriguez', 'elena.r@wealthsimple.com', 'rep', 400, ['Commercial', 'Corporate'], '2024-03-01', 'https://cal.com/elena-r'),
-  u('user-9', 'Nathan Brooks', 'nathan.b@wealthsimple.com', 'rep', 380, ['Enterprise'], '2024-04-15', 'https://cal.com/nathan-b'),
-  u('user-10', 'Aisha Mbeki', 'aisha.m@wealthsimple.com', 'rep', 400, ['Enterprise'], '2024-05-01', 'https://cal.com/aisha-m'),
-  u('user-11', 'Ryan O\'Sullivan', 'ryan.os@wealthsimple.com', 'rep', 350, ['Enterprise'], '2024-06-01', 'https://cal.com/ryan-os'),
-  u('user-12', 'Mei-Lin Wu', 'meilin.w@wealthsimple.com', 'rep', 380, ['Enterprise'], '2024-07-15', 'https://cal.com/meilin-w'),
+  u('user-3', 'Elena Rodriguez', 'elena.r@wealthsimple.com', 'rep', 90, ['Commercial', 'Corporate'], '2024-03-01', 'https://cal.com/elena-r'),
+  u('user-9', 'Nathan Brooks', 'nathan.b@wealthsimple.com', 'rep', 85, ['Enterprise'], '2024-04-15', 'https://cal.com/nathan-b'),
+  u('user-10', 'Aisha Mbeki', 'aisha.m@wealthsimple.com', 'rep', 90, ['Enterprise'], '2024-05-01', 'https://cal.com/aisha-m'),
+  u('user-11', 'Ryan O\'Sullivan', 'ryan.os@wealthsimple.com', 'rep', 80, ['Enterprise'], '2024-06-01', 'https://cal.com/ryan-os'),
+  u('user-12', 'Mei-Lin Wu', 'meilin.w@wealthsimple.com', 'rep', 85, ['Enterprise'], '2024-07-15', 'https://cal.com/meilin-w'),
 
   // ── FINS AMs ────────────────────────────────────────────────────────────
-  u('user-13', 'Priya Patel', 'priya.p@wealthsimple.com', 'rep', 400, ['FINS'], '2024-05-01', 'https://cal.com/priya-p'),
-  u('user-14', 'Connor Walsh', 'connor.w@wealthsimple.com', 'rep', 380, ['FINS'], '2024-06-15', 'https://cal.com/connor-w'),
-  u('user-15', 'Sofia Gutierrez', 'sofia.g@wealthsimple.com', 'rep', 370, ['FINS', 'Enterprise'], '2024-08-01', 'https://cal.com/sofia-g'),
-  u('user-16', 'Takeshi Nakamura', 'takeshi.n@wealthsimple.com', 'rep', 360, ['FINS'], '2024-09-01', 'https://cal.com/takeshi-n'),
+  u('user-13', 'Priya Patel', 'priya.p@wealthsimple.com', 'rep', 90, ['FINS'], '2024-05-01', 'https://cal.com/priya-p'),
+  u('user-14', 'Connor Walsh', 'connor.w@wealthsimple.com', 'rep', 85, ['FINS'], '2024-06-15', 'https://cal.com/connor-w'),
+  u('user-15', 'Sofia Gutierrez', 'sofia.g@wealthsimple.com', 'rep', 80, ['FINS', 'Enterprise'], '2024-08-01', 'https://cal.com/sofia-g'),
+  u('user-16', 'Takeshi Nakamura', 'takeshi.n@wealthsimple.com', 'rep', 80, ['FINS'], '2024-09-01', 'https://cal.com/takeshi-n'),
 
   // ── Corporate AMs ───────────────────────────────────────────────────────
-  u('user-17', 'Amara Osei', 'amara.o@wealthsimple.com', 'rep', 400, ['Corporate'], '2024-04-01', 'https://cal.com/amara-o'),
-  u('user-18', 'Blake Harrison', 'blake.h@wealthsimple.com', 'rep', 380, ['Corporate'], '2024-05-15', 'https://cal.com/blake-h'),
-  u('user-19', 'Claire Beaumont', 'claire.b@wealthsimple.com', 'rep', 370, ['Corporate'], '2024-07-01', 'https://cal.com/claire-b'),
-  u('user-20', 'Derek Fong', 'derek.f@wealthsimple.com', 'rep', 390, ['Corporate', 'Commercial'], '2024-08-15', 'https://cal.com/derek-f'),
-  u('user-21', 'Emma Lindqvist', 'emma.l@wealthsimple.com', 'rep', 360, ['Corporate'], '2024-10-01', 'https://cal.com/emma-l'),
-  u('user-22', 'Farid Ansari', 'farid.a@wealthsimple.com', 'rep', 350, ['Corporate', 'FINS'], '2025-01-15', 'https://cal.com/farid-a'),
+  u('user-17', 'Amara Osei', 'amara.o@wealthsimple.com', 'rep', 85, ['Corporate'], '2024-04-01', 'https://cal.com/amara-o'),
+  u('user-18', 'Blake Harrison', 'blake.h@wealthsimple.com', 'rep', 85, ['Corporate'], '2024-05-15', 'https://cal.com/blake-h'),
+  u('user-19', 'Claire Beaumont', 'claire.b@wealthsimple.com', 'rep', 80, ['Corporate'], '2024-07-01', 'https://cal.com/claire-b'),
+  u('user-20', 'Derek Fong', 'derek.f@wealthsimple.com', 'rep', 85, ['Corporate', 'Commercial'], '2024-08-15', 'https://cal.com/derek-f'),
+  u('user-21', 'Emma Lindqvist', 'emma.l@wealthsimple.com', 'rep', 80, ['Corporate'], '2024-10-01', 'https://cal.com/emma-l'),
+  u('user-22', 'Farid Ansari', 'farid.a@wealthsimple.com', 'rep', 75, ['Corporate', 'FINS'], '2025-01-15', 'https://cal.com/farid-a'),
 
   // ── Commercial AMs ──────────────────────────────────────────────────────
-  u('user-23', 'Grace Hwang', 'grace.h@wealthsimple.com', 'rep', 400, ['Commercial'], '2024-03-15', 'https://cal.com/grace-h'),
-  u('user-24', 'Hassan Iqbal', 'hassan.i@wealthsimple.com', 'rep', 380, ['Commercial'], '2024-05-01', 'https://cal.com/hassan-i'),
-  u('user-25', 'Isla Cameron', 'isla.c@wealthsimple.com', 'rep', 370, ['Commercial'], '2024-06-15', 'https://cal.com/isla-c'),
-  u('user-26', 'Javier Moreno', 'javier.m@wealthsimple.com', 'rep', 390, ['Commercial'], '2024-08-01', 'https://cal.com/javier-m'),
-  u('user-27', 'Katya Petrov', 'katya.p@wealthsimple.com', 'rep', 360, ['Commercial'], '2024-09-15', 'https://cal.com/katya-p'),
-  u('user-28', 'Lucas Martin', 'lucas.m@wealthsimple.com', 'rep', 380, ['Commercial'], '2024-11-01', 'https://cal.com/lucas-m'),
-  u('user-29', 'Maya Sharma', 'maya.s@wealthsimple.com', 'rep', 350, ['Commercial', 'International'], '2025-02-01', 'https://cal.com/maya-s'),
-  u('user-30', 'Oscar Delgado', 'oscar.d@wealthsimple.com', 'rep', 370, ['Commercial'], '2025-03-01', 'https://cal.com/oscar-d'),
+  u('user-23', 'Grace Hwang', 'grace.h@wealthsimple.com', 'rep', 90, ['Commercial'], '2024-03-15', 'https://cal.com/grace-h'),
+  u('user-24', 'Hassan Iqbal', 'hassan.i@wealthsimple.com', 'rep', 85, ['Commercial'], '2024-05-01', 'https://cal.com/hassan-i'),
+  u('user-25', 'Isla Cameron', 'isla.c@wealthsimple.com', 'rep', 80, ['Commercial'], '2024-06-15', 'https://cal.com/isla-c'),
+  u('user-26', 'Javier Moreno', 'javier.m@wealthsimple.com', 'rep', 85, ['Commercial'], '2024-08-01', 'https://cal.com/javier-m'),
+  u('user-27', 'Katya Petrov', 'katya.p@wealthsimple.com', 'rep', 80, ['Commercial'], '2024-09-15', 'https://cal.com/katya-p'),
+  u('user-28', 'Lucas Martin', 'lucas.m@wealthsimple.com', 'rep', 85, ['Commercial'], '2024-11-01', 'https://cal.com/lucas-m'),
+  u('user-29', 'Maya Sharma', 'maya.s@wealthsimple.com', 'rep', 75, ['Commercial', 'International'], '2025-02-01', 'https://cal.com/maya-s'),
+  u('user-30', 'Oscar Delgado', 'oscar.d@wealthsimple.com', 'rep', 80, ['Commercial'], '2025-03-01', 'https://cal.com/oscar-d'),
 
   // ── International AMs ───────────────────────────────────────────────────
-  u('user-31', 'Pia Johansson', 'pia.j@wealthsimple.com', 'rep', 380, ['International'], '2024-06-01', 'https://cal.com/pia-j'),
-  u('user-32', 'Ravi Krishnan', 'ravi.k@wealthsimple.com', 'rep', 370, ['International', 'FINS'], '2024-07-15', 'https://cal.com/ravi-k'),
-  u('user-33', 'Saoirse Murphy', 'saoirse.m@wealthsimple.com', 'rep', 360, ['International'], '2024-09-01', 'https://cal.com/saoirse-m'),
-  u('user-34', 'Tomas Eriksen', 'tomas.e@wealthsimple.com', 'rep', 380, ['International'], '2024-10-15', 'https://cal.com/tomas-e'),
-  u('user-35', 'Uma Devi', 'uma.d@wealthsimple.com', 'rep', 350, ['International'], '2025-01-01', 'https://cal.com/uma-d'),
+  u('user-31', 'Pia Johansson', 'pia.j@wealthsimple.com', 'rep', 85, ['International'], '2024-06-01', 'https://cal.com/pia-j'),
+  u('user-32', 'Ravi Krishnan', 'ravi.k@wealthsimple.com', 'rep', 80, ['International', 'FINS'], '2024-07-15', 'https://cal.com/ravi-k'),
+  u('user-33', 'Saoirse Murphy', 'saoirse.m@wealthsimple.com', 'rep', 80, ['International'], '2024-09-01', 'https://cal.com/saoirse-m'),
+  u('user-34', 'Tomas Eriksen', 'tomas.e@wealthsimple.com', 'rep', 85, ['International'], '2024-10-15', 'https://cal.com/tomas-e'),
+  u('user-35', 'Uma Devi', 'uma.d@wealthsimple.com', 'rep', 75, ['International'], '2025-01-01', 'https://cal.com/uma-d'),
 
   // ── General / Cross-segment AMs ─────────────────────────────────────────
-  u('user-36', 'Victor Zheng', 'victor.z@wealthsimple.com', 'rep', 380, ['Enterprise', 'Corporate'], '2024-08-01', 'https://cal.com/victor-z'),
-  u('user-37', 'Wendy Adler', 'wendy.a@wealthsimple.com', 'rep', 370, ['Commercial', 'Corporate'], '2024-09-15', 'https://cal.com/wendy-a'),
-  u('user-38', 'Xavier Dupont', 'xavier.d@wealthsimple.com', 'rep', 360, ['FINS', 'International'], '2024-11-01', 'https://cal.com/xavier-d'),
-  u('user-39', 'Yara El-Amin', 'yara.e@wealthsimple.com', 'rep', 350, ['Corporate', 'FINS'], '2025-01-15', 'https://cal.com/yara-e'),
-  u('user-40', 'Zach Kowalski', 'zach.k@wealthsimple.com', 'rep', 380, ['Enterprise', 'Commercial'], '2025-02-01', 'https://cal.com/zach-k'),
+  u('user-36', 'Victor Zheng', 'victor.z@wealthsimple.com', 'rep', 85, ['Enterprise', 'Corporate'], '2024-08-01', 'https://cal.com/victor-z'),
+  u('user-37', 'Wendy Adler', 'wendy.a@wealthsimple.com', 'rep', 80, ['Commercial', 'Corporate'], '2024-09-15', 'https://cal.com/wendy-a'),
+  u('user-38', 'Xavier Dupont', 'xavier.d@wealthsimple.com', 'rep', 80, ['FINS', 'International'], '2024-11-01', 'https://cal.com/xavier-d'),
+  u('user-39', 'Yara El-Amin', 'yara.e@wealthsimple.com', 'rep', 75, ['Corporate', 'FINS'], '2025-01-15', 'https://cal.com/yara-e'),
+  u('user-40', 'Zach Kowalski', 'zach.k@wealthsimple.com', 'rep', 85, ['Enterprise', 'Commercial'], '2025-02-01', 'https://cal.com/zach-k'),
 
   // ── New Hires (joined Jan 2026 — smaller capacity, onboarding) ──────────
-  u('user-41', 'Aaliyah Washington', 'aaliyah.w@wealthsimple.com', 'rep', 200, ['Commercial'], '2026-01-06'),
-  u('user-42', 'Benoit Lafleur', 'benoit.l@wealthsimple.com', 'rep', 200, ['Corporate'], '2026-01-06'),
-  u('user-43', 'Chloe Tanaka', 'chloe.t@wealthsimple.com', 'rep', 180, ['FINS'], '2026-01-13'),
+  u('user-41', 'Aaliyah Washington', 'aaliyah.w@wealthsimple.com', 'rep', 45, ['Commercial'], '2026-01-06'),
+  u('user-42', 'Benoit Lafleur', 'benoit.l@wealthsimple.com', 'rep', 45, ['Corporate'], '2026-01-06'),
+  u('user-43', 'Chloe Tanaka', 'chloe.t@wealthsimple.com', 'rep', 40, ['FINS'], '2026-01-13'),
 
   // ── Sales Engineers ─────────────────────────────────────────────────────
-  u('user-46', 'Diego Restrepo', 'diego.r@wealthsimple.com', 'rep', 300, ['Enterprise', 'FINS', 'Corporate'], '2024-06-01'),
-  u('user-47', 'Freya Andersen', 'freya.a@wealthsimple.com', 'rep', 300, ['Commercial', 'International'], '2024-08-01'),
-  u('user-48', 'Gavin Tate', 'gavin.t@wealthsimple.com', 'rep', 280, ['Enterprise', 'FINS'], '2025-03-01'),
+  u('user-46', 'Diego Restrepo', 'diego.r@wealthsimple.com', 'rep', 65, ['Enterprise', 'FINS', 'Corporate'], '2024-06-01'),
+  u('user-47', 'Freya Andersen', 'freya.a@wealthsimple.com', 'rep', 65, ['Commercial', 'International'], '2024-08-01'),
+  u('user-48', 'Gavin Tate', 'gavin.t@wealthsimple.com', 'rep', 60, ['Enterprise', 'FINS'], '2025-03-01'),
 
   // ── Departed ────────────────────────────────────────────────────────────
   // Tyler Chen left the company in January 2026. His accounts are being redistributed.
@@ -781,11 +781,11 @@ function generateAccounts(): Account[] {
       // Skew towards lower end (more smaller accounts)
       const arr = Math.round((arrBase + arrSpread * arrRand * arrRand) / 100) * 100
 
-      // Health score - bell curve centered around 65
-      const h1 = rng()
-      const h2 = rng()
-      const healthRaw = (h1 + h2) / 2 * 100
-      const healthScore = Math.max(5, Math.min(100, Math.round(healthRaw)))
+      // Health score - centered around segment target with ±15 spread
+      const segmentHealthCenter: Record<string, number> = { commercial: 65, corporate: 72, enterprise: 75, fins: 78, international: 68 }
+      const hCenter = segmentHealthCenter[seg.segment] ?? 70
+      const hNoise = ((rng() + rng() + rng()) / 3 - 0.5) * 2 // bell-shaped -1..1
+      const healthScore = Math.max(10, Math.min(100, Math.round(hCenter + hNoise * 15)))
 
       // Sub-segment based on employee count
       const subSegment = getSubSegment(employeeCount)

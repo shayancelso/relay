@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { RoleProvider } from '@/lib/role-context'
 import { TrialModeProvider } from '@/lib/trial-context'
+import { EquityProvider } from '@/lib/equity-context'
 import { useState } from 'react'
 
 const KeyboardShortcuts = dynamic(
@@ -18,6 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <TrialModeProvider>
     <RoleProvider>
+    <EquityProvider>
       <KeyboardShortcuts />
       <div className="flex h-screen">
         {/* Mobile overlay */}
@@ -35,6 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+    </EquityProvider>
     </RoleProvider>
     </TrialModeProvider>
   )
