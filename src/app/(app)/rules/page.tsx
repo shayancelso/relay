@@ -2740,10 +2740,10 @@ function BookOfBusinessTab({
   onAddEquityRule: () => void
 }) {
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false)
-  const [sortCol, setSortCol] = useState<'arr' | 'accounts' | 'employees' | 'name'>('arr')
+  const [sortCol, setSortCol] = useState<string>('arr')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
-  const handleColSort = (col: typeof sortCol) => {
+  const handleColSort = (col: string) => {
     if (col === sortCol) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     } else {
@@ -2752,29 +2752,38 @@ function BookOfBusinessTab({
     }
   }
 
-  // Compute ALL active reps' book stats from real account data
+  // Compute ALL active reps' book stats from real account data.
+  // open_tickets: deterministic mock — 2.5–4.5 tickets per account, seeded by rep ID.
   const repBookData = useMemo(() => {
     const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
     return activeReps
       .map(rep => {
         const repAccounts = demoAccounts.filter(a => a.current_owner_id === rep.id)
         if (repAccounts.length === 0) return null
-        const arr       = repAccounts.reduce((s, a) => s + a.arr, 0)
-        const accounts  = repAccounts.length
-        const employees = repAccounts.reduce((s, a) => s + (a.employee_count ?? 0), 0)
-        return { repId: rep.id, name: rep.full_name, arr, accounts, employees }
+        const arr        = repAccounts.reduce((s, a) => s + a.arr, 0)
+        const accounts   = repAccounts.length
+        const employees  = repAccounts.reduce((s, a) => s + (a.employee_count ?? 0), 0)
+        // Deterministic per-rep noise (hash rep.id)
+        const seed = rep.id.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)
+        const rate = 2.5 + ((Math.abs(seed) % 100) / 100) * 2   // 2.5 – 4.5 per account
+        const open_tickets = Math.round(accounts * rate)
+        return { repId: rep.id, name: rep.full_name, arr, accounts, employees, open_tickets }
       })
-      .filter(Boolean) as { repId: string; name: string; arr: number; accounts: number; employees: number }[]
+      .filter(Boolean) as {
+        repId: string; name: string
+        arr: number; accounts: number; employees: number; open_tickets: number
+      }[]
   }, [])
 
   // Team means
   const means = useMemo(() => {
     const n = repBookData.length
-    if (n === 0) return { arr: 0, accounts: 0, employees: 0 }
+    if (n === 0) return { arr: 0, accounts: 0, employees: 0, open_tickets: 0 }
     return {
-      arr:       repBookData.reduce((s, r) => s + r.arr, 0) / n,
-      accounts:  repBookData.reduce((s, r) => s + r.accounts, 0) / n,
-      employees: repBookData.reduce((s, r) => s + r.employees, 0) / n,
+      arr:          repBookData.reduce((s, r) => s + r.arr, 0) / n,
+      accounts:     repBookData.reduce((s, r) => s + r.accounts, 0) / n,
+      employees:    repBookData.reduce((s, r) => s + r.employees, 0) / n,
+      open_tickets: repBookData.reduce((s, r) => s + r.open_tickets, 0) / n,
     }
   }, [repBookData])
 
@@ -2782,67 +2791,85 @@ function BookOfBusinessTab({
   const arrRule       = equityRules.find(r => r.active && r.metric === 'arr')
   const accountsRule  = equityRules.find(r => r.active && r.metric === 'account_count')
   const employeesRule = equityRules.find(r => r.active && r.metric === 'employee_count')
+  const customRule    = equityRules.find(r => r.active && r.metric === 'custom')
 
   // If the sorted column's rule gets toggled off, fall back to name sort
   const effectiveSortCol = (
     (sortCol === 'arr'       && !arrRule) ||
     (sortCol === 'accounts'  && !accountsRule) ||
-    (sortCol === 'employees' && !employeesRule)
+    (sortCol === 'employees' && !employeesRule) ||
+    (sortCol === 'custom'    && !customRule)
   ) ? 'name' : sortCol
 
   // Per-rep deviation + flag status
   const repMatrix = useMemo(() => {
     return repBookData.map(rep => {
-      const arrDev      = means.arr > 0      ? ((rep.arr - means.arr) / means.arr) * 100         : 0
-      const accountsDev = means.accounts > 0 ? ((rep.accounts - means.accounts) / means.accounts) * 100 : 0
-      const employeesDev= means.employees > 0? ((rep.employees - means.employees) / means.employees) * 100 : 0
+      const arrDev         = means.arr > 0          ? ((rep.arr - means.arr) / means.arr) * 100                         : 0
+      const accountsDev    = means.accounts > 0     ? ((rep.accounts - means.accounts) / means.accounts) * 100          : 0
+      const employeesDev   = means.employees > 0    ? ((rep.employees - means.employees) / means.employees) * 100       : 0
+      const openTicketsDev = means.open_tickets > 0 ? ((rep.open_tickets - means.open_tickets) / means.open_tickets) * 100 : 0
 
-      const isArrFlagged      = arrRule      ? Math.abs(arrDev)       > arrRule.tolerance      : false
-      const isAccountsFlagged = accountsRule ? Math.abs(accountsDev)  > accountsRule.tolerance : false
-      const isEmployeesFlagged= employeesRule? Math.abs(employeesDev) > employeesRule.tolerance: false
-      const hasFlag = isArrFlagged || isAccountsFlagged || isEmployeesFlagged
+      const isArrFlagged         = arrRule       ? Math.abs(arrDev)         > arrRule.tolerance       : false
+      const isAccountsFlagged    = accountsRule  ? Math.abs(accountsDev)    > accountsRule.tolerance  : false
+      const isEmployeesFlagged   = employeesRule ? Math.abs(employeesDev)   > employeesRule.tolerance : false
+      const isOpenTicketsFlagged = customRule    ? Math.abs(openTicketsDev) > customRule.tolerance    : false
+      const hasFlag = isArrFlagged || isAccountsFlagged || isEmployeesFlagged || isOpenTicketsFlagged
 
       return {
         ...rep,
-        arrDev:       Math.round(arrDev),
-        accountsDev:  Math.round(accountsDev),
-        employeesDev: Math.round(employeesDev),
-        isArrFlagged, isAccountsFlagged, isEmployeesFlagged, hasFlag,
+        arrDev:         Math.round(arrDev),
+        accountsDev:    Math.round(accountsDev),
+        employeesDev:   Math.round(employeesDev),
+        openTicketsDev: Math.round(openTicketsDev),
+        isArrFlagged, isAccountsFlagged, isEmployeesFlagged, isOpenTicketsFlagged, hasFlag,
       }
     })
-  }, [repBookData, means, arrRule, accountsRule, employeesRule])
+  }, [repBookData, means, arrRule, accountsRule, employeesRule, customRule])
 
   const totalFlagged = repMatrix.filter(r => r.hasFlag).length
 
   // Build ordered list of active metric columns — drives both header and data cells
   type MetricColDef = {
-    key: 'arr' | 'accounts' | 'employees'
+    key: string
     label: string
     tolerance: number
     getValue:  (r: typeof repMatrix[0]) => number
     getDev:    (r: typeof repMatrix[0]) => number
     isFlagged: (r: typeof repMatrix[0]) => boolean
     format:    (v: number) => string
+    meanVal:   () => number
   }
   const activeMetricCols = useMemo((): MetricColDef[] => {
     const cols: MetricColDef[] = []
     if (arrRule) cols.push({
       key: 'arr', label: 'ARR', tolerance: arrRule.tolerance,
-      getValue:  r => r.arr,       getDev:    r => r.arrDev,       isFlagged: r => r.isArrFlagged,
-      format:    v => formatBookARR(v),
+      getValue:  r => r.arr,          getDev:    r => r.arrDev,         isFlagged: r => r.isArrFlagged,
+      format:    v => formatBookARR(v), meanVal: () => means.arr,
     })
     if (accountsRule) cols.push({
       key: 'accounts', label: 'Accounts', tolerance: accountsRule.tolerance,
-      getValue:  r => r.accounts,  getDev:    r => r.accountsDev,  isFlagged: r => r.isAccountsFlagged,
-      format:    v => String(v),
+      getValue:  r => r.accounts,     getDev:    r => r.accountsDev,    isFlagged: r => r.isAccountsFlagged,
+      format:    v => String(v),        meanVal: () => means.accounts,
     })
     if (employeesRule) cols.push({
       key: 'employees', label: 'Employees', tolerance: employeesRule.tolerance,
-      getValue:  r => r.employees, getDev:    r => r.employeesDev, isFlagged: r => r.isEmployeesFlagged,
-      format:    v => v.toLocaleString(),
+      getValue:  r => r.employees,    getDev:    r => r.employeesDev,   isFlagged: r => r.isEmployeesFlagged,
+      format:    v => v.toLocaleString(), meanVal: () => means.employees,
     })
+    if (customRule) {
+      const rawName = customRule.customFieldName ?? 'custom'
+      const label   = rawName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      const unit    = customRule.customFieldUnit
+      cols.push({
+        key: 'custom', label, tolerance: customRule.tolerance,
+        getValue:  r => r.open_tickets,       getDev:    r => r.openTicketsDev,  isFlagged: r => r.isOpenTicketsFlagged,
+        format:    v => unit ? `${v.toLocaleString()} ${unit}` : v.toLocaleString(),
+        meanVal: () => means.open_tickets,
+      })
+    }
     return cols
-  }, [arrRule, accountsRule, employeesRule])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arrRule, accountsRule, employeesRule, customRule, means])
 
   const displayReps = useMemo(() => {
     const filtered = showFlaggedOnly ? repMatrix.filter(r => r.hasFlag) : repMatrix
@@ -2852,6 +2879,7 @@ function BookOfBusinessTab({
       if (col === 'name')      return dir * a.name.localeCompare(b.name)
       if (col === 'accounts')  return dir * (a.accounts - b.accounts)
       if (col === 'employees') return dir * (a.employees - b.employees)
+      if (col === 'custom')    return dir * (a.open_tickets - b.open_tickets)
       return dir * (a.arr - b.arr)
     })
   }, [repMatrix, showFlaggedOnly, effectiveSortCol, sortDir])
@@ -2862,6 +2890,7 @@ function BookOfBusinessTab({
       if (rule.metric === 'arr')            return rep.arr
       if (rule.metric === 'account_count')  return rep.accounts
       if (rule.metric === 'employee_count') return rep.employees
+      if (rule.metric === 'custom')         return rep.open_tickets
       return 0
     })
     const m = vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
@@ -2878,15 +2907,10 @@ function BookOfBusinessTab({
     return Tag
   }
 
-  // Cell color: direction-aware + rule-aware
-  // - rule off     → neutral stone (no judgment)
-  // - in range     → green
-  // - above mean   → warm (amber → red by severity)
-  // - below mean   → cool (sky blue)
-  const devColor = (dev: number, flagged: boolean, ruleActive: boolean) => {
-    if (!ruleActive) return 'text-stone-400 bg-transparent'
-    if (!flagged)    return 'text-emerald-700 bg-emerald-50'
-    if (dev > 0)     return Math.abs(dev) > 40 ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
+  // Cell color: in range → green, above mean → amber/red, below → sky blue
+  const devColor = (dev: number, flagged: boolean) => {
+    if (!flagged) return 'text-emerald-700 bg-emerald-50'
+    if (dev > 0)  return Math.abs(dev) > 40 ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
     return 'text-sky-700 bg-sky-50'
   }
 
@@ -2910,9 +2934,9 @@ function BookOfBusinessTab({
 
         <div className="flex flex-col gap-3">
           {equityRules.map(rule => {
-            const MetricIcon   = metricIcon(rule.metric)
-            const ruleOOR      = getRuleOutOfRange(rule)
-            const weightColor  =
+            const MetricIcon  = metricIcon(rule.metric)
+            const ruleOOR     = getRuleOutOfRange(rule)
+            const weightColor =
               rule.weight >= 80 ? 'bg-emerald-100 text-emerald-700'
               : rule.weight >= 50 ? 'bg-amber-100 text-amber-700'
               : 'bg-stone-100 text-stone-500'
@@ -2986,7 +3010,7 @@ function BookOfBusinessTab({
           <div>
             <h3 className="text-sm font-semibold text-stone-800">Book Equity Analysis</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              All {repBookData.length} active reps — deviation % relative to team mean, flagged by active equity rules.
+              All {repBookData.length} active reps — deviation from team mean, flagged by active equity rules.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -3008,7 +3032,6 @@ function BookOfBusinessTab({
         </div>
 
         {activeMetricCols.length === 0 ? (
-          /* Empty state when all rules are off */
           <div className="flex flex-col items-center justify-center py-12 gap-2 rounded-xl border border-stone-200 bg-white">
             <Scale className="w-6 h-6 text-stone-300" />
             <p className="text-sm font-medium text-stone-400">No active equity rules</p>
@@ -3016,44 +3039,47 @@ function BookOfBusinessTab({
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-            {/* Dynamic table — columns match active equity rules only */}
             {(() => {
-              // Build inline grid template: name col + one col per active metric + status col
-              const colTemplate = `1fr ${activeMetricCols.map(() => '128px').join(' ')} 32px`
+              // 180px per metric col — enough for label + deviation pill without overlap
+              const colTemplate = `minmax(160px, 1fr) ${activeMetricCols.map(() => '180px').join(' ')} 40px`
 
               return (
                 <>
                   {/* Header */}
                   <div
-                    className="grid gap-0 px-4 bg-stone-50 border-b border-stone-200"
+                    className="grid bg-stone-50 border-b border-stone-200 px-5"
                     style={{ gridTemplateColumns: colTemplate }}
                   >
                     {/* Rep / name sort */}
                     <button
                       onClick={() => handleColSort('name')}
                       className={cn(
-                        'flex items-center gap-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-left transition-colors hover:text-stone-800',
-                        effectiveSortCol === 'name' ? 'text-stone-800' : 'text-stone-400'
+                        'flex items-center gap-1.5 py-3 text-[11px] font-semibold text-left transition-colors hover:text-stone-900',
+                        effectiveSortCol === 'name' ? 'text-stone-900' : 'text-stone-400'
                       )}
                     >
                       Rep
                       {effectiveSortCol === 'name' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
                     </button>
 
-                    {/* One header per active metric column */}
+                    {/* One header per active metric */}
                     {activeMetricCols.map(col => (
                       <button
                         key={col.key}
                         onClick={() => handleColSort(col.key)}
                         className={cn(
-                          'flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
-                          effectiveSortCol === col.key ? 'text-stone-800' : 'text-stone-500'
+                          'flex flex-col items-end justify-center gap-1 py-3 pr-4 transition-colors hover:text-stone-900 group',
+                          effectiveSortCol === col.key ? 'text-stone-900' : 'text-stone-400'
                         )}
                       >
-                        {effectiveSortCol === col.key && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
-                        {col.label}
-                        <span className="ml-1 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">
-                          ±{col.tolerance}%
+                        <div className="flex items-center gap-1">
+                          {effectiveSortCol === col.key && (
+                            sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                          )}
+                          <span className="text-[11px] font-semibold">{col.label}</span>
+                        </div>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-500 group-hover:bg-stone-300 transition-colors font-semibold">
+                          ±{col.tolerance}% tolerance
                         </span>
                       </button>
                     ))}
@@ -3069,13 +3095,13 @@ function BookOfBusinessTab({
                         <div
                           key={rep.repId}
                           className={cn(
-                            'grid gap-0 items-center px-4 py-2.5',
-                            repHasFlag && 'bg-amber-50/30'
+                            'grid items-center px-5 py-3 transition-colors',
+                            repHasFlag ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-stone-50/60'
                           )}
                           style={{ gridTemplateColumns: colTemplate }}
                         >
                           {/* Rep info */}
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0 pr-4">
                             <AvatarInitials
                               name={rep.name}
                               colorClass={AVATAR_COLORS[rep.repId] ?? 'bg-stone-100 text-stone-600'}
@@ -3084,7 +3110,7 @@ function BookOfBusinessTab({
                             <span className="text-xs font-medium text-stone-800 truncate">{rep.name}</span>
                           </div>
 
-                          {/* One data cell per active metric column */}
+                          {/* Data cells */}
                           {activeMetricCols.map(col => {
                             const val     = col.getValue(rep)
                             const dev     = col.getDev(rep)
@@ -3093,14 +3119,17 @@ function BookOfBusinessTab({
                               <div
                                 key={col.key}
                                 className={cn(
-                                  'flex flex-col items-end pr-2',
-                                  effectiveSortCol === col.key && 'bg-stone-50/60'
+                                  'flex items-center justify-end gap-2 pr-4',
+                                  effectiveSortCol === col.key && 'bg-stone-50/80'
                                 )}
                               >
-                                <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
+                                <span className="text-[13px] font-semibold text-stone-800 tabular-nums font-mono">
                                   {col.format(val)}
                                 </span>
-                                <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(dev, flagged, true))}>
+                                <span className={cn(
+                                  'text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums whitespace-nowrap',
+                                  devColor(dev, flagged)
+                                )}>
                                   {dev > 0 ? '+' : ''}{dev}%
                                 </span>
                               </div>
@@ -3112,19 +3141,19 @@ function BookOfBusinessTab({
                             {repHasFlag ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-500 cursor-default" />
+                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-500 cursor-default shrink-0" />
                                 </TooltipTrigger>
-                                <TooltipContent side="left">
-                                  <p className="text-xs">
+                                <TooltipContent side="left" className="max-w-[220px]">
+                                  <p className="text-xs leading-relaxed">
                                     {activeMetricCols
                                       .filter(col => col.isFlagged(rep))
-                                      .map(col => `${col.label} ${col.getDev(rep) > 0 ? '+' : ''}${col.getDev(rep)}% (limit ±${col.tolerance}%)`)
-                                      .join(' · ')}
+                                      .map(col => `${col.label}: ${col.getDev(rep) > 0 ? '+' : ''}${col.getDev(rep)}% (limit ±${col.tolerance}%)`)
+                                      .join('\n')}
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
                             ) : (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                             )}
                           </div>
                         </div>
@@ -3132,27 +3161,27 @@ function BookOfBusinessTab({
                     })}
                   </div>
 
-                  {/* Summary footer */}
-                  <div className="px-4 py-3 bg-stone-50 border-t border-stone-100 flex items-center gap-5 flex-wrap text-xs text-stone-500">
-                    {activeMetricCols.map(col => {
-                      const meanVal = col.key === 'arr' ? means.arr : col.key === 'accounts' ? means.accounts : means.employees
-                      return (
-                        <span key={col.key}>
-                          {col.label} mean:{' '}
-                          <span className="font-semibold text-stone-700">{col.format(Math.round(meanVal))}</span>
+                  {/* Footer: team means */}
+                  <div className="px-5 py-3 bg-stone-50 border-t border-stone-100 flex items-center gap-6 flex-wrap text-xs text-stone-500">
+                    <span className="font-medium text-stone-400 uppercase tracking-wide text-[10px]">Team means</span>
+                    {activeMetricCols.map(col => (
+                      <span key={col.key} className="flex items-center gap-1.5">
+                        <span className="text-stone-400">{col.label}:</span>
+                        <span className="font-semibold text-stone-700">{col.format(Math.round(col.meanVal()))}</span>
+                      </span>
+                    ))}
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {totalFlagged > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                          <ShieldAlert className="w-3 h-3" />
+                          {totalFlagged} rep{totalFlagged > 1 ? 's' : ''} out of range
                         </span>
-                      )
-                    })}
-                    {totalFlagged > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
-                        <ShieldAlert className="w-3 h-3" />
-                        {totalFlagged} rep{totalFlagged > 1 ? 's' : ''} out of range
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-emerald-700">
-                        <CheckCircle2 className="w-3 h-3" />All reps balanced
-                      </span>
-                    )}
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-emerald-700">
+                          <CheckCircle2 className="w-3 h-3" />All reps balanced
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </>
               )
