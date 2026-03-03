@@ -1791,10 +1791,21 @@ const TEMPLATES = [
   },
 ]
 
-function TemplateCard({ t }: { t: typeof TEMPLATES[0] }) {
+function TemplateCard({
+  t,
+  onPreview,
+  isPreviewActive,
+}: {
+  t: typeof TEMPLATES[0]
+  onPreview?: () => void
+  isPreviewActive?: boolean
+}) {
   const Icon = t.icon
   return (
-    <div className="group bg-white rounded-xl border border-stone-200 p-4 flex flex-col gap-3 card-hover">
+    <div className={cn(
+      "group bg-white rounded-xl border p-4 flex flex-col gap-3 card-hover",
+      isPreviewActive ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-stone-200'
+    )}>
       <div className="flex items-start justify-between">
         <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center group-hover:bg-stone-200 transition-colors">
           <Icon className="w-4.5 h-4.5 text-stone-600" />
@@ -1819,9 +1830,12 @@ function TemplateCard({ t }: { t: typeof TEMPLATES[0] }) {
         </Button>
         <Button
           size="sm"
-          variant="outline"
-          className="h-7 text-xs press-scale"
-          onClick={() => toast('Preview coming soon')}
+          variant={isPreviewActive ? 'default' : 'outline'}
+          className={cn(
+            "h-7 text-xs press-scale",
+            isPreviewActive && 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          )}
+          onClick={onPreview ?? (() => toast('Preview coming soon'))}
         >
           Preview
         </Button>
@@ -1830,9 +1844,225 @@ function TemplateCard({ t }: { t: typeof TEMPLATES[0] }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Equity Template → metric mapping
+// ---------------------------------------------------------------------------
+
+const EQUITY_TEMPLATE_CONFIG: Record<string, { metric: 'arr' | 'account_count'; tolerance: number }> = {
+  t10: { metric: 'arr',           tolerance: 20 },
+  t11: { metric: 'account_count', tolerance: 20 },
+}
+
+// ---------------------------------------------------------------------------
+// EquityPreviewPanel — inline preview below equity template cards
+// ---------------------------------------------------------------------------
+
+function EquityPreviewPanel({
+  templateId,
+  onClose,
+}: {
+  templateId: string
+  onClose: () => void
+}) {
+  const template = TEMPLATES.find(t => t.id === templateId)
+  const config = EQUITY_TEMPLATE_CONFIG[templateId]
+  if (!template || !config) return null
+
+  const { metric, tolerance } = config
+  const metricLabel = metric === 'arr' ? 'ARR' : 'Account Count'
+
+  // Compute rep book data (same as BookOfBusinessTab)
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const repBookData = activeReps
+    .map(rep => {
+      const repAccounts = demoAccounts.filter(a => a.current_owner_id === rep.id)
+      if (repAccounts.length === 0) return null
+      const arr      = repAccounts.reduce((s, a) => s + a.arr, 0)
+      const accounts = repAccounts.length
+      return { repId: rep.id, name: rep.full_name, arr, accounts }
+    })
+    .filter(Boolean) as { repId: string; name: string; arr: number; accounts: number }[]
+
+  const n = repBookData.length
+  if (n === 0) return null
+
+  // Team mean for chosen metric
+  const getValue = (r: typeof repBookData[0]) => metric === 'arr' ? r.arr : r.accounts
+  const mean = repBookData.reduce((s, r) => s + getValue(r), 0) / n
+
+  // Per-rep deviation, flag, sort
+  const repRows = repBookData
+    .map(rep => {
+      const value = getValue(rep)
+      const dev = mean > 0 ? ((value - mean) / mean) * 100 : 0
+      const devRounded = Math.round(dev)
+      const flagged = Math.abs(dev) > tolerance
+      return { ...rep, value, dev: devRounded, flagged }
+    })
+    .sort((a, b) => {
+      // Flagged first, then by abs deviation desc
+      if (a.flagged !== b.flagged) return a.flagged ? -1 : 1
+      return Math.abs(b.dev) - Math.abs(a.dev)
+    })
+
+  const inRange  = repRows.filter(r => !r.flagged).length
+  const outRange = repRows.filter(r => r.flagged).length
+  const maxValue = Math.max(...repRows.map(r => r.value))
+
+  const formatValue = (v: number) => {
+    if (metric === 'arr') return formatBookARR(v)
+    return String(v)
+  }
+
+  const devColor = (dev: number, flagged: boolean) => {
+    if (!flagged) return 'text-emerald-700 bg-emerald-50'
+    if (dev > 0)  return Math.abs(dev) > 40 ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
+    return 'text-sky-700 bg-sky-50'
+  }
+
+  const barColor = (dev: number, flagged: boolean) => {
+    if (!flagged) return 'bg-emerald-400'
+    if (dev > 0)  return Math.abs(dev) > 40 ? 'bg-red-400' : 'bg-amber-400'
+    return 'bg-sky-400'
+  }
+
+  // Tolerance band as percentage of max bar width
+  const toleranceLow  = mean * (1 - tolerance / 100)
+  const toleranceHigh = mean * (1 + tolerance / 100)
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 p-5 flex flex-col gap-5 animate-in slide-in-from-top-2 duration-200">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <Scale className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-stone-800">{template.title}</h4>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[11px] text-muted-foreground">Metric: <span className="font-medium text-stone-700">{metricLabel}</span></span>
+              <span className="text-stone-300">·</span>
+              <span className="text-[11px] text-muted-foreground">Tolerance: <span className="font-medium text-stone-700">±{tolerance}%</span></span>
+              <span className="text-stone-300">·</span>
+              <span className="text-[11px] text-muted-foreground">Team mean: <span className="font-medium text-stone-700">{formatValue(Math.round(mean))}</span></span>
+            </div>
+          </div>
+        </div>
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onClose}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Summary badges */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="text-xs font-medium text-emerald-700">{inRange} in range</span>
+        </div>
+        {outRange > 0 && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200">
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+            <span className="text-xs font-medium text-amber-700">{outRange} out of range</span>
+          </div>
+        )}
+      </div>
+
+      {/* Distribution bars */}
+      <div className="flex flex-col gap-1.5">
+        <h5 className="text-[11px] font-medium text-stone-500 uppercase tracking-wide">Distribution</h5>
+        <div className="flex flex-col gap-1">
+          {repRows.map(rep => {
+            const pct = maxValue > 0 ? (rep.value / maxValue) * 100 : 0
+            const meanPct = maxValue > 0 ? (mean / maxValue) * 100 : 0
+            const tolLowPct = maxValue > 0 ? (toleranceLow / maxValue) * 100 : 0
+            const tolHighPct = maxValue > 0 ? Math.min((toleranceHigh / maxValue) * 100, 100) : 0
+
+            return (
+              <div key={rep.repId} className="flex items-center gap-2">
+                <span className="text-[11px] text-stone-600 w-24 truncate flex-shrink-0">{rep.name.split(' ')[0]}</span>
+                <div className="flex-1 h-5 bg-stone-50 rounded relative overflow-hidden">
+                  {/* Tolerance band */}
+                  <div
+                    className="absolute top-0 bottom-0 bg-emerald-100/50 border-l border-r border-emerald-300/40"
+                    style={{ left: `${tolLowPct}%`, width: `${tolHighPct - tolLowPct}%` }}
+                  />
+                  {/* Mean marker */}
+                  <div
+                    className="absolute top-0 bottom-0 w-px bg-stone-400"
+                    style={{ left: `${meanPct}%` }}
+                  />
+                  {/* Rep bar */}
+                  <div
+                    className={cn('h-full rounded transition-all', barColor(rep.dev, rep.flagged))}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className={cn(
+                  'text-[10px] font-medium w-12 text-right flex-shrink-0',
+                  rep.flagged ? (rep.dev > 0 ? 'text-amber-600' : 'text-sky-600') : 'text-emerald-600'
+                )}>
+                  {rep.dev > 0 ? '+' : ''}{rep.dev}%
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Compact table */}
+      <div className="flex flex-col gap-1.5">
+        <h5 className="text-[11px] font-medium text-stone-500 uppercase tracking-wide">Rep Detail</h5>
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">{metricLabel}</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Deviation</th>
+                <th className="text-center py-1.5 px-3 font-medium text-stone-600">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repRows.map(rep => (
+                <tr key={rep.repId} className="border-b border-stone-100 last:border-0">
+                  <td className="py-1.5 px-3 text-stone-700">{rep.name}</td>
+                  <td className="py-1.5 px-3 text-right text-stone-700 font-medium">{formatValue(rep.value)}</td>
+                  <td className="py-1.5 px-3 text-right">
+                    <span className={cn('inline-block px-1.5 py-0.5 rounded text-[10px] font-medium', devColor(rep.dev, rep.flagged))}>
+                      {rep.dev > 0 ? '+' : ''}{rep.dev}%
+                    </span>
+                  </td>
+                  <td className="py-1.5 px-3 text-center">
+                    {rep.flagged ? (
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] h-4 px-1.5">Flagged</Badge>
+                    ) : (
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-4 px-1.5">OK</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TAB 2 — Templates
+// ---------------------------------------------------------------------------
+
 function TemplatesTab() {
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null)
+
   const matchTemplates = TEMPLATES.filter((t) => t.section === 'match')
   const equityTemplates = TEMPLATES.filter((t) => t.section === 'equity')
+
+  const handlePreview = (id: string) => {
+    setPreviewTemplateId(prev => (prev === id ? null : id))
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -1867,9 +2097,21 @@ function TemplatesTab() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {equityTemplates.map((t) => (
-            <TemplateCard key={t.id} t={t} />
+            <TemplateCard
+              key={t.id}
+              t={t}
+              onPreview={() => handlePreview(t.id)}
+              isPreviewActive={previewTemplateId === t.id}
+            />
           ))}
         </div>
+        {/* Equity Preview Panel */}
+        {previewTemplateId && EQUITY_TEMPLATE_CONFIG[previewTemplateId] && (
+          <EquityPreviewPanel
+            templateId={previewTemplateId}
+            onClose={() => setPreviewTemplateId(null)}
+          />
+        )}
       </div>
     </div>
   )
