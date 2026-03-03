@@ -26,10 +26,12 @@ export function TrialModeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const hasTrialData = !!localStorage.getItem('relay-trial-data')
-      const demoMode = localStorage.getItem('relay-demo-mode') === 'true'
+      const demoModeFlag = localStorage.getItem('relay-demo-mode') === 'true'
+      const hasDemoRole  = !!localStorage.getItem('relay-demo-role')
+      const isDemoActive = demoModeFlag || hasDemoRole
       setHasTrial(hasTrialData)
-      setIsDemoMode(demoMode)
-      setIsTrialMode(hasTrialData && !demoMode)
+      setIsDemoMode(isDemoActive)
+      setIsTrialMode(hasTrialData && !isDemoActive)
     } catch {
       // ignore
     }
