@@ -11,6 +11,9 @@ import { CRMConfigure, HubSpotConnect } from './configure/crm-configure'
 import { SlackConfigure } from './configure/slack-configure'
 import { CalendarConfigure } from './configure/calendar-configure'
 import { ResendConfigure } from './configure/resend-configure'
+import { GainsightConfigure } from './configure/gainsight-configure'
+import { ZendeskConfigure } from './configure/zendesk-configure'
+import { TeamsConnect } from './configure/teams-configure'
 
 // ─── Integration metadata ─────────────────────────────────────────────────────
 
@@ -63,6 +66,24 @@ const INTEGRATION_META: Record<string, { title: string; subtitle: string; iconTe
     iconText: 'Re',
     iconBg: 'bg-gray-800',
   },
+  gainsight: {
+    title: 'Gainsight',
+    subtitle: 'Health scores, risk signals & field mapping',
+    iconText: 'G',
+    iconBg: 'bg-violet-500',
+  },
+  zendesk: {
+    title: 'Zendesk',
+    subtitle: 'Ticket sync & brief inclusion settings',
+    iconText: 'Z',
+    iconBg: 'bg-yellow-500',
+  },
+  teams: {
+    title: 'Microsoft Teams',
+    subtitle: 'Connect workspace & notification channels',
+    iconText: 'MT',
+    iconBg: 'bg-indigo-500',
+  },
 }
 
 // ─── Content router ───────────────────────────────────────────────────────────
@@ -83,6 +104,12 @@ function SheetBody({ integrationId }: { integrationId: string }) {
       return <CalendarConfigure calendar="outlook" />
     case 'resend':
       return <ResendConfigure />
+    case 'gainsight':
+      return <GainsightConfigure />
+    case 'zendesk':
+      return <ZendeskConfigure />
+    case 'teams':
+      return <TeamsConnect />
     default:
       return (
         <div className="flex items-center justify-center h-full">

@@ -20,7 +20,10 @@ import { IntegrationConfigureSheet } from '@/components/settings/integration-con
 const integrations = [
   { id: 'salesforce', name: 'Salesforce', description: 'Sync accounts, contacts, and opportunities', icon: Database, connected: true, status: 'Last synced 2h ago' },
   { id: 'hubspot', name: 'HubSpot', description: 'Import companies and deals from HubSpot CRM', icon: Database, connected: false, status: 'Not connected' },
+  { id: 'gainsight', name: 'Gainsight', description: 'Health scores, risk signals, and CSM assignments', icon: Zap, connected: true, status: 'Last synced 4 min ago' },
+  { id: 'zendesk', name: 'Zendesk', description: 'Open tickets and support history in handoff briefs', icon: Globe, connected: true, status: 'Last synced 6 min ago' },
   { id: 'slack', name: 'Slack', description: 'Get transition notifications in Slack channels', icon: MessageSquare, connected: true, status: 'Connected to #cs-transitions' },
+  { id: 'teams', name: 'Microsoft Teams', description: 'Transition notifications and approval workflows', icon: MessageSquare, connected: false, status: 'Not connected' },
   { id: 'google', name: 'Google Calendar', description: 'Sync handoff meetings and availability', icon: Calendar, connected: true, status: 'Connected' },
   { id: 'outlook', name: 'Microsoft Outlook', description: 'Calendar and email integration', icon: Mail, connected: false, status: 'Not connected' },
   { id: 'resend', name: 'Resend', description: 'Send transition emails through your domain', icon: Mail, connected: true, status: 'Sending from transitions@wealthsimple.com' },
