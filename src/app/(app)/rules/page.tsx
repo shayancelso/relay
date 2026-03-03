@@ -2740,6 +2740,17 @@ function BookOfBusinessTab({
   onAddEquityRule: () => void
 }) {
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false)
+  const [sortCol, setSortCol] = useState<'arr' | 'accounts' | 'employees' | 'name'>('arr')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const handleColSort = (col: typeof sortCol) => {
+    if (col === sortCol) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir(col === 'name' ? 'asc' : 'desc')
+    }
+  }
 
   // Compute ALL active reps' book stats from real account data
   const repBookData = useMemo(() => {
@@ -2794,8 +2805,18 @@ function BookOfBusinessTab({
     })
   }, [repBookData, means, arrRule, accountsRule, employeesRule])
 
-  const displayReps  = showFlaggedOnly ? repMatrix.filter(r => r.hasFlag) : repMatrix
   const totalFlagged = repMatrix.filter(r => r.hasFlag).length
+
+  const displayReps = useMemo(() => {
+    const filtered = showFlaggedOnly ? repMatrix.filter(r => r.hasFlag) : repMatrix
+    return [...filtered].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1
+      if (sortCol === 'name')      return dir * a.name.localeCompare(b.name)
+      if (sortCol === 'accounts')  return dir * (a.accounts - b.accounts)
+      if (sortCol === 'employees') return dir * (a.employees - b.employees)
+      return dir * (a.arr - b.arr)
+    })
+  }, [repMatrix, showFlaggedOnly, sortCol, sortDir])
 
   // Equity rules: compute out-of-range count using real data
   const getRuleOutOfRange = (rule: EquityRule) => {
@@ -2819,12 +2840,16 @@ function BookOfBusinessTab({
     return Tag
   }
 
-  // Cell color helper
-  const devColor = (dev: number, flagged: boolean) => {
-    if (!flagged) return 'text-emerald-700 bg-emerald-50'
-    return Math.abs(dev) > 30
-      ? 'text-red-700 bg-red-50'
-      : 'text-amber-700 bg-amber-50'
+  // Cell color: direction-aware + rule-aware
+  // - rule off     → neutral stone (no judgment)
+  // - in range     → green
+  // - above mean   → warm (amber → red by severity)
+  // - below mean   → cool (sky blue)
+  const devColor = (dev: number, flagged: boolean, ruleActive: boolean) => {
+    if (!ruleActive) return 'text-stone-400 bg-transparent'
+    if (!flagged)    return 'text-emerald-700 bg-emerald-50'
+    if (dev > 0)     return Math.abs(dev) > 40 ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
+    return 'text-sky-700 bg-sky-50'
   }
 
   return (
@@ -2945,18 +2970,68 @@ function BookOfBusinessTab({
         </div>
 
         <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-0 px-4 py-2 bg-stone-50 border-b border-stone-200 text-[10px] font-semibold uppercase tracking-wider text-stone-500">
-            <span>Rep</span>
-            <span className="w-28 text-right pr-2">
-              ARR{arrRule ? <span className="ml-1 text-rose-500">*</span> : null}
-            </span>
-            <span className="w-24 text-right pr-2">
-              Accounts{accountsRule ? <span className="ml-1 text-rose-500">*</span> : null}
-            </span>
-            <span className="w-24 text-right pr-2">
-              Employees{employeesRule ? <span className="ml-1 text-rose-500">*</span> : null}
-            </span>
+          {/* Table header — sortable, reacts to active equity rules */}
+          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-0 px-4 py-0 bg-stone-50 border-b border-stone-200">
+            {/* Rep / name sort */}
+            <button
+              onClick={() => handleColSort('name')}
+              className={cn(
+                'flex items-center gap-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-left transition-colors hover:text-stone-800',
+                sortCol === 'name' ? 'text-stone-800' : 'text-stone-400'
+              )}
+            >
+              Rep
+              {sortCol === 'name' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+            </button>
+
+            {/* ARR column */}
+            <button
+              onClick={() => handleColSort('arr')}
+              className={cn(
+                'w-28 flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
+                sortCol === 'arr' ? 'text-stone-800' : arrRule ? 'text-stone-500' : 'text-stone-300'
+              )}
+            >
+              {sortCol === 'arr' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              ARR
+              {arrRule
+                ? <span className="ml-0.5 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">±{arrRule.tolerance}%</span>
+                : <span className="ml-0.5 text-[8px] text-stone-300 normal-case tracking-normal">off</span>
+              }
+            </button>
+
+            {/* Accounts column */}
+            <button
+              onClick={() => handleColSort('accounts')}
+              className={cn(
+                'w-24 flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
+                sortCol === 'accounts' ? 'text-stone-800' : accountsRule ? 'text-stone-500' : 'text-stone-300'
+              )}
+            >
+              {sortCol === 'accounts' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              Accounts
+              {accountsRule
+                ? <span className="ml-0.5 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">±{accountsRule.tolerance}%</span>
+                : <span className="ml-0.5 text-[8px] text-stone-300 normal-case tracking-normal">off</span>
+              }
+            </button>
+
+            {/* Employees column */}
+            <button
+              onClick={() => handleColSort('employees')}
+              className={cn(
+                'w-24 flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
+                sortCol === 'employees' ? 'text-stone-800' : employeesRule ? 'text-stone-500' : 'text-stone-300'
+              )}
+            >
+              {sortCol === 'employees' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+              Employees
+              {employeesRule
+                ? <span className="ml-0.5 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">±{employeesRule.tolerance}%</span>
+                : <span className="ml-0.5 text-[8px] text-stone-300 normal-case tracking-normal">off</span>
+              }
+            </button>
+
             <span className="w-8" />
           </div>
 
@@ -2967,7 +3042,7 @@ function BookOfBusinessTab({
                 key={rep.repId}
                 className={cn(
                   'grid grid-cols-[1fr_auto_auto_auto_auto] gap-0 items-center px-4 py-2.5',
-                  rep.hasFlag && 'bg-amber-50/40'
+                  rep.hasFlag && 'bg-amber-50/30'
                 )}
               >
                 {/* Rep info */}
@@ -2981,31 +3056,31 @@ function BookOfBusinessTab({
                 </div>
 
                 {/* ARR */}
-                <div className="w-28 flex flex-col items-end pr-2">
+                <div className={cn('w-28 flex flex-col items-end pr-2', sortCol === 'arr' && 'bg-stone-50/60')}>
                   <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
                     {formatBookARR(rep.arr)}
                   </span>
-                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.arrDev, rep.isArrFlagged))}>
+                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.arrDev, rep.isArrFlagged, !!arrRule))}>
                     {rep.arrDev > 0 ? '+' : ''}{rep.arrDev}%
                   </span>
                 </div>
 
                 {/* Accounts */}
-                <div className="w-24 flex flex-col items-end pr-2">
+                <div className={cn('w-24 flex flex-col items-end pr-2', sortCol === 'accounts' && 'bg-stone-50/60')}>
                   <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
                     {rep.accounts}
                   </span>
-                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.accountsDev, rep.isAccountsFlagged))}>
+                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.accountsDev, rep.isAccountsFlagged, !!accountsRule))}>
                     {rep.accountsDev > 0 ? '+' : ''}{rep.accountsDev}%
                   </span>
                 </div>
 
                 {/* Employees */}
-                <div className="w-24 flex flex-col items-end pr-2">
+                <div className={cn('w-24 flex flex-col items-end pr-2', sortCol === 'employees' && 'bg-stone-50/60')}>
                   <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
                     {rep.employees.toLocaleString()}
                   </span>
-                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.employeesDev, rep.isEmployeesFlagged))}>
+                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.employeesDev, rep.isEmployeesFlagged, !!employeesRule))}>
                     {rep.employeesDev > 0 ? '+' : ''}{rep.employeesDev}%
                   </span>
                 </div>
@@ -3020,9 +3095,9 @@ function BookOfBusinessTab({
                       <TooltipContent side="left">
                         <p className="text-xs">
                           {[
-                            rep.isArrFlagged      && `ARR ${rep.arrDev > 0 ? '+' : ''}${rep.arrDev}% (limit ±${arrRule?.tolerance ?? 20}%)`,
-                            rep.isAccountsFlagged && `Accounts ${rep.accountsDev > 0 ? '+' : ''}${rep.accountsDev}% (limit ±${accountsRule?.tolerance ?? 15}%)`,
-                            rep.isEmployeesFlagged&& `Employees ${rep.employeesDev > 0 ? '+' : ''}${rep.employeesDev}% (limit ±${employeesRule?.tolerance ?? 25}%)`,
+                            rep.isArrFlagged       && `ARR ${rep.arrDev > 0 ? '+' : ''}${rep.arrDev}% (limit ±${arrRule?.tolerance ?? 20}%)`,
+                            rep.isAccountsFlagged  && `Accounts ${rep.accountsDev > 0 ? '+' : ''}${rep.accountsDev}% (limit ±${accountsRule?.tolerance ?? 15}%)`,
+                            rep.isEmployeesFlagged && `Employees ${rep.employeesDev > 0 ? '+' : ''}${rep.employeesDev}% (limit ±${employeesRule?.tolerance ?? 25}%)`,
                           ].filter(Boolean).join(' · ')}
                         </p>
                       </TooltipContent>
