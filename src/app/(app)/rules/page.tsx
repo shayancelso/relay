@@ -2783,6 +2783,13 @@ function BookOfBusinessTab({
   const accountsRule  = equityRules.find(r => r.active && r.metric === 'account_count')
   const employeesRule = equityRules.find(r => r.active && r.metric === 'employee_count')
 
+  // If the sorted column's rule gets toggled off, fall back to name sort
+  const effectiveSortCol = (
+    (sortCol === 'arr'       && !arrRule) ||
+    (sortCol === 'accounts'  && !accountsRule) ||
+    (sortCol === 'employees' && !employeesRule)
+  ) ? 'name' : sortCol
+
   // Per-rep deviation + flag status
   const repMatrix = useMemo(() => {
     return repBookData.map(rep => {
@@ -2807,16 +2814,47 @@ function BookOfBusinessTab({
 
   const totalFlagged = repMatrix.filter(r => r.hasFlag).length
 
+  // Build ordered list of active metric columns — drives both header and data cells
+  type MetricColDef = {
+    key: 'arr' | 'accounts' | 'employees'
+    label: string
+    tolerance: number
+    getValue:  (r: typeof repMatrix[0]) => number
+    getDev:    (r: typeof repMatrix[0]) => number
+    isFlagged: (r: typeof repMatrix[0]) => boolean
+    format:    (v: number) => string
+  }
+  const activeMetricCols = useMemo((): MetricColDef[] => {
+    const cols: MetricColDef[] = []
+    if (arrRule) cols.push({
+      key: 'arr', label: 'ARR', tolerance: arrRule.tolerance,
+      getValue:  r => r.arr,       getDev:    r => r.arrDev,       isFlagged: r => r.isArrFlagged,
+      format:    v => formatBookARR(v),
+    })
+    if (accountsRule) cols.push({
+      key: 'accounts', label: 'Accounts', tolerance: accountsRule.tolerance,
+      getValue:  r => r.accounts,  getDev:    r => r.accountsDev,  isFlagged: r => r.isAccountsFlagged,
+      format:    v => String(v),
+    })
+    if (employeesRule) cols.push({
+      key: 'employees', label: 'Employees', tolerance: employeesRule.tolerance,
+      getValue:  r => r.employees, getDev:    r => r.employeesDev, isFlagged: r => r.isEmployeesFlagged,
+      format:    v => v.toLocaleString(),
+    })
+    return cols
+  }, [arrRule, accountsRule, employeesRule])
+
   const displayReps = useMemo(() => {
     const filtered = showFlaggedOnly ? repMatrix.filter(r => r.hasFlag) : repMatrix
+    const col = effectiveSortCol
     return [...filtered].sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1
-      if (sortCol === 'name')      return dir * a.name.localeCompare(b.name)
-      if (sortCol === 'accounts')  return dir * (a.accounts - b.accounts)
-      if (sortCol === 'employees') return dir * (a.employees - b.employees)
+      if (col === 'name')      return dir * a.name.localeCompare(b.name)
+      if (col === 'accounts')  return dir * (a.accounts - b.accounts)
+      if (col === 'employees') return dir * (a.employees - b.employees)
       return dir * (a.arr - b.arr)
     })
-  }, [repMatrix, showFlaggedOnly, sortCol, sortDir])
+  }, [repMatrix, showFlaggedOnly, effectiveSortCol, sortDir])
 
   // Equity rules: compute out-of-range count using real data
   const getRuleOutOfRange = (rule: EquityRule) => {
@@ -2969,170 +3007,158 @@ function BookOfBusinessTab({
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          {/* Table header — sortable, reacts to active equity rules */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-0 px-4 py-0 bg-stone-50 border-b border-stone-200">
-            {/* Rep / name sort */}
-            <button
-              onClick={() => handleColSort('name')}
-              className={cn(
-                'flex items-center gap-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-left transition-colors hover:text-stone-800',
-                sortCol === 'name' ? 'text-stone-800' : 'text-stone-400'
-              )}
-            >
-              Rep
-              {sortCol === 'name' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
-            </button>
-
-            {/* ARR column */}
-            <button
-              onClick={() => handleColSort('arr')}
-              className={cn(
-                'w-28 flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
-                sortCol === 'arr' ? 'text-stone-800' : arrRule ? 'text-stone-500' : 'text-stone-300'
-              )}
-            >
-              {sortCol === 'arr' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
-              ARR
-              {arrRule
-                ? <span className="ml-0.5 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">±{arrRule.tolerance}%</span>
-                : <span className="ml-0.5 text-[8px] text-stone-300 normal-case tracking-normal">off</span>
-              }
-            </button>
-
-            {/* Accounts column */}
-            <button
-              onClick={() => handleColSort('accounts')}
-              className={cn(
-                'w-24 flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
-                sortCol === 'accounts' ? 'text-stone-800' : accountsRule ? 'text-stone-500' : 'text-stone-300'
-              )}
-            >
-              {sortCol === 'accounts' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
-              Accounts
-              {accountsRule
-                ? <span className="ml-0.5 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">±{accountsRule.tolerance}%</span>
-                : <span className="ml-0.5 text-[8px] text-stone-300 normal-case tracking-normal">off</span>
-              }
-            </button>
-
-            {/* Employees column */}
-            <button
-              onClick={() => handleColSort('employees')}
-              className={cn(
-                'w-24 flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
-                sortCol === 'employees' ? 'text-stone-800' : employeesRule ? 'text-stone-500' : 'text-stone-300'
-              )}
-            >
-              {sortCol === 'employees' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
-              Employees
-              {employeesRule
-                ? <span className="ml-0.5 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">±{employeesRule.tolerance}%</span>
-                : <span className="ml-0.5 text-[8px] text-stone-300 normal-case tracking-normal">off</span>
-              }
-            </button>
-
-            <span className="w-8" />
+        {activeMetricCols.length === 0 ? (
+          /* Empty state when all rules are off */
+          <div className="flex flex-col items-center justify-center py-12 gap-2 rounded-xl border border-stone-200 bg-white">
+            <Scale className="w-6 h-6 text-stone-300" />
+            <p className="text-sm font-medium text-stone-400">No active equity rules</p>
+            <p className="text-xs text-stone-400">Enable a rule above to see the book distribution analysis.</p>
           </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+            {/* Dynamic table — columns match active equity rules only */}
+            {(() => {
+              // Build inline grid template: name col + one col per active metric + status col
+              const colTemplate = `1fr ${activeMetricCols.map(() => '128px').join(' ')} 32px`
 
-          {/* Rows */}
-          <div className="divide-y divide-stone-100">
-            {displayReps.map(rep => (
-              <div
-                key={rep.repId}
-                className={cn(
-                  'grid grid-cols-[1fr_auto_auto_auto_auto] gap-0 items-center px-4 py-2.5',
-                  rep.hasFlag && 'bg-amber-50/30'
-                )}
-              >
-                {/* Rep info */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <AvatarInitials
-                    name={rep.name}
-                    colorClass={AVATAR_COLORS[rep.repId] ?? 'bg-stone-100 text-stone-600'}
-                    size="sm"
-                  />
-                  <span className="text-xs font-medium text-stone-800 truncate">{rep.name}</span>
-                </div>
+              return (
+                <>
+                  {/* Header */}
+                  <div
+                    className="grid gap-0 px-4 bg-stone-50 border-b border-stone-200"
+                    style={{ gridTemplateColumns: colTemplate }}
+                  >
+                    {/* Rep / name sort */}
+                    <button
+                      onClick={() => handleColSort('name')}
+                      className={cn(
+                        'flex items-center gap-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-left transition-colors hover:text-stone-800',
+                        effectiveSortCol === 'name' ? 'text-stone-800' : 'text-stone-400'
+                      )}
+                    >
+                      Rep
+                      {effectiveSortCol === 'name' && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+                    </button>
 
-                {/* ARR */}
-                <div className={cn('w-28 flex flex-col items-end pr-2', sortCol === 'arr' && 'bg-stone-50/60')}>
-                  <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
-                    {formatBookARR(rep.arr)}
-                  </span>
-                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.arrDev, rep.isArrFlagged, !!arrRule))}>
-                    {rep.arrDev > 0 ? '+' : ''}{rep.arrDev}%
-                  </span>
-                </div>
+                    {/* One header per active metric column */}
+                    {activeMetricCols.map(col => (
+                      <button
+                        key={col.key}
+                        onClick={() => handleColSort(col.key)}
+                        className={cn(
+                          'flex items-center justify-end gap-1 py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-wider transition-colors hover:text-stone-800',
+                          effectiveSortCol === col.key ? 'text-stone-800' : 'text-stone-500'
+                        )}
+                      >
+                        {effectiveSortCol === col.key && (sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />)}
+                        {col.label}
+                        <span className="ml-1 text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 font-bold normal-case tracking-normal">
+                          ±{col.tolerance}%
+                        </span>
+                      </button>
+                    ))}
 
-                {/* Accounts */}
-                <div className={cn('w-24 flex flex-col items-end pr-2', sortCol === 'accounts' && 'bg-stone-50/60')}>
-                  <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
-                    {rep.accounts}
-                  </span>
-                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.accountsDev, rep.isAccountsFlagged, !!accountsRule))}>
-                    {rep.accountsDev > 0 ? '+' : ''}{rep.accountsDev}%
-                  </span>
-                </div>
+                    <span />
+                  </div>
 
-                {/* Employees */}
-                <div className={cn('w-24 flex flex-col items-end pr-2', sortCol === 'employees' && 'bg-stone-50/60')}>
-                  <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
-                    {rep.employees.toLocaleString()}
-                  </span>
-                  <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(rep.employeesDev, rep.isEmployeesFlagged, !!employeesRule))}>
-                    {rep.employeesDev > 0 ? '+' : ''}{rep.employeesDev}%
-                  </span>
-                </div>
+                  {/* Rows */}
+                  <div className="divide-y divide-stone-100">
+                    {displayReps.map(rep => {
+                      const repHasFlag = activeMetricCols.some(col => col.isFlagged(rep))
+                      return (
+                        <div
+                          key={rep.repId}
+                          className={cn(
+                            'grid gap-0 items-center px-4 py-2.5',
+                            repHasFlag && 'bg-amber-50/30'
+                          )}
+                          style={{ gridTemplateColumns: colTemplate }}
+                        >
+                          {/* Rep info */}
+                          <div className="flex items-center gap-2 min-w-0">
+                            <AvatarInitials
+                              name={rep.name}
+                              colorClass={AVATAR_COLORS[rep.repId] ?? 'bg-stone-100 text-stone-600'}
+                              size="sm"
+                            />
+                            <span className="text-xs font-medium text-stone-800 truncate">{rep.name}</span>
+                          </div>
 
-                {/* Status */}
-                <div className="w-8 flex justify-center">
-                  {rep.hasFlag ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <ShieldAlert className="w-3.5 h-3.5 text-amber-500 cursor-default" />
-                      </TooltipTrigger>
-                      <TooltipContent side="left">
-                        <p className="text-xs">
-                          {[
-                            rep.isArrFlagged       && `ARR ${rep.arrDev > 0 ? '+' : ''}${rep.arrDev}% (limit ±${arrRule?.tolerance ?? 20}%)`,
-                            rep.isAccountsFlagged  && `Accounts ${rep.accountsDev > 0 ? '+' : ''}${rep.accountsDev}% (limit ±${accountsRule?.tolerance ?? 15}%)`,
-                            rep.isEmployeesFlagged && `Employees ${rep.employeesDev > 0 ? '+' : ''}${rep.employeesDev}% (limit ±${employeesRule?.tolerance ?? 25}%)`,
-                          ].filter(Boolean).join(' · ')}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  )}
-                </div>
-              </div>
-            ))}
+                          {/* One data cell per active metric column */}
+                          {activeMetricCols.map(col => {
+                            const val     = col.getValue(rep)
+                            const dev     = col.getDev(rep)
+                            const flagged = col.isFlagged(rep)
+                            return (
+                              <div
+                                key={col.key}
+                                className={cn(
+                                  'flex flex-col items-end pr-2',
+                                  effectiveSortCol === col.key && 'bg-stone-50/60'
+                                )}
+                              >
+                                <span className="text-xs font-mono font-semibold text-stone-700 tabular-nums">
+                                  {col.format(val)}
+                                </span>
+                                <span className={cn('text-[10px] font-bold px-1 rounded tabular-nums', devColor(dev, flagged, true))}>
+                                  {dev > 0 ? '+' : ''}{dev}%
+                                </span>
+                              </div>
+                            )
+                          })}
+
+                          {/* Status icon */}
+                          <div className="flex justify-center">
+                            {repHasFlag ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-500 cursor-default" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left">
+                                  <p className="text-xs">
+                                    {activeMetricCols
+                                      .filter(col => col.isFlagged(rep))
+                                      .map(col => `${col.label} ${col.getDev(rep) > 0 ? '+' : ''}${col.getDev(rep)}% (limit ±${col.tolerance}%)`)
+                                      .join(' · ')}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Summary footer */}
+                  <div className="px-4 py-3 bg-stone-50 border-t border-stone-100 flex items-center gap-5 flex-wrap text-xs text-stone-500">
+                    {activeMetricCols.map(col => {
+                      const meanVal = col.key === 'arr' ? means.arr : col.key === 'accounts' ? means.accounts : means.employees
+                      return (
+                        <span key={col.key}>
+                          {col.label} mean:{' '}
+                          <span className="font-semibold text-stone-700">{col.format(Math.round(meanVal))}</span>
+                        </span>
+                      )
+                    })}
+                    {totalFlagged > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                        <ShieldAlert className="w-3 h-3" />
+                        {totalFlagged} rep{totalFlagged > 1 ? 's' : ''} out of range
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-emerald-700">
+                        <CheckCircle2 className="w-3 h-3" />All reps balanced
+                      </span>
+                    )}
+                  </div>
+                </>
+              )
+            })()}
           </div>
-
-          {/* Summary footer */}
-          <div className="px-4 py-3 bg-stone-50 border-t border-stone-100 flex items-center gap-5 flex-wrap text-xs text-stone-500">
-            <span>
-              ARR mean: <span className="font-semibold text-stone-700">{formatBookARR(means.arr)}</span>
-            </span>
-            <span>
-              Accts mean: <span className="font-semibold text-stone-700">{Math.round(means.accounts)}</span>
-            </span>
-            {totalFlagged > 0 ? (
-              <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
-                <ShieldAlert className="w-3 h-3" />
-                {totalFlagged} rep{totalFlagged > 1 ? 's' : ''} out of range
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-emerald-700">
-                <CheckCircle2 className="w-3 h-3" />All reps balanced
-              </span>
-            )}
-            {(arrRule || accountsRule || employeesRule) && (
-              <span className="text-[10px] text-stone-400 ml-auto">* = active equity rule applied</span>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
