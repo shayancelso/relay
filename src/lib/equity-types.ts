@@ -6,6 +6,12 @@
 export type EquityMetric = 'arr' | 'account_count' | 'employee_count' | 'custom'
 export type TargetType = 'mean_relative' | 'absolute'
 
+export type EquityRuleScope = {
+  segments?: string[]        // account segments to include (empty/undefined = all)
+  excludeOnRamp?: boolean    // skip reps with <12mo tenure
+  repSpecialties?: string[]  // only reps with these specialties (empty/undefined = all)
+}
+
 export type SegmentTarget = {
   segment: string
   target: number
@@ -26,6 +32,7 @@ export type EquityRule = {
   targetType?: TargetType           // defaults to 'mean_relative'
   defaultTarget?: number            // for absolute: base target value
   segmentTargets?: SegmentTarget[]  // per-segment overrides (absolute mode)
+  scope?: EquityRuleScope            // optional scope filters (undefined = global)
 }
 
 export const DEMO_EQUITY_RULES: EquityRule[] = [

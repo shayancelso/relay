@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useRole } from '@/lib/role-context'
 import { useEquityRules } from '@/lib/equity-context'
+import { filterRepsByScope, filterAccountsByScope } from '@/lib/equity-scope'
 import { formatCurrency, getInitials, cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
@@ -271,9 +272,14 @@ function BookDistributionChart({
     return Array.from(countries).sort()
   }, [enrichedData])
 
-  // ── Filtered reps (applies 4 filter dimensions) ─────────────────────────
+  // ── Filtered reps (applies 4 filter dimensions + equity scope) ──────────
   const filteredReps = useMemo(() => {
-    const activeReps = enrichedData.filter(m => m.role === 'rep' && m.capacity > 0)
+    let activeReps = enrichedData.filter(m => m.role === 'rep' && m.capacity > 0)
+
+    // Apply equity rule scope when present for the selected metric
+    if (metricTarget?.scope) {
+      activeReps = filterRepsByScope(activeReps, metricTarget.scope)
+    }
 
     return activeReps.filter(m => {
       // Health filter
@@ -305,7 +311,7 @@ function BookDistributionChart({
 
       return true
     })
-  }, [enrichedData, filters])
+  }, [enrichedData, filters, metricTarget])
 
   // ── Chart data (all shapes) ─────────────────────────────────────────────
   const {
@@ -1363,15 +1369,49 @@ export default function TeamPage() {
 
   const { enrichedData, meanArr, meanAccounts, onRampCount, flaggedCount } = useMemo(() => {
     const activeReps = teamData.filter(m => m.role === 'rep' && m.capacity > 0 && m.accountCount > 0)
-    const mArr      = activeReps.length > 0 ? activeReps.reduce((s, m) => s + m.totalArr, 0)     / activeReps.length : 0
-    const mAccounts = activeReps.length > 0 ? activeReps.reduce((s, m) => s + m.accountCount, 0) / activeReps.length : 0
+
+    // Scope-aware mean computation: filter reps by the rule's scope
+    const arrScopedReps = arrTarget?.scope
+      ? filterRepsByScope(activeReps, arrTarget.scope)
+      : activeReps
+    const accountScopedReps = accountTarget?.scope
+      ? filterRepsByScope(activeReps, accountTarget.scope)
+      : activeReps
+
+    // For ARR mean: if scope has segment filter, recompute per-rep ARR from scoped accounts
+    let mArr: number
+    if (arrTarget?.scope?.segments && arrTarget.scope.segments.length > 0) {
+      const scopedVals = arrScopedReps.map(r => {
+        const accts = filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), arrTarget.scope)
+        return accts.reduce((s, a) => s + a.arr, 0)
+      })
+      mArr = scopedVals.length > 0 ? scopedVals.reduce((a, b) => a + b) / scopedVals.length : 0
+    } else {
+      mArr = arrScopedReps.length > 0 ? arrScopedReps.reduce((s, m) => s + m.totalArr, 0) / arrScopedReps.length : 0
+    }
+
+    // For account count mean: if scope has segment filter, recompute per-rep counts from scoped accounts
+    let mAccounts: number
+    if (accountTarget?.scope?.segments && accountTarget.scope.segments.length > 0) {
+      const scopedVals = accountScopedReps.map(r => {
+        return filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), accountTarget.scope).length
+      })
+      mAccounts = scopedVals.length > 0 ? scopedVals.reduce((a, b) => a + b) / scopedVals.length : 0
+    } else {
+      mAccounts = accountScopedReps.length > 0 ? accountScopedReps.reduce((s, m) => s + m.accountCount, 0) / accountScopedReps.length : 0
+    }
+
+    const arrScopedIds = new Set(arrScopedReps.map(r => r.id))
+    const accountScopedIds = new Set(accountScopedReps.map(r => r.id))
 
     const enriched = teamData.map(m => {
       if (m.role !== 'rep' || m.capacity === 0) return m
-      const arrDev     = mArr      > 0 ? (m.totalArr     - mArr)      / mArr      : 0
-      const accountDev = mAccounts > 0 ? (m.accountCount - mAccounts) / mAccounts : 0
-      const isArrFlagged     = arrTarget     !== null && Math.abs(arrDev)     > arrTolerance
-      const isAccountsFlagged = accountTarget !== null && Math.abs(accountDev) > accountTolerance
+      const inArrScope     = arrScopedIds.has(m.id)
+      const inAccountScope = accountScopedIds.has(m.id)
+      const arrDev     = inArrScope && mArr > 0      ? (m.totalArr     - mArr)      / mArr      : 0
+      const accountDev = inAccountScope && mAccounts > 0 ? (m.accountCount - mAccounts) / mAccounts : 0
+      const isArrFlagged      = arrTarget     !== null && inArrScope     && Math.abs(arrDev)     > arrTolerance
+      const isAccountsFlagged = accountTarget !== null && inAccountScope && Math.abs(accountDev) > accountTolerance
       return {
         ...m,
         arrDeviation:      Math.round(arrDev     * 100),

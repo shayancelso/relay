@@ -80,7 +80,8 @@ import { demoTeamMembers, demoAccounts } from '@/lib/demo-data'
 import { useTrialMode } from '@/lib/trial-context'
 import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 import { useEquityRules } from '@/lib/equity-context'
-import type { EquityMetric, TargetType, SegmentTarget, EquityRule } from '@/lib/equity-types'
+import type { EquityMetric, TargetType, SegmentTarget, EquityRule, EquityRuleScope } from '@/lib/equity-types'
+import { filterRepsByScope, filterAccountsByScope } from '@/lib/equity-scope'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -2670,6 +2671,30 @@ function AddEquityRuleSheet({
   const [defaultTarget, setDefaultTarget] = useState(70)
   const [segmentTargets, setSegmentTargets] = useState<Record<string, string>>({})
 
+  // Scope state
+  const [scopeOpen, setScopeOpen]                   = useState(false)
+  const [scopeSegments, setScopeSegments]           = useState<string[]>([])
+  const [scopeExcludeOnRamp, setScopeExcludeOnRamp] = useState(false)
+  const [scopeRepSpecialties, setScopeRepSpecialties] = useState<string[]>([])
+
+  const REP_SPECIALTIES = [
+    { key: 'enterprise', label: 'Enterprise' },
+    { key: 'fins', label: 'FINS' },
+    { key: 'corporate', label: 'Corporate' },
+    { key: 'commercial', label: 'Commercial' },
+    { key: 'international', label: 'International' },
+  ]
+
+  const hasScope = scopeSegments.length > 0 || scopeExcludeOnRamp || scopeRepSpecialties.length > 0
+  const buildScope = (): EquityRuleScope | undefined => {
+    if (!hasScope) return undefined
+    return {
+      ...(scopeSegments.length > 0 ? { segments: scopeSegments } : {}),
+      ...(scopeExcludeOnRamp ? { excludeOnRamp: true } : {}),
+      ...(scopeRepSpecialties.length > 0 ? { repSpecialties: scopeRepSpecialties } : {}),
+    }
+  }
+
   // Auto-switch target mode when metric changes
   const handleMetricChange = (m: EquityMetric) => {
     setMetric(m)
@@ -2680,29 +2705,32 @@ function AddEquityRuleSheet({
     }
   }
 
-  // Live mean preview from real account data
+  // Live mean preview from real account data (scope-aware)
   const liveMean = useMemo(() => {
-    const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+    const allActiveReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+    const scope = buildScope()
+    const activeReps = filterRepsByScope(allActiveReps, scope)
     if (metric === 'arr') {
       const vals = activeReps
-        .map(r => demoAccounts.filter(a => a.current_owner_id === r.id).reduce((s, a) => s + a.arr, 0))
+        .map(r => filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), scope).reduce((s, a) => s + a.arr, 0))
         .filter(v => v > 0)
       return vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
     }
     if (metric === 'account_count') {
       const vals = activeReps
-        .map(r => demoAccounts.filter(a => a.current_owner_id === r.id).length)
+        .map(r => filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), scope).length)
         .filter(v => v > 0)
       return vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
     }
     if (metric === 'employee_count') {
       const vals = activeReps
-        .map(r => demoAccounts.filter(a => a.current_owner_id === r.id).reduce((s, a) => s + (a.employee_count ?? 0), 0))
+        .map(r => filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), scope).reduce((s, a) => s + (a.employee_count ?? 0), 0))
         .filter(v => v > 0)
       return vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
     }
     return 0
-  }, [metric])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metric, scopeSegments, scopeExcludeOnRamp, scopeRepSpecialties])
 
   const formatMean = (v: number) => {
     if (metric === 'arr') return formatBookARR(v)
@@ -2721,6 +2749,10 @@ function AddEquityRuleSheet({
     setTargetType('mean_relative')
     setDefaultTarget(70)
     setSegmentTargets({})
+    setScopeOpen(false)
+    setScopeSegments([])
+    setScopeExcludeOnRamp(false)
+    setScopeRepSpecialties([])
   }
 
   const handleSave = () => {
@@ -2755,6 +2787,8 @@ function AddEquityRuleSheet({
           .filter(s => !isNaN(s.target))
       : undefined
 
+    const scope = buildScope()
+
     const newRule: EquityRule = {
       id: `eq-${Date.now()}`,
       name: name.trim(),
@@ -2771,6 +2805,7 @@ function AddEquityRuleSheet({
         defaultTarget,
         segmentTargets: parsedSegmentTargets && parsedSegmentTargets.length > 0 ? parsedSegmentTargets : undefined,
       } : {}),
+      ...(scope ? { scope } : {}),
     }
     onSave(newRule)
     toast.success('Equity rule created', { description: `"${name.trim()}" is now active.` })
@@ -3021,6 +3056,114 @@ function AddEquityRuleSheet({
               <Switch checked={mustFollow} onCheckedChange={setMustFollow} />
             </div>
 
+            {/* Scope (collapsible) */}
+            <div className="flex flex-col gap-0">
+              <button
+                type="button"
+                onClick={() => setScopeOpen(v => !v)}
+                className="flex items-center justify-between w-full py-2 group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-stone-400" />
+                  <span className="text-xs font-semibold text-stone-700">Scope</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!scopeOpen && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {hasScope
+                        ? [
+                            scopeSegments.length > 0 && scopeSegments.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', '),
+                            scopeExcludeOnRamp && 'Excl. on-ramp',
+                            scopeRepSpecialties.length > 0 && scopeRepSpecialties.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') + ' reps',
+                          ].filter(Boolean).join(' · ')
+                        : 'All reps, all segments'}
+                    </span>
+                  )}
+                  {scopeOpen ? <ChevronUp className="w-3.5 h-3.5 text-stone-400" /> : <ChevronDown className="w-3.5 h-3.5 text-stone-400" />}
+                </div>
+              </button>
+
+              {scopeOpen && (
+                <div className="flex flex-col gap-4 p-3 rounded-lg bg-stone-50 border border-stone-200">
+                  {/* Account Segments */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-semibold text-stone-600">Account Segments</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FORM_SEGMENTS.map(seg => {
+                        const isSelected = scopeSegments.includes(seg.key)
+                        return (
+                          <button
+                            key={seg.key}
+                            type="button"
+                            onClick={() =>
+                              setScopeSegments(prev =>
+                                isSelected ? prev.filter(s => s !== seg.key) : [...prev, seg.key],
+                              )
+                            }
+                            className={cn(
+                              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
+                              isSelected
+                                ? 'border-violet-400 bg-violet-100 text-violet-800'
+                                : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-100',
+                            )}
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: seg.color }}
+                            />
+                            {seg.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Only count accounts in selected segments.</p>
+                  </div>
+
+                  {/* Exclude On-Ramp */}
+                  <div className="flex items-center justify-between p-2.5 rounded-lg border border-stone-200 bg-white">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-semibold text-stone-700">Exclude On-Ramp</span>
+                        <span className="text-[10px] text-muted-foreground">Reps with &lt;12 months tenure excluded</span>
+                      </div>
+                    </div>
+                    <Switch checked={scopeExcludeOnRamp} onCheckedChange={setScopeExcludeOnRamp} />
+                  </div>
+
+                  {/* Rep Specialties */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-semibold text-stone-600">Rep Specialties</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {REP_SPECIALTIES.map(spec => {
+                        const isSelected = scopeRepSpecialties.includes(spec.key)
+                        return (
+                          <button
+                            key={spec.key}
+                            type="button"
+                            onClick={() =>
+                              setScopeRepSpecialties(prev =>
+                                isSelected ? prev.filter(s => s !== spec.key) : [...prev, spec.key],
+                              )
+                            }
+                            className={cn(
+                              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
+                              isSelected
+                                ? 'border-sky-400 bg-sky-100 text-sky-800'
+                                : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-100',
+                            )}
+                          >
+                            {spec.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Only apply to reps with these specialties.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Description */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-semibold text-stone-700">Description (optional)</Label>
@@ -3098,7 +3241,7 @@ function BookOfBusinessTab({
       }[]
   }, [])
 
-  // Team means
+  // Global team means (used as fallback when rules have no scope)
   const means = useMemo(() => {
     const n = repBookData.length
     if (n === 0) return { arr: 0, accounts: 0, employees: 0, open_tickets: 0 }
@@ -3116,6 +3259,45 @@ function BookOfBusinessTab({
   const employeesRule = equityRules.find(r => r.active && r.metric === 'employee_count')
   const customRule    = equityRules.find(r => r.active && r.metric === 'custom')
 
+  // Get scoped stats for a rule — filters reps + accounts by scope, computes mean
+  const getScopedStats = useCallback((rule: EquityRule) => {
+    const allActiveReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+    const scopedReps = filterRepsByScope(allActiveReps, rule.scope)
+    const scopedRepIds = new Set(scopedReps.map(r => r.id))
+
+    const vals = repBookData
+      .filter(rep => scopedRepIds.has(rep.repId))
+      .map(rep => {
+        if (rule.scope?.segments && rule.scope.segments.length > 0) {
+          const repAccounts = filterAccountsByScope(
+            demoAccounts.filter(a => a.current_owner_id === rep.repId),
+            rule.scope,
+          )
+          if (rule.metric === 'arr') return repAccounts.reduce((s, a) => s + a.arr, 0)
+          if (rule.metric === 'account_count') return repAccounts.length
+          if (rule.metric === 'employee_count') return repAccounts.reduce((s, a) => s + (a.employee_count ?? 0), 0)
+        }
+        if (rule.metric === 'arr') return rep.arr
+        if (rule.metric === 'account_count') return rep.accounts
+        if (rule.metric === 'employee_count') return rep.employees
+        if (rule.metric === 'custom') return rep.open_tickets
+        return 0
+      })
+
+    const mean = vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
+    return { mean, scopedRepIds, vals }
+  }, [repBookData])
+
+  // Precompute per-rule scoped means + in-scope rep sets
+  const scopedMeans = useMemo(() => {
+    const result: Record<string, { mean: number; scopedRepIds: Set<string> }> = {}
+    for (const rule of [arrRule, accountsRule, employeesRule, customRule]) {
+      if (!rule) continue
+      result[rule.id] = getScopedStats(rule)
+    }
+    return result
+  }, [arrRule, accountsRule, employeesRule, customRule, getScopedStats])
+
   // If the sorted column's rule gets toggled off, fall back to name sort
   const effectiveSortCol = (
     (sortCol === 'arr'       && !arrRule) ||
@@ -3124,30 +3306,63 @@ function BookOfBusinessTab({
     (sortCol === 'custom'    && !customRule)
   ) ? 'name' : sortCol
 
-  // Per-rep deviation + flag status
+  // Helper: get the scoped metric value for a rep (recomputes from scoped accounts if needed)
+  const getScopedValue = useCallback((rep: typeof repBookData[0], rule: EquityRule) => {
+    if (rule.scope?.segments && rule.scope.segments.length > 0) {
+      const repAccounts = filterAccountsByScope(
+        demoAccounts.filter(a => a.current_owner_id === rep.repId),
+        rule.scope,
+      )
+      if (rule.metric === 'arr') return repAccounts.reduce((s, a) => s + a.arr, 0)
+      if (rule.metric === 'account_count') return repAccounts.length
+      if (rule.metric === 'employee_count') return repAccounts.reduce((s, a) => s + (a.employee_count ?? 0), 0)
+    }
+    if (rule.metric === 'arr') return rep.arr
+    if (rule.metric === 'account_count') return rep.accounts
+    if (rule.metric === 'employee_count') return rep.employees
+    if (rule.metric === 'custom') return rep.open_tickets
+    return 0
+  }, [repBookData])
+
+  // Per-rep deviation + flag status (scope-aware)
   const repMatrix = useMemo(() => {
     return repBookData.map(rep => {
-      const arrDev         = means.arr > 0          ? ((rep.arr - means.arr) / means.arr) * 100                         : 0
-      const accountsDev    = means.accounts > 0     ? ((rep.accounts - means.accounts) / means.accounts) * 100          : 0
-      const employeesDev   = means.employees > 0    ? ((rep.employees - means.employees) / means.employees) * 100       : 0
-      const openTicketsDev = means.open_tickets > 0 ? ((rep.open_tickets - means.open_tickets) / means.open_tickets) * 100 : 0
+      // Per-rule: compute deviation against scoped mean, track in-scope status
+      const computeMetric = (rule: EquityRule | undefined, globalMean: number, rawVal: number) => {
+        if (!rule) return { dev: 0, flagged: false, inScope: true }
+        const scoped = scopedMeans[rule.id]
+        const inScope = scoped ? scoped.scopedRepIds.has(rep.repId) : true
+        if (!inScope) return { dev: 0, flagged: false, inScope: false }
+        const mean = scoped?.mean ?? globalMean
+        const val = rule.scope?.segments && rule.scope.segments.length > 0
+          ? getScopedValue(rep, rule)
+          : rawVal
+        const dev = mean > 0 ? ((val - mean) / mean) * 100 : 0
+        const flagged = Math.abs(dev) > rule.tolerance
+        return { dev, flagged, inScope: true }
+      }
 
-      const isArrFlagged         = arrRule       ? Math.abs(arrDev)         > arrRule.tolerance       : false
-      const isAccountsFlagged    = accountsRule  ? Math.abs(accountsDev)    > accountsRule.tolerance  : false
-      const isEmployeesFlagged   = employeesRule ? Math.abs(employeesDev)   > employeesRule.tolerance : false
-      const isOpenTicketsFlagged = customRule    ? Math.abs(openTicketsDev) > customRule.tolerance    : false
-      const hasFlag = isArrFlagged || isAccountsFlagged || isEmployeesFlagged || isOpenTicketsFlagged
+      const arrM      = computeMetric(arrRule,       means.arr,          rep.arr)
+      const accM      = computeMetric(accountsRule,  means.accounts,     rep.accounts)
+      const empM      = computeMetric(employeesRule, means.employees,    rep.employees)
+      const tickM     = computeMetric(customRule,    means.open_tickets, rep.open_tickets)
+
+      const hasFlag = arrM.flagged || accM.flagged || empM.flagged || tickM.flagged
 
       return {
         ...rep,
-        arrDev:         Math.round(arrDev),
-        accountsDev:    Math.round(accountsDev),
-        employeesDev:   Math.round(employeesDev),
-        openTicketsDev: Math.round(openTicketsDev),
-        isArrFlagged, isAccountsFlagged, isEmployeesFlagged, isOpenTicketsFlagged, hasFlag,
+        arrDev:         Math.round(arrM.dev),
+        accountsDev:    Math.round(accM.dev),
+        employeesDev:   Math.round(empM.dev),
+        openTicketsDev: Math.round(tickM.dev),
+        isArrFlagged: arrM.flagged, isAccountsFlagged: accM.flagged,
+        isEmployeesFlagged: empM.flagged, isOpenTicketsFlagged: tickM.flagged,
+        arrInScope: arrM.inScope, accountsInScope: accM.inScope,
+        employeesInScope: empM.inScope, ticketsInScope: tickM.inScope,
+        hasFlag,
       }
     })
-  }, [repBookData, means, arrRule, accountsRule, employeesRule, customRule])
+  }, [repBookData, means, arrRule, accountsRule, employeesRule, customRule, scopedMeans, getScopedValue])
 
   const totalFlagged = repMatrix.filter(r => r.hasFlag).length
 
@@ -3159,6 +3374,7 @@ function BookOfBusinessTab({
     getValue:  (r: typeof repMatrix[0]) => number
     getDev:    (r: typeof repMatrix[0]) => number
     isFlagged: (r: typeof repMatrix[0]) => boolean
+    isInScope: (r: typeof repMatrix[0]) => boolean
     format:    (v: number) => string
     meanVal:   () => number
   }
@@ -3167,17 +3383,20 @@ function BookOfBusinessTab({
   if (arrRule) activeMetricCols.push({
     key: 'arr', label: 'ARR', tolerance: arrRule.tolerance,
     getValue:  r => r.arr,       getDev:    r => r.arrDev,         isFlagged: r => r.isArrFlagged,
-    format:    v => formatBookARR(v), meanVal: () => means.arr,
+    isInScope: r => r.arrInScope,
+    format:    v => formatBookARR(v), meanVal: () => scopedMeans[arrRule.id]?.mean ?? means.arr,
   })
   if (accountsRule) activeMetricCols.push({
     key: 'accounts', label: 'Accounts', tolerance: accountsRule.tolerance,
     getValue:  r => r.accounts,  getDev:    r => r.accountsDev,    isFlagged: r => r.isAccountsFlagged,
-    format:    v => String(v),   meanVal: () => means.accounts,
+    isInScope: r => r.accountsInScope,
+    format:    v => String(v),   meanVal: () => scopedMeans[accountsRule.id]?.mean ?? means.accounts,
   })
   if (employeesRule) activeMetricCols.push({
     key: 'employees', label: 'Employees', tolerance: employeesRule.tolerance,
     getValue:  r => r.employees, getDev:    r => r.employeesDev,   isFlagged: r => r.isEmployeesFlagged,
-    format:    v => v.toLocaleString(), meanVal: () => means.employees,
+    isInScope: r => r.employeesInScope,
+    format:    v => v.toLocaleString(), meanVal: () => scopedMeans[employeesRule.id]?.mean ?? means.employees,
   })
   if (customRule) {
     const rawName = customRule.customFieldName ?? 'custom'
@@ -3186,8 +3405,9 @@ function BookOfBusinessTab({
     activeMetricCols.push({
       key: 'custom', label, tolerance: customRule.tolerance,
       getValue:  r => r.open_tickets,       getDev:    r => r.openTicketsDev,  isFlagged: r => r.isOpenTicketsFlagged,
+      isInScope: r => r.ticketsInScope,
       format:    v => unit ? `${v.toLocaleString()} ${unit}` : v.toLocaleString(),
-      meanVal: () => means.open_tickets,
+      meanVal: () => scopedMeans[customRule.id]?.mean ?? means.open_tickets,
     })
   }
 
@@ -3204,19 +3424,12 @@ function BookOfBusinessTab({
     })
   }, [repMatrix, showFlaggedOnly, effectiveSortCol, sortDir])
 
-  // Equity rules: compute out-of-range count using real data
+  // Equity rules: compute out-of-range count using scoped data
   const getRuleOutOfRange = (rule: EquityRule) => {
-    const vals = repBookData.map(rep => {
-      if (rule.metric === 'arr')            return rep.arr
-      if (rule.metric === 'account_count')  return rep.accounts
-      if (rule.metric === 'employee_count') return rep.employees
-      if (rule.metric === 'custom')         return rep.open_tickets
-      return 0
-    })
-    const m = vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
+    const { vals, mean } = getScopedStats(rule)
     return vals.filter(v => {
       const tol = rule.tolerance / 100
-      return v > m * (1 + tol) || v < m * (1 - tol)
+      return v > mean * (1 + tol) || v < mean * (1 - tol)
     }).length
   }
 
@@ -3289,6 +3502,21 @@ function BookOfBusinessTab({
                           Custom: {rule.customFieldName}
                         </span>
                       )}
+                      {rule.scope?.segments && rule.scope.segments.length > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200">
+                          {rule.scope.segments.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}
+                        </span>
+                      )}
+                      {rule.scope?.excludeOnRamp && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                          Excl. on-ramp
+                        </span>
+                      )}
+                      {rule.scope?.repSpecialties && rule.scope.repSpecialties.length > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">
+                          {rule.scope.repSpecialties.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')} reps
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{rule.description}</p>
                   </div>
@@ -3303,7 +3531,7 @@ function BookOfBusinessTab({
                 </div>
                 <div className="flex items-center gap-4 text-xs text-stone-500 pt-2 border-t border-stone-100 flex-wrap">
                   <span>
-                    Tolerance: within <span className="font-semibold text-stone-700">±{rule.tolerance}%</span> of team mean
+                    Tolerance: within <span className="font-semibold text-stone-700">±{rule.tolerance}%</span> of {rule.scope ? 'scoped' : 'team'} mean
                   </span>
                   {rule.active && (
                     ruleOOR > 0 ? (
@@ -3432,6 +3660,20 @@ function BookOfBusinessTab({
 
                           {/* Data cells */}
                           {activeMetricCols.map(col => {
+                            const inScope = col.isInScope(rep)
+                            if (!inScope) {
+                              return (
+                                <div
+                                  key={col.key}
+                                  className={cn(
+                                    'flex items-center justify-end pr-4 opacity-40',
+                                    effectiveSortCol === col.key && 'bg-stone-50/80'
+                                  )}
+                                >
+                                  <span className="text-[11px] italic text-stone-400">n/a</span>
+                                </div>
+                              )
+                            }
                             const val     = col.getValue(rep)
                             const dev     = col.getDev(rep)
                             const flagged = col.isFlagged(rep)

@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { DEMO_EQUITY_RULES, type EquityRule } from '@/lib/equity-types'
+import { DEMO_EQUITY_RULES, type EquityRule, type EquityRuleScope } from '@/lib/equity-types'
 
 // ---------------------------------------------------------------------------
 // Types returned by getMetricTarget
@@ -13,6 +13,7 @@ export interface MetricTarget {
   tolerance: number
   defaultTarget?: number
   segmentTargets?: Record<string, { target: number }>
+  scope?: EquityRuleScope
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +110,7 @@ export function EquityProvider({ children }: { children: ReactNode }) {
         tolerance,
         defaultTarget: rule.defaultTarget,
         segmentTargets,
+        scope: rule.scope,
       }
     },
     [rules],
