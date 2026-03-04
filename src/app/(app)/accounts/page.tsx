@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { usePersistedState } from '@/hooks/use-persisted-state'
 import { useSearchParams } from 'next/navigation'
 import { demoAccounts, demoTeamMembers } from '@/lib/demo-data'
 import { Card, CardContent } from '@/components/ui/card'
@@ -689,6 +690,7 @@ export default function AccountsPage() {
     (searchParams.get('dir') as 'asc' | 'desc') ?? 'desc'
   )
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [activeTab, setActiveTab] = usePersistedState('relay-accounts-tab', 'all')
   const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const baseAccounts = role === 'rep'
@@ -794,7 +796,7 @@ export default function AccountsPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="all">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex items-center justify-between">
           <TabsList className="bg-stone-100">
             <TabsTrigger value="all" className="text-[12px]">

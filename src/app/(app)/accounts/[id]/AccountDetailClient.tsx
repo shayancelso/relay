@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePersistedState } from '@/hooks/use-persisted-state'
 import Link from 'next/link'
 import {
   AreaChart,
@@ -196,7 +197,7 @@ function HealthTooltip({ active, payload, label }: { active?: boolean; payload?:
 // ---------------------------------------------------------------------------
 
 export default function AccountDetailClient({ account, owner, contacts, transitions, activities }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const [activeTab, setActiveTab] = usePersistedState<Tab>('relay-account-detail-tab', 'overview')
 
   const healthHistory = generateHealthHistory(account.health_score)
 

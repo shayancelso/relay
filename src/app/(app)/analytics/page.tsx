@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { usePersistedState } from '@/hooks/use-persisted-state'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -79,6 +80,7 @@ const SEGMENT_COLORS: Record<string, string> = {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
+  const [activeTab, setActiveTab] = usePersistedState('relay-analytics-tab', 'velocity')
   const { isTrialMode, enterDemoMode } = useTrialMode()
   const totalCompleted = demoTransitions.filter(t => t.status === 'completed').length
   const totalActive = demoTransitions.filter(t => !['completed', 'cancelled'].includes(t.status)).length
@@ -137,7 +139,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tabs for different views */}
-      <Tabs defaultValue="velocity" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="velocity">Velocity</TabsTrigger>
           <TabsTrigger value="bottlenecks">Bottlenecks</TabsTrigger>

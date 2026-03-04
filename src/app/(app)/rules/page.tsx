@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { usePersistedState } from '@/hooks/use-persisted-state'
 import { toast } from 'sonner'
 import {
   GripVertical,
@@ -38,6 +39,7 @@ import {
   Lock,
   Scale,
   X,
+  ArrowRight,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -263,6 +265,14 @@ function getOperatorsForField(field: ConditionField): ConditionOperator[] {
   if (type === 'enum') return ['equals', 'not_equals', 'is_any_of']
   return ['equals', 'not_equals', 'contains']
 }
+
+const FORM_SEGMENTS = [
+  { key: 'enterprise', label: 'Enterprise', color: '#fbbf24' },
+  { key: 'fins', label: 'FINS', color: '#34d399' },
+  { key: 'corporate', label: 'Corporate', color: '#a78bfa' },
+  { key: 'international', label: 'International', color: '#fb7185' },
+  { key: 'commercial', label: 'Commercial', color: '#38bdf8' },
+]
 
 const PICKABLE_MEMBERS = demoTeamMembers.filter(
   m => (m.role === 'rep' || m.role === 'manager') && m.capacity > 0
@@ -1154,10 +1164,15 @@ function CatchAllCard() {
             <Shuffle className="w-3.5 h-3.5 text-amber-600" />
             <span>Round-robin across all available reps</span>
           </div>
-          <div className="flex items-center gap-1 ml-2">
-            {demoTeamMembers.slice(2).map((m) => (
+          <div className="flex items-center gap-1 ml-2 flex-wrap">
+            {demoTeamMembers.slice(2, 14).map((m) => (
               <Avatar key={m.id} userId={m.id} size="sm" />
             ))}
+            {demoTeamMembers.slice(2).length > 12 && (
+              <span className="text-[10px] font-semibold text-amber-600 ml-0.5">
+                +{demoTeamMembers.slice(2).length - 12}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -1631,10 +1646,10 @@ function RulesTab({
 }
 
 // ---------------------------------------------------------------------------
-// TAB 2 — Templates
+// TAB 2 — Presets
 // ---------------------------------------------------------------------------
 
-const TEMPLATES = [
+const PRESETS = [
   // ── Match Rules ──────────────────────────────────────────────────────────
   {
     id: 't1',
@@ -1642,8 +1657,16 @@ const TEMPLATES = [
     icon: Globe,
     title: 'Territory-Based Routing',
     description: 'Route accounts automatically based on geography, region, or territory assignments.',
+    bestFor: 'Best for teams with international or regional account pools',
+    useCase: 'Use this when your team serves distinct geographies or territories. Routes international-segment accounts to reps who specialize in cross-border relationships, ensuring language and timezone alignment.',
     badge: 'Popular',
     badgeColor: 'bg-sky-100 text-sky-700',
+    conditions: [{ field: 'segment' as ConditionField, operator: 'equals' as ConditionOperator, value: 'international' }],
+    logic: 'AND' as const,
+    actionType: 'round_robin' as ActionType,
+    repIds: ['user-5', 'user-6'],
+    weight: 75,
+    mustFollow: false,
   },
   {
     id: 't2',
@@ -1651,8 +1674,19 @@ const TEMPLATES = [
     icon: Layers,
     title: 'Segment Tiering',
     description: "Split accounts across Enterprise, Corporate, and Commercial teams by segment.",
+    bestFor: 'Best for orgs with distinct enterprise and commercial motions',
+    useCase: 'Use this when your enterprise accounts need dedicated senior reps. Filters for high-ARR enterprise accounts and hard-assigns them to your strongest closer, preventing them from being diluted across the team.',
     badge: 'Recommended',
     badgeColor: 'bg-emerald-100 text-emerald-700',
+    conditions: [
+      { field: 'segment' as ConditionField, operator: 'equals' as ConditionOperator, value: 'enterprise' },
+      { field: 'arr' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '100000' },
+    ],
+    logic: 'AND' as const,
+    actionType: 'assign_to' as ActionType,
+    repIds: ['user-4'],
+    weight: 85,
+    mustFollow: true,
   },
   {
     id: 't3',
@@ -1660,8 +1694,16 @@ const TEMPLATES = [
     icon: BarChart3,
     title: 'Capacity Balancing',
     description: "Distribute accounts evenly based on each rep's current capacity and workload.",
+    bestFor: 'Best for even workload distribution across your team',
+    useCase: 'Use this as a baseline rule when you want to prevent any single rep from getting overloaded. No conditions means every account is eligible — the system picks whoever has the most bandwidth.',
     badge: null,
     badgeColor: '',
+    conditions: [],
+    logic: 'AND' as const,
+    actionType: 'least_loaded' as ActionType,
+    repIds: ['user-3', 'user-4', 'user-5', 'user-6'],
+    weight: 70,
+    mustFollow: false,
   },
   {
     id: 't4',
@@ -1669,8 +1711,16 @@ const TEMPLATES = [
     icon: Target,
     title: 'Specialty Matching',
     description: 'Match account industry or vertical to the rep with the most relevant expertise.',
+    bestFor: 'Best for vertical-focused teams (fintech, healthcare, etc.)',
+    useCase: 'Use this when account outcomes improve with industry expertise. Matches accounts in a specific vertical to reps who know that space, improving time-to-value and retention.',
     badge: null,
     badgeColor: '',
+    conditions: [{ field: 'industry' as ConditionField, operator: 'equals' as ConditionOperator, value: 'Fintech' }],
+    logic: 'AND' as const,
+    actionType: 'round_robin' as ActionType,
+    repIds: ['user-4', 'user-6'],
+    weight: 75,
+    mustFollow: false,
   },
   {
     id: 't5',
@@ -1678,8 +1728,16 @@ const TEMPLATES = [
     icon: Heart,
     title: 'Health-Based Escalation',
     description: 'Automatically escalate at-risk accounts to managers or senior reps.',
+    bestFor: 'Best for protecting at-risk accounts from churn',
+    useCase: 'Use this to automatically flag and reassign accounts showing early signs of churn. When health score drops below threshold, the account escalates to a manager or senior rep for intervention.',
     badge: null,
     badgeColor: '',
+    conditions: [{ field: 'health_score' as ConditionField, operator: 'less_than' as ConditionOperator, value: '40' }],
+    logic: 'AND' as const,
+    actionType: 'assign_to' as ActionType,
+    repIds: ['user-2'],
+    weight: 95,
+    mustFollow: true,
   },
   {
     id: 't6',
@@ -1687,8 +1745,16 @@ const TEMPLATES = [
     icon: Shuffle,
     title: 'Round-Robin Default',
     description: 'Simple, even distribution across all available reps with no conditions.',
+    bestFor: 'Best as a catch-all fallback for unmatched accounts',
+    useCase: 'Use this as the lowest-priority rule to ensure no account falls through the cracks. Distributes evenly across all available reps with no conditions — simple and fair.',
     badge: null,
     badgeColor: '',
+    conditions: [],
+    logic: 'AND' as const,
+    actionType: 'round_robin' as ActionType,
+    repIds: ['user-3', 'user-4', 'user-5', 'user-6', 'user-9', 'user-10'],
+    weight: 50,
+    mustFollow: false,
   },
   {
     id: 't7',
@@ -1696,8 +1762,16 @@ const TEMPLATES = [
     icon: User,
     title: 'Rep Experience Routing',
     description: 'Route accounts needing complex onboarding to reps with 2+ years of experience.',
+    bestFor: 'Best for complex onboarding or high-touch accounts',
+    useCase: 'Use this when newer reps shouldn\'t handle complex accounts alone. Filters for reps with 2+ years of experience, then picks the least loaded among them.',
     badge: 'New',
     badgeColor: 'bg-violet-100 text-violet-700',
+    conditions: [{ field: 'rep_experience_years' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '2' }],
+    logic: 'AND' as const,
+    actionType: 'least_loaded' as ActionType,
+    repIds: ['user-3', 'user-4'],
+    weight: 80,
+    mustFollow: false,
   },
   {
     id: 't8',
@@ -1705,8 +1779,20 @@ const TEMPLATES = [
     icon: TrendingUp,
     title: 'Top Performer Assignment',
     description: 'Direct high-value cross-sell opportunities to your top-performing AMs.',
+    bestFor: 'Best for high-value upsell and cross-sell opportunities',
+    useCase: 'Use this to route your best expansion opportunities to proven closers. Targets healthy, high-ARR accounts and assigns them to top-tier performers who can maximize revenue.',
     badge: null,
     badgeColor: '',
+    conditions: [
+      { field: 'health_score' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '80' },
+      { field: 'arr' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '50000' },
+      { field: 'rep_performance_tier' as ConditionField, operator: 'equals' as ConditionOperator, value: 'top_performer' },
+    ],
+    logic: 'AND' as const,
+    actionType: 'round_robin' as ActionType,
+    repIds: ['user-3', 'user-9'],
+    weight: 60,
+    mustFollow: false,
   },
   {
     id: 't9',
@@ -1714,75 +1800,288 @@ const TEMPLATES = [
     icon: Target,
     title: 'Industry Expert Match',
     description: 'Match account vertical to the rep with documented specialty expertise in that industry.',
+    bestFor: 'Best for healthcare or regulated-industry accounts',
+    useCase: 'Use this when domain expertise is non-negotiable. Matches accounts to reps with documented specialty in a specific industry vertical like healthcare.',
     badge: null,
     badgeColor: '',
-  },
-  // ── Equity Rules ─────────────────────────────────────────────────────────
-  {
-    id: 't10',
-    section: 'equity' as const,
-    icon: Scale,
-    title: 'ARR Book Balancer',
-    description: "Keep all reps' total managed ARR within ±20% of the team mean.",
-    badge: 'Equity',
-    badgeColor: 'bg-emerald-100 text-emerald-700',
-  },
-  {
-    id: 't11',
-    section: 'equity' as const,
-    icon: Users,
-    title: 'Account Count Equity',
-    description: 'Ensure no rep carries more than ±20% more accounts than the average.',
-    badge: 'Equity',
-    badgeColor: 'bg-emerald-100 text-emerald-700',
+    conditions: [{ field: 'rep_industry_expertise' as ConditionField, operator: 'equals' as ConditionOperator, value: 'Healthcare' }],
+    logic: 'AND' as const,
+    actionType: 'round_robin' as ActionType,
+    repIds: ['user-5', 'user-3'],
+    weight: 75,
+    mustFollow: false,
   },
 ]
 
-function TemplateCard({
-  t,
-  onPreview,
-  isPreviewActive,
+type PresetType = typeof PRESETS[number]
+
+// ---------------------------------------------------------------------------
+// Account match evaluator — counts how many demoAccounts match a preset's conditions
+// ---------------------------------------------------------------------------
+
+function countMatchingAccounts(conditions: { field: ConditionField; operator: ConditionOperator; value: string }[], logic: 'AND' | 'OR'): number {
+  // Filter to only account-field conditions (skip rep-field conditions)
+  const accountConditions = conditions.filter(c => !REP_FIELDS.has(c.field))
+  if (accountConditions.length === 0) return demoAccounts.length
+
+  return demoAccounts.filter(account => {
+    const results = accountConditions.map(c => {
+      if (c.field === 'segment') return account.segment === c.value
+      if (c.field === 'industry') return account.industry === c.value
+      if (c.field === 'geography') return account.geography === c.value
+      if (c.field === 'arr') {
+        const v = parseInt(c.value)
+        if (c.operator === 'greater_than') return account.arr > v
+        if (c.operator === 'less_than') return account.arr < v
+        return account.arr === v
+      }
+      if (c.field === 'health_score') {
+        const v = parseInt(c.value)
+        if (c.operator === 'greater_than') return account.health_score > v
+        if (c.operator === 'less_than') return account.health_score < v
+        return account.health_score === v
+      }
+      return false
+    })
+    return logic === 'AND' ? results.every(Boolean) : results.some(Boolean)
+  }).length
+}
+
+// ---------------------------------------------------------------------------
+// Preset Preview Sheet
+// ---------------------------------------------------------------------------
+
+function PresetPreviewSheet({
+  preset,
+  open,
+  onClose,
+  onUsePreset,
 }: {
-  t: typeof TEMPLATES[0]
-  onPreview?: () => void
-  isPreviewActive?: boolean
+  preset: PresetType | null
+  open: boolean
+  onClose: () => void
+  onUsePreset: (t: PresetType) => void
+}) {
+  if (!preset) return null
+  const Icon = preset.icon
+  const matchCount = countMatchingAccounts(preset.conditions, preset.logic)
+
+  return (
+    <Sheet open={open} onOpenChange={v => { if (!v) onClose() }}>
+      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0 overflow-hidden">
+        <SheetHeader className="px-6 pt-6 pb-5 border-b border-stone-200 shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-stone-100 flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5 text-stone-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <SheetTitle className="text-base">{preset.title}</SheetTitle>
+                {preset.badge && (
+                  <Badge className={cn('text-[10px] h-5 px-1.5', preset.badgeColor)}>
+                    {preset.badge}
+                  </Badge>
+                )}
+              </div>
+              <SheetDescription className="text-xs mt-1">{preset.description}</SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
+
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="flex flex-col gap-5 px-6 py-6">
+            {/* When to use this */}
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 flex flex-col gap-2">
+              <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">When to use this</h4>
+              <p className="text-sm text-stone-700 leading-relaxed">{preset.useCase}</p>
+            </div>
+
+            {/* Conditions */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/30 p-4 flex flex-col gap-2.5">
+              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Conditions</h4>
+              {preset.conditions.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">No conditions — applies to all accounts</p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {preset.conditions.map((c, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      {i > 0 && (
+                        <span className="text-[10px] font-semibold text-stone-400 uppercase">
+                          {preset.logic}
+                        </span>
+                      )}
+                      <ConditionBadge condition={{ id: `preview-${i}`, ...c }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/30 p-4 flex flex-col gap-2.5">
+              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Action</h4>
+              <div className="flex flex-col gap-2.5">
+                <Badge variant="outline" className="w-fit text-xs gap-1.5 py-1 px-2.5">
+                  {preset.actionType === 'round_robin' && <Shuffle className="w-3 h-3" />}
+                  {preset.actionType === 'least_loaded' && <BarChart3 className="w-3 h-3" />}
+                  {preset.actionType === 'assign_to' && <User className="w-3 h-3" />}
+                  {preset.actionType === 'round_robin' ? 'Round Robin' : preset.actionType === 'least_loaded' ? 'Least Loaded' : 'Assign To'}
+                </Badge>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {preset.repIds.map(id => {
+                    const member = demoTeamMembers.find(m => m.id === id)
+                    if (!member) return null
+                    return (
+                      <div key={id} className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-full py-0.5 pl-0.5 pr-2.5">
+                        <Avatar userId={id} size="sm" />
+                        <span className="text-xs text-stone-700">{member.full_name}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/30 p-4 flex flex-col gap-2.5">
+              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Settings</h4>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs gap-1 py-0.5 px-2.5">
+                  <Scale className="w-3 h-3" />
+                  Weight: {preset.weight}
+                </Badge>
+                {preset.mustFollow && (
+                  <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs gap-1 py-0.5 px-2.5">
+                    <Lock className="w-3 h-3" />
+                    Must Follow
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Impact preview */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 flex flex-col gap-2.5">
+              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Impact Preview</h4>
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-2xl font-bold text-stone-900">~{matchCount.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">accounts would match</span>
+                </div>
+                <div className="w-px h-10 bg-stone-200" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-2xl font-bold text-stone-900">{preset.repIds.length}</span>
+                  <span className="text-xs text-muted-foreground">assigned reps</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+
+        <SheetFooter className="px-6 py-4 border-t border-stone-200 shrink-0 flex flex-row gap-2 sm:flex-row">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="flex-1 press-scale"
+            onClick={() => { onUsePreset(preset); onClose() }}
+          >
+            Use This Preset
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function PresetCard({
+  t,
+  onUsePreset,
+  onPreview,
+  selected,
+  onToggleSelect,
+  anySelected,
+  applied,
+}: {
+  t: PresetType
+  onUsePreset: (t: PresetType) => void
+  onPreview: (t: PresetType) => void
+  selected: boolean
+  onToggleSelect: (id: string) => void
+  anySelected: boolean
+  applied: boolean
 }) {
   const Icon = t.icon
   return (
     <div className={cn(
-      "group bg-white rounded-xl border p-4 flex flex-col gap-3 card-hover",
-      isPreviewActive ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-stone-200'
+      'group bg-white rounded-xl border p-4 flex flex-col gap-3 card-hover transition-all duration-200',
+      applied
+        ? 'border-emerald-200 bg-emerald-50/30'
+        : selected
+          ? 'ring-2 ring-emerald-500/40 border-emerald-300'
+          : 'border-stone-200'
     )}>
       <div className="flex items-start justify-between">
-        <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center group-hover:bg-stone-200 transition-colors">
-          <Icon className="w-4.5 h-4.5 text-stone-600" />
+        <div className={cn(
+          'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
+          applied ? 'bg-emerald-100' : 'bg-stone-100 group-hover:bg-stone-200'
+        )}>
+          <Icon className={cn('w-4.5 h-4.5', applied ? 'text-emerald-600' : 'text-stone-600')} />
         </div>
-        {t.badge && (
-          <Badge className={cn('text-[10px] h-5 px-1.5', t.badgeColor)}>
-            {t.badge}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {applied ? (
+            <Badge className="text-[10px] h-5 px-1.5 bg-emerald-100 text-emerald-700 border-emerald-300 gap-1">
+              <CheckCircle2 className="w-3 h-3" />
+              Applied
+            </Badge>
+          ) : t.badge ? (
+            <Badge className={cn('text-[10px] h-5 px-1.5', t.badgeColor)}>
+              {t.badge}
+            </Badge>
+          ) : null}
+          <div className={cn(
+            'transition-opacity duration-150',
+            applied
+              ? 'opacity-50 pointer-events-none'
+              : anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          )}>
+            <Checkbox
+              checked={selected}
+              disabled={applied}
+              onCheckedChange={() => onToggleSelect(t.id)}
+            />
+          </div>
+        </div>
       </div>
       <div className="flex flex-col gap-1 flex-1">
         <h4 className="text-sm font-semibold text-stone-800">{t.title}</h4>
         <p className="text-xs text-muted-foreground leading-relaxed">{t.description}</p>
+        <p className="text-[11px] text-stone-500 italic mt-0.5">{t.bestFor}</p>
       </div>
       <div className="flex items-center gap-2 pt-1">
+        {applied ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 h-7 text-xs border-emerald-300 text-emerald-700 gap-1"
+            disabled
+          >
+            <CheckCircle2 className="w-3 h-3" />
+            Applied
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            className="flex-1 h-7 text-xs press-scale"
+            onClick={() => onUsePreset(t)}
+          >
+            Use Preset
+          </Button>
+        )}
         <Button
           size="sm"
-          className="flex-1 h-7 text-xs press-scale"
-          onClick={() => toast.success('Template applied — 1 new rule created')}
-        >
-          Use Template
-        </Button>
-        <Button
-          size="sm"
-          variant={isPreviewActive ? 'default' : 'outline'}
-          className={cn(
-            "h-7 text-xs press-scale",
-            isPreviewActive && 'bg-emerald-600 hover:bg-emerald-700 text-white'
-          )}
-          onClick={onPreview ?? (() => toast('Preview coming soon'))}
+          variant="outline"
+          className="h-7 text-xs press-scale"
+          onClick={() => onPreview(t)}
         >
           Preview
         </Button>
@@ -1792,227 +2091,38 @@ function TemplateCard({
 }
 
 // ---------------------------------------------------------------------------
-// Equity Template → metric mapping
+// TAB 2 — Presets
 // ---------------------------------------------------------------------------
 
-const EQUITY_TEMPLATE_CONFIG: Record<string, { metric: 'arr' | 'account_count'; tolerance: number }> = {
-  t10: { metric: 'arr',           tolerance: 20 },
-  t11: { metric: 'account_count', tolerance: 20 },
-}
+function PresetsTab({ onGoToBook, onUsePreset, onApplyBatch, appliedPresetIds }: { onGoToBook: () => void; onUsePreset: (t: PresetType) => void; onApplyBatch: (presets: PresetType[]) => void; appliedPresetIds: Set<string> }) {
+  const [previewPreset, setPreviewPreset] = useState<PresetType | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-// ---------------------------------------------------------------------------
-// EquityPreviewPanel — inline preview below equity template cards
-// ---------------------------------------------------------------------------
-
-function EquityPreviewPanel({
-  templateId,
-  onClose,
-}: {
-  templateId: string
-  onClose: () => void
-}) {
-  const template = TEMPLATES.find(t => t.id === templateId)
-  const config = EQUITY_TEMPLATE_CONFIG[templateId]
-  if (!template || !config) return null
-
-  const { metric, tolerance } = config
-  const metricLabel = metric === 'arr' ? 'ARR' : 'Account Count'
-
-  // Compute rep book data (same as BookOfBusinessTab)
-  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
-  const repBookData = activeReps
-    .map(rep => {
-      const repAccounts = demoAccounts.filter(a => a.current_owner_id === rep.id)
-      if (repAccounts.length === 0) return null
-      const arr      = repAccounts.reduce((s, a) => s + a.arr, 0)
-      const accounts = repAccounts.length
-      return { repId: rep.id, name: rep.full_name, arr, accounts }
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
     })
-    .filter(Boolean) as { repId: string; name: string; arr: number; accounts: number }[]
-
-  const n = repBookData.length
-  if (n === 0) return null
-
-  // Team mean for chosen metric
-  const getValue = (r: typeof repBookData[0]) => metric === 'arr' ? r.arr : r.accounts
-  const mean = repBookData.reduce((s, r) => s + getValue(r), 0) / n
-
-  // Per-rep deviation, flag, sort
-  const repRows = repBookData
-    .map(rep => {
-      const value = getValue(rep)
-      const dev = mean > 0 ? ((value - mean) / mean) * 100 : 0
-      const devRounded = Math.round(dev)
-      const flagged = Math.abs(dev) > tolerance
-      return { ...rep, value, dev: devRounded, flagged }
-    })
-    .sort((a, b) => {
-      // Flagged first, then by abs deviation desc
-      if (a.flagged !== b.flagged) return a.flagged ? -1 : 1
-      return Math.abs(b.dev) - Math.abs(a.dev)
-    })
-
-  const inRange  = repRows.filter(r => !r.flagged).length
-  const outRange = repRows.filter(r => r.flagged).length
-  const maxValue = Math.max(...repRows.map(r => r.value))
-
-  const formatValue = (v: number) => {
-    if (metric === 'arr') return formatBookARR(v)
-    return String(v)
   }
 
-  const devColor = (dev: number, flagged: boolean) => {
-    if (!flagged) return 'text-emerald-700 bg-emerald-50'
-    if (dev > 0)  return Math.abs(dev) > 40 ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
-    return 'text-sky-700 bg-sky-50'
-  }
-
-  const barColor = (dev: number, flagged: boolean) => {
-    if (!flagged) return 'bg-emerald-400'
-    if (dev > 0)  return Math.abs(dev) > 40 ? 'bg-red-400' : 'bg-amber-400'
-    return 'bg-sky-400'
-  }
-
-  // Tolerance band as percentage of max bar width
-  const toleranceLow  = mean * (1 - tolerance / 100)
-  const toleranceHigh = mean * (1 + tolerance / 100)
-
-  return (
-    <div className="bg-white rounded-xl border border-stone-200 p-5 flex flex-col gap-5 animate-in slide-in-from-top-2 duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <Scale className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-stone-800">{template.title}</h4>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[11px] text-muted-foreground">Metric: <span className="font-medium text-stone-700">{metricLabel}</span></span>
-              <span className="text-stone-300">·</span>
-              <span className="text-[11px] text-muted-foreground">Tolerance: <span className="font-medium text-stone-700">±{tolerance}%</span></span>
-              <span className="text-stone-300">·</span>
-              <span className="text-[11px] text-muted-foreground">Team mean: <span className="font-medium text-stone-700">{formatValue(Math.round(mean))}</span></span>
-            </div>
-          </div>
-        </div>
-        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onClose}>
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Summary badges */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="text-xs font-medium text-emerald-700">{inRange} in range</span>
-        </div>
-        {outRange > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200">
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-            <span className="text-xs font-medium text-amber-700">{outRange} out of range</span>
-          </div>
-        )}
-      </div>
-
-      {/* Distribution bars */}
-      <div className="flex flex-col gap-1.5">
-        <h5 className="text-[11px] font-medium text-stone-500 uppercase tracking-wide">Distribution</h5>
-        <div className="flex flex-col gap-1">
-          {repRows.map(rep => {
-            const pct = maxValue > 0 ? (rep.value / maxValue) * 100 : 0
-            const meanPct = maxValue > 0 ? (mean / maxValue) * 100 : 0
-            const tolLowPct = maxValue > 0 ? (toleranceLow / maxValue) * 100 : 0
-            const tolHighPct = maxValue > 0 ? Math.min((toleranceHigh / maxValue) * 100, 100) : 0
-
-            return (
-              <div key={rep.repId} className="flex items-center gap-2">
-                <span className="text-[11px] text-stone-600 w-24 truncate flex-shrink-0">{rep.name.split(' ')[0]}</span>
-                <div className="flex-1 h-5 bg-stone-50 rounded relative overflow-hidden">
-                  {/* Tolerance band */}
-                  <div
-                    className="absolute top-0 bottom-0 bg-emerald-100/50 border-l border-r border-emerald-300/40"
-                    style={{ left: `${tolLowPct}%`, width: `${tolHighPct - tolLowPct}%` }}
-                  />
-                  {/* Mean marker */}
-                  <div
-                    className="absolute top-0 bottom-0 w-px bg-stone-400"
-                    style={{ left: `${meanPct}%` }}
-                  />
-                  {/* Rep bar */}
-                  <div
-                    className={cn('h-full rounded transition-all', barColor(rep.dev, rep.flagged))}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <span className={cn(
-                  'text-[10px] font-medium w-12 text-right flex-shrink-0',
-                  rep.flagged ? (rep.dev > 0 ? 'text-amber-600' : 'text-sky-600') : 'text-emerald-600'
-                )}>
-                  {rep.dev > 0 ? '+' : ''}{rep.dev}%
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Compact table */}
-      <div className="flex flex-col gap-1.5">
-        <h5 className="text-[11px] font-medium text-stone-500 uppercase tracking-wide">Rep Detail</h5>
-        <div className="border border-stone-200 rounded-lg overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-stone-50 border-b border-stone-200">
-                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
-                <th className="text-right py-1.5 px-3 font-medium text-stone-600">{metricLabel}</th>
-                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Deviation</th>
-                <th className="text-center py-1.5 px-3 font-medium text-stone-600">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {repRows.map(rep => (
-                <tr key={rep.repId} className="border-b border-stone-100 last:border-0">
-                  <td className="py-1.5 px-3 text-stone-700">{rep.name}</td>
-                  <td className="py-1.5 px-3 text-right text-stone-700 font-medium">{formatValue(rep.value)}</td>
-                  <td className="py-1.5 px-3 text-right">
-                    <span className={cn('inline-block px-1.5 py-0.5 rounded text-[10px] font-medium', devColor(rep.dev, rep.flagged))}>
-                      {rep.dev > 0 ? '+' : ''}{rep.dev}%
-                    </span>
-                  </td>
-                  <td className="py-1.5 px-3 text-center">
-                    {rep.flagged ? (
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] h-4 px-1.5">Flagged</Badge>
-                    ) : (
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-4 px-1.5">OK</Badge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// TAB 2 — Templates
-// ---------------------------------------------------------------------------
-
-function TemplatesTab() {
-  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null)
-
-  const matchTemplates = TEMPLATES.filter((t) => t.section === 'match')
-  const equityTemplates = TEMPLATES.filter((t) => t.section === 'equity')
-
-  const handlePreview = (id: string) => {
-    setPreviewTemplateId(prev => (prev === id ? null : id))
+  const handleApplySelected = () => {
+    const selected = PRESETS.filter(p => selectedIds.has(p.id) && !appliedPresetIds.has(p.id))
+    if (selected.length === 0) return
+    onApplyBatch(selected)
+    setSelectedIds(new Set())
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 relative">
+      <PresetPreviewSheet
+        preset={previewPreset}
+        open={previewPreset !== null}
+        onClose={() => setPreviewPreset(null)}
+        onUsePreset={onUsePreset}
+      />
+
       {/* Match Rules section */}
       <div className="flex flex-col gap-4">
         <div>
@@ -2022,44 +2132,67 @@ function TemplatesTab() {
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {matchTemplates.map((t) => (
-            <TemplateCard key={t.id} t={t} />
+          {PRESETS.map((t) => (
+            <PresetCard
+              key={t.id}
+              t={t}
+              onUsePreset={onUsePreset}
+              onPreview={setPreviewPreset}
+              selected={selectedIds.has(t.id)}
+              onToggleSelect={toggleSelect}
+              anySelected={selectedIds.size > 0}
+              applied={appliedPresetIds.has(t.id)}
+            />
           ))}
         </div>
       </div>
 
-      {/* Equity Rules section */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <div>
-            <h3 className="text-sm font-semibold text-stone-800">Equity Rules</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Keep rep books balanced by ARR, account count, or custom metrics.
-            </p>
-          </div>
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-5 ml-1">
-            <Scale className="w-2.5 h-2.5 mr-0.5" />
-            Book of Business
-          </Badge>
+      {/* Equity callout — link to Book of Business tab */}
+      <div className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+        <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <Scale className="w-4.5 h-4.5 text-emerald-600" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {equityTemplates.map((t) => (
-            <TemplateCard
-              key={t.id}
-              t={t}
-              onPreview={() => handlePreview(t.id)}
-              isPreviewActive={previewTemplateId === t.id}
-            />
-          ))}
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-semibold text-stone-800">Looking for equity rules?</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configure book-balancing constraints in the <span className="font-medium text-stone-700">Book of Business</span> tab.
+          </p>
         </div>
-        {/* Equity Preview Panel */}
-        {previewTemplateId && EQUITY_TEMPLATE_CONFIG[previewTemplateId] && (
-          <EquityPreviewPanel
-            templateId={previewTemplateId}
-            onClose={() => setPreviewTemplateId(null)}
-          />
-        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-100 flex-shrink-0"
+          onClick={onGoToBook}
+        >
+          Book of Business
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Button>
       </div>
+
+      {/* Floating action bar for multi-select */}
+      {selectedIds.size >= 2 && (
+        <div className="sticky bottom-0 bg-white border border-stone-200 rounded-xl shadow-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-stone-700">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 inline mr-1.5" />
+              {selectedIds.size} presets selected
+            </span>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs text-stone-500 hover:text-stone-700 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+          <Button
+            size="sm"
+            className="h-8 text-xs press-scale gap-1.5"
+            onClick={handleApplySelected}
+          >
+            Apply {selectedIds.size} Presets
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -2646,19 +2779,13 @@ function AddEquityRuleSheet({
   open,
   onClose,
   onSave,
+  editRule,
 }: {
   open: boolean
   onClose: () => void
   onSave: (rule: EquityRule) => void
+  editRule?: EquityRule | null
 }) {
-  const FORM_SEGMENTS = [
-    { key: 'enterprise', label: 'Enterprise', color: '#fbbf24' },
-    { key: 'fins', label: 'FINS', color: '#34d399' },
-    { key: 'corporate', label: 'Corporate', color: '#a78bfa' },
-    { key: 'international', label: 'International', color: '#fb7185' },
-    { key: 'commercial', label: 'Commercial', color: '#38bdf8' },
-  ]
-
   const [name, setName]                   = useState('')
   const [metric, setMetric]               = useState<EquityMetric>('arr')
   const [customFieldName, setCustomFieldName] = useState('')
@@ -2755,6 +2882,35 @@ function AddEquityRuleSheet({
     setScopeRepSpecialties([])
   }
 
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (open && editRule) {
+      setName(editRule.name)
+      setMetric(editRule.metric)
+      setCustomFieldName(editRule.customFieldName ?? '')
+      setCustomFieldUnit(editRule.customFieldUnit ?? '')
+      setTolerance(editRule.tolerance)
+      setWeight(editRule.weight)
+      setMustFollow(editRule.mustFollow)
+      setDescription(editRule.description ?? '')
+      setTargetType(editRule.targetType ?? 'mean_relative')
+      setDefaultTarget(editRule.defaultTarget ?? 70)
+      const segMap: Record<string, string> = {}
+      if (editRule.segmentTargets) {
+        for (const st of editRule.segmentTargets) {
+          segMap[st.segment] = String(st.target)
+        }
+      }
+      setSegmentTargets(segMap)
+      setScopeSegments(editRule.scope?.segments ?? [])
+      setScopeExcludeOnRamp(editRule.scope?.excludeOnRamp ?? false)
+      setScopeRepSpecialties(editRule.scope?.repSpecialties ?? [])
+    } else if (open && !editRule) {
+      reset()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editRule])
+
   const handleSave = () => {
     if (!name.trim()) { toast.error('Rule name required'); return }
     if (metric === 'custom' && !customFieldName.trim()) {
@@ -2790,7 +2946,7 @@ function AddEquityRuleSheet({
     const scope = buildScope()
 
     const newRule: EquityRule = {
-      id: `eq-${Date.now()}`,
+      id: editRule?.id ?? `eq-${Date.now()}`,
       name: name.trim(),
       metric,
       customFieldName: metric === 'custom' ? customFieldName.trim() : undefined,
@@ -2808,7 +2964,9 @@ function AddEquityRuleSheet({
       ...(scope ? { scope } : {}),
     }
     onSave(newRule)
-    toast.success('Equity rule created', { description: `"${name.trim()}" is now active.` })
+    toast.success(editRule ? 'Equity rule updated' : 'Equity rule created', {
+      description: `"${name.trim()}" ${editRule ? 'has been updated.' : 'is now active.'}`,
+    })
     reset()
     onClose()
   }
@@ -2824,7 +2982,7 @@ function AddEquityRuleSheet({
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-stone-200 shrink-0">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Scale className="w-4 h-4 text-emerald-600" />
-            Add Equity Rule
+            {editRule ? 'Edit Equity Rule' : 'Add Equity Rule'}
           </SheetTitle>
           <SheetDescription className="text-xs">
             Configure a book-of-business balancing constraint.
@@ -3184,7 +3342,7 @@ function AddEquityRuleSheet({
           </Button>
           <Button onClick={handleSave} className="flex-1 press-scale gap-1.5">
             <Scale className="w-3.5 h-3.5" />
-            Create Equity Rule
+            {editRule ? 'Save Changes' : 'Create Equity Rule'}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -3199,15 +3357,42 @@ function AddEquityRuleSheet({
 function BookOfBusinessTab({
   equityRules,
   setEquityRules,
-  onAddEquityRule,
 }: {
   equityRules: EquityRule[]
   setEquityRules: React.Dispatch<React.SetStateAction<EquityRule[]>>
-  onAddEquityRule: () => void
 }) {
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false)
   const [sortCol, setSortCol] = useState<string>('arr')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [segmentFilters, setSegmentFilters] = useState<string[]>([])
+  const [focusedRuleId, setFocusedRuleId] = useState<string | null>(null)
+  const [editingRule, setEditingRule] = useState<EquityRule | null>(null)
+  const [editSheetOpen, setEditSheetOpen] = useState(false)
+
+  const toggleSegmentFilter = (key: string) => {
+    setSegmentFilters(prev =>
+      prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]
+    )
+  }
+
+  const handleFocusRule = (rule: EquityRule) => {
+    if (focusedRuleId === rule.id) {
+      // Toggle off
+      setFocusedRuleId(null)
+      setSegmentFilters([])
+    } else {
+      setFocusedRuleId(rule.id)
+      setSegmentFilters(rule.scope?.segments ?? [])
+    }
+  }
+
+  const clearAllFilters = () => {
+    setSegmentFilters([])
+    setFocusedRuleId(null)
+    setShowFlaggedOnly(false)
+  }
+
+  const hasActiveFilters = segmentFilters.length > 0 || focusedRuleId !== null
 
   const handleColSort = (col: string) => {
     if (col === sortCol) {
@@ -3412,7 +3597,33 @@ function BookOfBusinessTab({
   }
 
   const displayReps = useMemo(() => {
-    const filtered = showFlaggedOnly ? repMatrix.filter(r => r.hasFlag) : repMatrix
+    let filtered = repMatrix
+
+    // Focus filter: only show reps in scope for the focused rule
+    if (focusedRuleId) {
+      const focusedRule = equityRules.find(r => r.id === focusedRuleId)
+      if (focusedRule) {
+        const allActiveReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+        const scopedReps = filterRepsByScope(allActiveReps, focusedRule.scope)
+        const scopedRepIds = new Set(scopedReps.map(r => r.id))
+        filtered = filtered.filter(r => scopedRepIds.has(r.repId))
+      }
+    }
+
+    // Segment filter: keep only reps with at least one account in selected segments
+    if (segmentFilters.length > 0) {
+      const segSet = new Set(segmentFilters)
+      filtered = filtered.filter(r => {
+        const repAccounts = demoAccounts.filter(a => a.current_owner_id === r.repId)
+        return repAccounts.some(a => segSet.has(a.segment))
+      })
+    }
+
+    // Flagged filter
+    if (showFlaggedOnly) {
+      filtered = filtered.filter(r => r.hasFlag)
+    }
+
     const col = effectiveSortCol
     return [...filtered].sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1
@@ -3422,7 +3633,9 @@ function BookOfBusinessTab({
       if (col === 'custom')    return dir * (a.open_tickets - b.open_tickets)
       return dir * (a.arr - b.arr)
     })
-  }, [repMatrix, showFlaggedOnly, effectiveSortCol, sortDir])
+  }, [repMatrix, showFlaggedOnly, effectiveSortCol, sortDir, focusedRuleId, segmentFilters, equityRules])
+
+  const filteredFlagged = displayReps.filter(r => r.hasFlag).length
 
   // Equity rules: compute out-of-range count using scoped data
   const getRuleOutOfRange = (rule: EquityRule) => {
@@ -3447,6 +3660,16 @@ function BookOfBusinessTab({
     return 'text-sky-700 bg-sky-50'
   }
 
+  const handleEquityRuleSave = (rule: EquityRule) => {
+    setEquityRules(prev => {
+      const idx = prev.findIndex(r => r.id === rule.id)
+      if (idx >= 0) {
+        return prev.map(r => r.id === rule.id ? rule : r)
+      }
+      return [...prev, rule]
+    })
+  }
+
   return (
     <div className="flex flex-col gap-8">
 
@@ -3459,7 +3682,7 @@ function BookOfBusinessTab({
               Hard and soft constraints to keep rep books balanced.
             </p>
           </div>
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={onAddEquityRule}>
+          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => { setEditingRule(null); setEditSheetOpen(true) }}>
             <Plus className="w-3.5 h-3.5" />
             Add Equity Rule
           </Button>
@@ -3520,14 +3743,26 @@ function BookOfBusinessTab({
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{rule.description}</p>
                   </div>
-                  <Switch
-                    checked={rule.active}
-                    onCheckedChange={() => {
-                      setEquityRules(prev => prev.map(r => r.id === rule.id ? { ...r, active: !r.active } : r))
-                      toast.success(rule.active ? 'Equity rule disabled' : 'Equity rule enabled')
-                    }}
-                    className="shrink-0 mt-0.5"
-                  />
+                  <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                    <button
+                      onClick={() => { setEditingRule(rule); setEditSheetOpen(true) }}
+                      className="w-7 h-7 rounded-md flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <Switch
+                      checked={rule.active}
+                      onCheckedChange={() => {
+                        setEquityRules(prev => prev.map(r => r.id === rule.id ? { ...r, active: !r.active } : r))
+                        // Auto-clear focus when the focused rule is toggled off
+                        if (rule.active && focusedRuleId === rule.id) {
+                          setFocusedRuleId(null)
+                          setSegmentFilters([])
+                        }
+                        toast.success(rule.active ? 'Equity rule disabled' : 'Equity rule enabled')
+                      }}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-stone-500 pt-2 border-t border-stone-100 flex-wrap">
                   <span>
@@ -3545,6 +3780,20 @@ function BookOfBusinessTab({
                       </span>
                     )
                   )}
+                  {rule.active && (
+                    <button
+                      onClick={() => handleFocusRule(rule)}
+                      className={cn(
+                        'ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors',
+                        focusedRuleId === rule.id
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                          : 'text-stone-400 hover:text-stone-600 hover:bg-stone-100 border border-transparent'
+                      )}
+                    >
+                      <Target className="w-3 h-3" />
+                      {focusedRuleId === rule.id ? 'Focused' : 'Focus'}
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -3558,10 +3807,31 @@ function BookOfBusinessTab({
           <div>
             <h3 className="text-sm font-semibold text-stone-800">Book Equity Analysis</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              All {repBookData.length} active reps — deviation from team mean, flagged by active equity rules.
+              {hasActiveFilters ? (
+                <>
+                  {displayReps.length} rep{displayReps.length !== 1 ? 's' : ''}
+                  {segmentFilters.length > 0 && (
+                    <> &middot; {segmentFilters.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')} segment{segmentFilters.length > 1 ? 's' : ''}</>
+                  )}
+                  {focusedRuleId && (
+                    <> &middot; {equityRules.find(r => r.id === focusedRuleId)?.name} scope</>
+                  )}
+                </>
+              ) : (
+                <>All {repBookData.length} active reps — deviation from team mean, flagged by active equity rules.</>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-stone-200 text-[11px] font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-50 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Clear filters
+              </button>
+            )}
             {totalFlagged > 0 && (
               <button
                 onClick={() => setShowFlaggedOnly(v => !v)}
@@ -3579,11 +3849,49 @@ function BookOfBusinessTab({
           </div>
         </div>
 
+        {/* Segment filter chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide mr-1">Segment</span>
+          {FORM_SEGMENTS.map(seg => {
+            const isActive = segmentFilters.includes(seg.key)
+            return (
+              <button
+                key={seg.key}
+                onClick={() => {
+                  toggleSegmentFilter(seg.key)
+                  // Clear focus if user manually changes segments
+                  if (focusedRuleId) setFocusedRuleId(null)
+                }}
+                className={cn(
+                  'px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border',
+                  isActive
+                    ? 'text-white border-transparent shadow-sm'
+                    : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300 hover:text-stone-700'
+                )}
+                style={isActive ? { backgroundColor: seg.color } : undefined}
+              >
+                {seg.label}
+              </button>
+            )
+          })}
+        </div>
+
         {activeMetricCols.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2 rounded-xl border border-stone-200 bg-white">
             <Scale className="w-6 h-6 text-stone-300" />
             <p className="text-sm font-medium text-stone-400">No active equity rules</p>
             <p className="text-xs text-stone-400">Enable a rule above to see the book distribution analysis.</p>
+          </div>
+        ) : displayReps.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 rounded-xl border border-stone-200 bg-white">
+            <Target className="w-6 h-6 text-stone-300" />
+            <p className="text-sm font-medium text-stone-400">No reps match current filters</p>
+            <button
+              onClick={clearAllFilters}
+              className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+            >
+              Clear filters
+            </button>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
@@ -3725,7 +4033,9 @@ function BookOfBusinessTab({
 
                   {/* Footer: team means */}
                   <div className="px-5 py-3 bg-stone-50 border-t border-stone-100 flex items-center gap-6 flex-wrap text-xs text-stone-500">
-                    <span className="font-medium text-stone-400 uppercase tracking-wide text-[10px]">Team means</span>
+                    <span className="font-medium text-stone-400 uppercase tracking-wide text-[10px]">
+                      {hasActiveFilters ? 'Filtered means' : 'Team means'}
+                    </span>
                     {activeMetricCols.map(col => (
                       <span key={col.key} className="flex items-center gap-1.5">
                         <span className="text-stone-400">{col.label}:</span>
@@ -3733,10 +4043,10 @@ function BookOfBusinessTab({
                       </span>
                     ))}
                     <span className="ml-auto flex items-center gap-1.5">
-                      {totalFlagged > 0 ? (
+                      {filteredFlagged > 0 ? (
                         <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
                           <ShieldAlert className="w-3 h-3" />
-                          {totalFlagged} rep{totalFlagged > 1 ? 's' : ''} out of range
+                          {filteredFlagged} rep{filteredFlagged > 1 ? 's' : ''} out of range
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-emerald-700">
@@ -3751,6 +4061,13 @@ function BookOfBusinessTab({
           </div>
         )}
       </div>
+
+      <AddEquityRuleSheet
+        open={editSheetOpen}
+        onClose={() => setEditSheetOpen(false)}
+        onSave={handleEquityRuleSave}
+        editRule={editingRule}
+      />
     </div>
   )
 }
@@ -3763,12 +4080,18 @@ export default function RulesPage() {
   const { isTrialMode, enterDemoMode } = useTrialMode()
 
   // Lifted state — shared across tabs
-  const [rules, setRules]               = useState<Rule[]>(DEMO_RULES)
+  const [rules, setRules]               = usePersistedState<Rule[]>('relay-routing-rules', DEMO_RULES)
   const { equityRules, setEquityRules } = useEquityRules()
   const [newRuleOpen, setNewRuleOpen]   = useState(false)
-  const [addEquityOpen, setAddEquityOpen] = useState(false)
+  const [activeTab, setActiveTab]       = usePersistedState('relay-rules-tab', 'rules')
 
   const activeCount = rules.filter(r => r.active).length
+
+  // Derive which presets are already applied (matched by rule name = preset title)
+  const appliedPresetIds = useMemo(() => {
+    const ruleNames = new Set(rules.map(r => r.name))
+    return new Set(PRESETS.filter(p => ruleNames.has(p.title)).map(p => p.id))
+  }, [rules])
 
   const handleNewRule = (rule: Rule) => {
     setRules(prev => {
@@ -3777,9 +4100,59 @@ export default function RulesPage() {
     })
   }
 
-  const handleNewEquityRule = (rule: EquityRule) => {
-    setEquityRules(prev => [...prev, rule])
-  }
+  const presetToRule = useCallback((preset: PresetType, priorityOffset: number): Rule => {
+    const now = Date.now() + priorityOffset
+    const conditions: Condition[] = preset.conditions.map((c, i) => ({
+      id: `tc-${now}-${i}`,
+      field: c.field,
+      operator: c.operator,
+      value: c.value,
+    }))
+    return {
+      id: `rule-${now}`,
+      name: preset.title,
+      priority: 0,
+      active: true,
+      conditionGroup: {
+        id: `cg-${now}`,
+        logic: preset.logic,
+        conditions,
+      },
+      action: {
+        type: preset.actionType,
+        userIds: preset.repIds,
+        label: buildActionLabel(preset.actionType, preset.repIds),
+      },
+      hitCount: 0,
+      lastTriggered: 'Never',
+      createdBy: 'Sarah Chen',
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      modifiedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      version: 1,
+      weight: preset.weight,
+      mustFollow: preset.mustFollow,
+    }
+  }, [])
+
+  const handleUsePreset = useCallback((preset: PresetType) => {
+    const rule = presetToRule(preset, 0)
+    setRules(prev => [...prev, { ...rule, priority: prev.length + 1 }])
+    setActiveTab('rules')
+    toast.success('Preset applied', { description: `"${preset.title}" added to your rules.` })
+  }, [presetToRule])
+
+  const handleApplyBatch = useCallback((presets: PresetType[]) => {
+    setRules(prev => {
+      const newRules = presets.map((p, i) => ({
+        ...presetToRule(p, i),
+        priority: prev.length + 1 + i,
+      }))
+      return [...prev, ...newRules]
+    })
+    setActiveTab('rules')
+    const names = presets.map(p => p.title).join(', ')
+    toast.success(`${presets.length} presets applied`, { description: names })
+  }, [presetToRule])
 
   if (isTrialMode) {
     return <TrialPageEmpty icon={Users} title="Assignment Rules" description="Configure routing rules to automatically assign accounts to the right reps during transitions." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
@@ -3794,12 +4167,6 @@ export default function RulesPage() {
           onClose={() => setNewRuleOpen(false)}
           onSave={handleNewRule}
         />
-        <AddEquityRuleSheet
-          open={addEquityOpen}
-          onClose={() => setAddEquityOpen(false)}
-          onSave={handleNewEquityRule}
-        />
-
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
@@ -3827,11 +4194,11 @@ export default function RulesPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="rules" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-transparent border-b border-stone-200 rounded-none w-full justify-start h-auto p-0 gap-0">
             {[
               { value: 'rules',     label: 'Rules',            icon: SlidersHorizontal },
-              { value: 'templates', label: 'Templates',        icon: Layers },
+              { value: 'presets',   label: 'Presets',           icon: Layers },
               { value: 'simulator', label: 'Simulator',        icon: Play },
               { value: 'history',   label: 'History',          icon: History },
               { value: 'book',      label: 'Book of Business', icon: BarChart3 },
@@ -3861,8 +4228,8 @@ export default function RulesPage() {
             <TabsContent value="rules" className="mt-0">
               <RulesTab rules={rules} setRules={setRules} />
             </TabsContent>
-            <TabsContent value="templates" className="mt-0">
-              <TemplatesTab />
+            <TabsContent value="presets" className="mt-0">
+              <PresetsTab onGoToBook={() => setActiveTab('book')} onUsePreset={handleUsePreset} onApplyBatch={handleApplyBatch} appliedPresetIds={appliedPresetIds} />
             </TabsContent>
             <TabsContent value="simulator" className="mt-0">
               <SimulatorTab />
@@ -3874,7 +4241,6 @@ export default function RulesPage() {
               <BookOfBusinessTab
                 equityRules={equityRules}
                 setEquityRules={setEquityRules}
-                onAddEquityRule={() => setAddEquityOpen(true)}
               />
             </TabsContent>
           </div>

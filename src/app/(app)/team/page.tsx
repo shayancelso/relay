@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { usePersistedState } from '@/hooks/use-persisted-state'
 import { demoTeamMembers, demoAccounts, demoTransitions } from '@/lib/demo-data'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -225,14 +226,14 @@ function BookDistributionChart({
   meanAccounts: number
 }) {
   // View + metric
-  const [chartView, setChartView] = useState<ChartView>('bar')
-  const [chartMetric, setChartMetric] = useState<ChartMetric>('arr')
+  const [chartView, setChartView] = usePersistedState<ChartView>('relay-team-chart-view', 'bar')
+  const [chartMetric, setChartMetric] = usePersistedState<ChartMetric>('relay-team-chart-metric', 'arr')
 
   // Bar-specific
   const [showSegmentStack, setShowSegmentStack] = useState(false)
   const [showEquityBands, setShowEquityBands] = useState(true)
-  const [colorBy, setColorBy] = useState<ColorBy>('equity')
-  const [groupBy, setGroupBy] = useState<GroupBy>('rep')
+  const [colorBy, setColorBy] = usePersistedState<ColorBy>('relay-team-chart-color-by', 'equity')
+  const [groupBy, setGroupBy] = usePersistedState<GroupBy>('relay-team-chart-group-by', 'rep')
 
   // Scatter
   const [scatterX, setScatterX] = useState<ScatterAxis>('arr')
@@ -1313,12 +1314,12 @@ export default function TeamPage() {
   const { isTrialMode, enterDemoMode } = useTrialMode()
   const { getMetricTarget } = useEquityRules()
 
-  const [sortKey,          setSortKey]          = useState<SortKey>('arr')
-  const [sortDir,          setSortDir]          = useState<SortDir>('desc')
+  const [sortKey,          setSortKey]          = usePersistedState<SortKey>('relay-team-sort-key', 'arr')
+  const [sortDir,          setSortDir]          = usePersistedState<SortDir>('relay-team-sort-dir', 'desc')
   const [filterRole,       setFilterRole]       = useState<RoleFilter>('all')
   const [showOnRampOnly,   setShowOnRampOnly]   = useState(false)
   const [showFlaggedOnly,  setShowFlaggedOnly]  = useState(false)
-  const [showChart,        setShowChart]        = useState(false)
+  const [showChart,        setShowChart]        = usePersistedState<boolean>('relay-team-show-chart', false)
 
   // ── Compute enriched per-member data ──────────────────────────────────────
   const teamData = useMemo(() => {

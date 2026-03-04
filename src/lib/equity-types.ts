@@ -45,6 +45,7 @@ export const DEMO_EQUITY_RULES: EquityRule[] = [
     mustFollow: true,
     active: true,
     description: "No rep's total managed ARR should exceed ±20% of the team mean ($1.95M)",
+    scope: { segments: ['enterprise'] },
   },
   {
     id: 'eq-2',
@@ -55,6 +56,7 @@ export const DEMO_EQUITY_RULES: EquityRule[] = [
     mustFollow: true,
     active: true,
     description: 'All reps should carry within ±15% of the average account count',
+    scope: { segments: ['enterprise', 'fins'] },
   },
   {
     id: 'eq-3',
@@ -65,6 +67,7 @@ export const DEMO_EQUITY_RULES: EquityRule[] = [
     mustFollow: false,
     active: true,
     description: 'Cumulative employee count across each book should be within ±25% of the mean',
+    scope: { segments: ['corporate', 'commercial'], excludeOnRamp: true },
   },
   {
     id: 'eq-4',

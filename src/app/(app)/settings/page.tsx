@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePersistedState } from '@/hooks/use-persisted-state'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,7 @@ export default function SettingsPage() {
     slackAlerts: true,
   })
   const [openIntegration, setOpenIntegration] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = usePersistedState('relay-settings-tab', 'profile')
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -54,7 +56,7 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage your profile, organization, and preferences</p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile" className="gap-1.5"><User className="h-3.5 w-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="organization" className="gap-1.5"><Building2 className="h-3.5 w-3.5" /> Organization</TabsTrigger>
