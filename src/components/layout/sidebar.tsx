@@ -25,6 +25,7 @@ import {
   ClipboardList,
   Link2,
   Shield,
+  GitBranch,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRole, DEMO_USERS, getRoleLabel, getRoleDescription, type DemoRole } from '@/lib/role-context'
@@ -62,6 +63,7 @@ const navByRole: Record<DemoRole, { main: NavItem[]; insights?: NavItem[]; confi
     ],
     configure: [
       { href: '/playbooks', label: 'Playbooks', icon: BookOpen },
+      { href: '/workflows', label: 'Workflows', icon: GitBranch },
       { href: '/integrations', label: 'Integrations', icon: Link2 },
       { href: '/calendar', label: 'Calendar', icon: CalendarDays },
       { href: '/settings', label: 'Settings', icon: Settings },
@@ -82,6 +84,7 @@ const navByRole: Record<DemoRole, { main: NavItem[]; insights?: NavItem[]; confi
     ],
     configure: [
       { href: '/playbooks', label: 'Playbooks', icon: BookOpen },
+      { href: '/workflows', label: 'Workflows', icon: GitBranch },
       { href: '/calendar', label: 'Calendar', icon: CalendarDays },
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
@@ -351,6 +354,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
                 { label: 'Assignment rules',          revops: true,  leadership: false, rep: false },
                 { label: 'Integrations',              revops: true,  leadership: false, rep: false },
                 { label: 'Playbooks',                 revops: true,  leadership: true,  rep: false },
+                { label: 'Workflows',                 revops: true,  leadership: true,  rep: false },
                 { label: 'Settings & config',         revops: true,  leadership: false, rep: false },
               ].map((row, i) => (
                 <div
