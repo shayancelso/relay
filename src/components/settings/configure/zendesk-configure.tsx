@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 const PRIORITIES = ['Critical', 'High', 'Normal', 'Low'] as const
 
@@ -45,7 +46,7 @@ export function ZendeskConfigure() {
               Subdomain: wealthsimple.zendesk.com · Connected user: sarah.chen@wealthsimple.com · 142 tickets synced
             </p>
           </div>
-          <button className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
+          <button onClick={() => toast.success('Re-authenticated', { description: 'Zendesk credentials refreshed.' })} className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
             Re-authenticate
           </button>
         </div>

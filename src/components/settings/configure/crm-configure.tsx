@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { Plus, Trash2, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ function ConnectionTab({ crm }: { crm: CRMType }) {
                 : 'Portal: Wealthsimple (ID: 12345678) · Connected user: sarah.chen@wealthsimple.com'}
             </p>
           </div>
-          <button className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
+          <button onClick={() => toast.success('Re-authenticated', { description: `${isSF ? 'Salesforce' : 'HubSpot'} credentials refreshed.` })} className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
             Re-authenticate
           </button>
         </div>
@@ -443,7 +444,7 @@ export function HubSpotConnect() {
         </p>
       </div>
       <div className="space-y-2 w-full max-w-xs">
-        <button className="w-full rounded-lg bg-orange-500 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-orange-600 transition-colors">
+        <button onClick={() => toast.success('HubSpot connected', { description: 'Syncing companies and deals…' })} className="w-full rounded-lg bg-orange-500 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-orange-600 transition-colors">
           Connect HubSpot →
         </button>
         <p className="text-[10px] text-muted-foreground/60">

@@ -5,7 +5,7 @@
 
 import type { EquityRuleScope } from '@/lib/equity-types'
 
-const TODAY = new Date('2026-03-02')
+const TODAY = new Date('2026-03-06')
 const RAMP_MONTHS = 12
 
 /**

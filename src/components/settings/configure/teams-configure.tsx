@@ -1,5 +1,7 @@
 'use client'
 
+import { toast } from 'sonner'
+
 export function TeamsConnect() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-6 py-8">
@@ -13,7 +15,7 @@ export function TeamsConnect() {
         </p>
       </div>
       <div className="space-y-2 w-full max-w-xs">
-        <button className="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-indigo-600 transition-colors">
+        <button onClick={() => toast.success('Teams connected', { description: 'Linked to #cs-transitions' })} className="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-indigo-600 transition-colors">
           Connect Microsoft Teams →
         </button>
         <p className="text-[10px] text-muted-foreground/60">

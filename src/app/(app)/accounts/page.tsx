@@ -61,7 +61,7 @@ type QueueAccount = {
 
 // ─── Queue Helpers ────────────────────────────────────────────────────────────
 
-const TODAY = new Date('2026-03-03')
+const TODAY = new Date('2026-03-06')
 
 function daysInQueue(createdAt: string) {
   const d = Math.round((TODAY.getTime() - new Date(createdAt).getTime()) / 86400000)

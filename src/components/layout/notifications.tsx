@@ -249,6 +249,7 @@ export function NotificationPanel() {
 
   // Real-time simulation: add a new notification every 60 seconds, starting after 2 min
   useEffect(() => {
+    const cleanupRef = { current: () => {} }
     const delay = setTimeout(() => {
       const interval = setInterval(() => {
         const newNotif = generateRandomNotification()
@@ -257,7 +258,6 @@ export function NotificationPanel() {
       // Store interval id so we can clear on unmount
       cleanupRef.current = () => clearInterval(interval)
     }, 120000)
-    const cleanupRef = { current: () => {} }
     return () => {
       clearTimeout(delay)
       cleanupRef.current()

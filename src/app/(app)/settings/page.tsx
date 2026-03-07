@@ -78,7 +78,7 @@ export default function SettingsPage() {
                 <div>
                   <p className="font-semibold">{user.name}</p>
                   <p className="text-sm text-muted-foreground">{user.title}</p>
-                  <button className="mt-1 text-[11px] text-primary hover:underline">Change avatar</button>
+                  <button onClick={() => toast('Avatar upload coming soon')} className="mt-1 text-[11px] text-primary hover:underline">Change avatar</button>
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">

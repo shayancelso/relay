@@ -42,7 +42,7 @@ import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 // ---------------------------------------------------------------------------
 
 // Current demo date — aligns with project date
-const TODAY = new Date('2026-03-02')
+const TODAY = new Date('2026-03-06')
 const RAMP_MONTHS = 12
 const RAMP_RECENTLY_COMPLETE_MONTHS = 3 // window after ramp ends to show "Just Ramped"
 // Equity targets are now sourced from EquityProvider context (shared with Rules page)

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Select,
   SelectContent,
@@ -56,7 +57,7 @@ export function CalendarConfigure({ calendar }: CalendarConfigureProps) {
                 : 'Account: sarah.chen@wealthsimple.com · Exchange Online'}
             </p>
           </div>
-          <button className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
+          <button onClick={() => toast.success('Re-authenticated', { description: `${isGoogle ? 'Google Calendar' : 'Outlook'} credentials refreshed.` })} className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
             Re-authenticate
           </button>
         </div>

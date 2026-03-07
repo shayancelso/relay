@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ export function ResendConfigure() {
               Domain: wealthsimple.com · DNS verified · Sending enabled
             </p>
           </div>
-          <button className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
+          <button onClick={() => toast('Domain management coming soon')} className="shrink-0 rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 transition-colors">
             Manage domain
           </button>
         </div>

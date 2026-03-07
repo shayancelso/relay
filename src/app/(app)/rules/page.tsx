@@ -40,6 +40,7 @@ import {
   Scale,
   X,
   ArrowRight,
+  Check,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -958,6 +959,7 @@ function RuleCard({
   onDuplicate,
   onMoveUp,
   onMoveDown,
+  onEdit,
 }: {
   rule: Rule
   onToggle: (id: string) => void
@@ -965,6 +967,7 @@ function RuleCard({
   onDuplicate: (id: string) => void
   onMoveUp: (id: string) => void
   onMoveDown: (id: string) => void
+  onEdit: (id: string) => void
 }) {
   const maxHits = 300
   const hitPct = Math.min((rule.hitCount / maxHits) * 100, 100)
@@ -1061,7 +1064,7 @@ function RuleCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem className="gap-2 text-xs">
+            <DropdownMenuItem className="gap-2 text-xs" onClick={() => onEdit(rule.id)}>
               <Edit3 className="w-3.5 h-3.5" />
               Edit Rule
             </DropdownMenuItem>
@@ -1297,10 +1300,12 @@ function NewRuleSheet({
   open,
   onClose,
   onSave,
+  editRule,
 }: {
   open: boolean
   onClose: () => void
   onSave: (rule: Rule) => void
+  editRule?: Rule | null
 }) {
   const [name, setName]               = useState('')
   const [conditions, setConditions]   = useState<Condition[]>([
@@ -1312,6 +1317,8 @@ function NewRuleSheet({
   const [weight, setWeight]           = useState(70)
   const [mustFollow, setMustFollow]   = useState(false)
 
+  const isEditing = !!editRule
+
   const reset = () => {
     setName('')
     setConditions([{ id: 'new-c-1', field: 'segment', operator: 'equals', value: '' }])
@@ -1322,10 +1329,49 @@ function NewRuleSheet({
     setMustFollow(false)
   }
 
+  // Pre-fill form when editing an existing rule
+  useEffect(() => {
+    if (editRule) {
+      setName(editRule.name)
+      const flatConditions: Condition[] = editRule.conditionGroup.conditions.map((c, i) => {
+        if ('field' in c) return c as Condition
+        return { id: `edit-c-${i}`, field: 'segment' as ConditionField, operator: 'equals' as ConditionOperator, value: '' }
+      })
+      setConditions(flatConditions.length > 0 ? flatConditions : [{ id: 'new-c-1', field: 'segment', operator: 'equals', value: '' }])
+      setLogic(editRule.conditionGroup.logic)
+      setActionType(editRule.action.type)
+      setSelectedRepIds(editRule.action.userIds)
+      setWeight(editRule.weight)
+      setMustFollow(editRule.mustFollow)
+    } else {
+      reset()
+    }
+  }, [editRule])
+
   const handleSave = () => {
     if (!name.trim()) { toast.error('Rule name required'); return }
     if (selectedRepIds.length === 0) { toast.error('Select at least one rep or manager'); return }
     const filledConditions = conditions.filter(c => c.value !== '')
+    if (editRule) {
+      const updatedRule: Rule = {
+        ...editRule,
+        name: name.trim(),
+        weight,
+        mustFollow,
+        conditionGroup: { id: editRule.conditionGroup.id, logic, conditions: filledConditions },
+        action: {
+          type: actionType,
+          userIds: selectedRepIds,
+          label: buildActionLabel(actionType, selectedRepIds),
+        },
+        modifiedAt: 'Just now',
+        version: editRule.version + 1,
+      }
+      onSave(updatedRule)
+      toast.success('Rule updated', { description: `"${name.trim()}" has been saved.` })
+      onClose()
+      return
+    }
     const newRule: Rule = {
       id: `rule-${Date.now()}`,
       name: name.trim(),
@@ -1361,7 +1407,7 @@ function NewRuleSheet({
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-stone-200 shrink-0">
-          <SheetTitle className="text-base">New Rule</SheetTitle>
+          <SheetTitle className="text-base">{isEditing ? 'Edit Rule' : 'New Rule'}</SheetTitle>
           <SheetDescription className="text-xs">
             Configure a routing rule. Accounts will be evaluated top-to-bottom until the first match.
           </SheetDescription>
@@ -1537,8 +1583,8 @@ function NewRuleSheet({
             Cancel
           </Button>
           <Button onClick={handleSave} className="flex-1 press-scale gap-1.5">
-            <Plus className="w-3.5 h-3.5" />
-            Create Rule
+            {isEditing ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            {isEditing ? 'Save Changes' : 'Create Rule'}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -1569,7 +1615,7 @@ function RulesTab({
       }
       return next
     })
-  }, [])
+  }, [setRules])
 
   const handleDelete = useCallback((id: string) => {
     setRules((prev) => {
@@ -1577,7 +1623,7 @@ function RulesTab({
       return filtered.map((r, i) => ({ ...r, priority: i + 1 }))
     })
     toast.success('Rule deleted')
-  }, [])
+  }, [setRules])
 
   const handleDuplicate = useCallback((id: string) => {
     setRules((prev) => {
@@ -1596,7 +1642,7 @@ function RulesTab({
       return [...prev, newRule]
     })
     toast.success('Rule duplicated')
-  }, [])
+  }, [setRules])
 
   const handleMoveUp = useCallback((id: string) => {
     setRules((prev) => {
@@ -1606,7 +1652,7 @@ function RulesTab({
       ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
       return next.map((r, i) => ({ ...r, priority: i + 1 }))
     })
-  }, [])
+  }, [setRules])
 
   const handleMoveDown = useCallback((id: string) => {
     setRules((prev) => {
@@ -1616,11 +1662,17 @@ function RulesTab({
       ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
       return next.map((r, i) => ({ ...r, priority: i + 1 }))
     })
-  }, [])
+  }, [setRules])
 
-  const handleNewRule = useCallback(() => {
-    toast('New rule editor coming soon', { description: 'Rule builder will open here' })
-  }, [])
+  const [editingRule, setEditingRule] = useState<Rule | null>(null)
+
+  const handleEdit = useCallback((id: string) => {
+    setEditingRule(rules.find(r => r.id === id) ?? null)
+  }, [rules])
+
+  const handleEditSave = useCallback((updated: Rule) => {
+    setRules(prev => prev.map(r => r.id === updated.id ? updated : r))
+  }, [setRules])
 
   return (
     <div className="flex flex-col gap-4">
@@ -1636,11 +1688,19 @@ function RulesTab({
             onDuplicate={handleDuplicate}
             onMoveUp={handleMoveUp}
             onMoveDown={handleMoveDown}
+            onEdit={handleEdit}
           />
         ))}
 
         <CatchAllCard />
       </div>
+
+      <NewRuleSheet
+        open={editingRule !== null}
+        onClose={() => setEditingRule(null)}
+        onSave={handleEditSave}
+        editRule={editingRule}
+      />
     </div>
   )
 }
