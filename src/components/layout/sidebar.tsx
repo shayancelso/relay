@@ -97,6 +97,7 @@ const navByRole: Record<DemoRole, { main: NavItem[]; insights?: NavItem[]; confi
       { href: '/transitions/new', label: 'New Transition', icon: CheckSquare },
       { href: '/calendar', label: 'Calendar', icon: CalendarDays },
       { href: '/activity', label: 'Activity', icon: Activity },
+      { href: '/workflows', label: 'Workflows', icon: GitBranch },
     ],
   },
 }
@@ -354,7 +355,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
                 { label: 'Assignment rules',          revops: true,  leadership: false, rep: false },
                 { label: 'Integrations',              revops: true,  leadership: false, rep: false },
                 { label: 'Playbooks',                 revops: true,  leadership: true,  rep: false },
-                { label: 'Workflows',                 revops: true,  leadership: true,  rep: false },
+                { label: 'Workflows',                 revops: true,  leadership: true,  rep: true  },
                 { label: 'Settings & config',         revops: true,  leadership: false, rep: false },
               ].map((row, i) => (
                 <div
