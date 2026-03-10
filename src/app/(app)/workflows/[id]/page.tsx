@@ -871,7 +871,8 @@ function WorkflowBuilder() {
   const router = useRouter()
   const templateId = params.id as string
 
-  const template = TEMPLATE_DATA[templateId] || DEFAULT_TEMPLATE
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(templateId)
+  const template = !isUUID ? (TEMPLATE_DATA[templateId] || DEFAULT_TEMPLATE) : DEFAULT_TEMPLATE
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(
     () => getLayoutedElements(template.nodes, template.edges),
@@ -883,14 +884,37 @@ function WorkflowBuilder() {
   const [selectedNode, setSelectedNode] = useState<Node<WorkflowNodeData> | null>(null)
   const [workflowName, setWorkflowName] = useState(template.name)
   const [isActive, setIsActive] = useState(false)
-  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(isUUID ? templateId : null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(isUUID)
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [reactFlowInstance, setReactFlowInstance] = useState<ReturnType<typeof useRef<null>>['current'] | null>(null)
 
   const nodeTypes: NodeTypes = useMemo(() => ({
     workflowNode: WorkflowNode,
   }), [])
+
+  // Load saved workflow from DB when ID is a UUID
+  useEffect(() => {
+    if (!isUUID) return
+    fetch(`/api/workflows/${templateId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && !data.error) {
+          const dbNodes = (data.nodes || []) as Node<WorkflowNodeData>[]
+          const dbEdges = (data.edges || []) as Edge[]
+          if (dbNodes.length > 0) {
+            setNodes(dbNodes)
+            setEdges(dbEdges)
+          }
+          setWorkflowName(data.name || 'Untitled')
+          setIsActive(data.status === 'active')
+          setSavedId(data.id)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [templateId, isUUID, setNodes, setEdges])
 
   // Update selected node when nodes change
   useEffect(() => {
@@ -978,6 +1002,14 @@ function WorkflowBuilder() {
   const onDragStart = (event: React.DragEvent, type: WorkflowNodeType) => {
     event.dataTransfer.setData('application/reactflow', type)
     event.dataTransfer.effectAllowed = 'move'
+  }
+
+  if (isLoading) {
+    return (
+      <div className="h-[calc(100vh-60px)] flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   return (
@@ -1070,6 +1102,31 @@ function WorkflowBuilder() {
             <Zap className="h-3.5 w-3.5" />
             {isActive ? 'Active' : 'Activate'}
           </button>
+          {savedId && (
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/workflows/${savedId}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}),
+                  })
+                  const data = await res.json()
+                  if (data.success) {
+                    toast.success('Test run started')
+                  } else {
+                    toast.error(data.error || 'Failed to start run')
+                  }
+                } catch {
+                  toast.error('Failed to start run')
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+            >
+              <Play className="h-3.5 w-3.5" />
+              Test Run
+            </button>
+          )}
         </div>
       </div>
 
