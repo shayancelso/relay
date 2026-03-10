@@ -883,6 +883,8 @@ function WorkflowBuilder() {
   const [selectedNode, setSelectedNode] = useState<Node<WorkflowNodeData> | null>(null)
   const [workflowName, setWorkflowName] = useState(template.name)
   const [isActive, setIsActive] = useState(false)
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [reactFlowInstance, setReactFlowInstance] = useState<ReturnType<typeof useRef<null>>['current'] | null>(null)
 
@@ -998,26 +1000,65 @@ function WorkflowBuilder() {
           className="text-sm font-semibold bg-transparent border-none focus:outline-none focus:ring-0 min-w-0 flex-1 max-w-[300px]"
         />
 
-        <Badge variant="outline" className="text-[10px] shrink-0">
-          Draft
+        <Badge variant="outline" className={cn('text-[10px] shrink-0', isActive && 'border-emerald-200 bg-emerald-50 text-emerald-700')}>
+          {isActive ? 'Active' : savedId ? 'Saved' : 'Draft'}
         </Badge>
 
         <div className="flex-1" />
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              toast.success('Workflow saved successfully')
+            disabled={isSaving}
+            onClick={async () => {
+              setIsSaving(true)
+              try {
+                const payload = {
+                  name: workflowName,
+                  description: null,
+                  template_id: templateId,
+                  nodes,
+                  edges,
+                  status: isActive ? 'active' : 'draft',
+                }
+                if (savedId) {
+                  await fetch(`/api/workflows/${savedId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                  })
+                } else {
+                  const res = await fetch('/api/workflows', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...payload, org_id: '00000000-0000-0000-0000-000000000001' }),
+                  })
+                  const data = await res.json()
+                  if (data.id) setSavedId(data.id)
+                }
+                toast.success('Workflow saved')
+              } catch {
+                toast.error('Failed to save workflow')
+              } finally {
+                setIsSaving(false)
+              }
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
           >
-            <Save className="h-3.5 w-3.5" />
-            Save
+            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
           <button
-            onClick={() => {
-              setIsActive(!isActive)
-              toast.success(isActive ? 'Workflow deactivated' : 'Workflow activated')
+            onClick={async () => {
+              const newStatus = !isActive
+              setIsActive(newStatus)
+              if (savedId) {
+                await fetch(`/api/workflows/${savedId}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: newStatus ? 'active' : 'draft' }),
+                })
+              }
+              toast.success(newStatus ? 'Workflow activated' : 'Workflow deactivated')
             }}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',

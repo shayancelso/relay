@@ -1,6 +1,3 @@
-[project]
-id = "relay"
-
 [api]
 port = 54321
 

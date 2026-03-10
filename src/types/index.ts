@@ -171,6 +171,51 @@ export interface AssignmentRecommendation {
   }[]
 }
 
+// Workflows
+export type WorkflowStatus = 'draft' | 'active' | 'paused' | 'archived'
+export type WorkflowRunStatus = 'running' | 'completed' | 'failed' | 'cancelled'
+export type WorkflowStepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+
+export interface Workflow {
+  id: string
+  org_id: string
+  name: string
+  description: string | null
+  status: WorkflowStatus
+  template_id: string | null
+  nodes: Record<string, unknown>[]
+  edges: Record<string, unknown>[]
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface WorkflowRun {
+  id: string
+  org_id: string
+  workflow_id: string
+  account_id: string
+  status: WorkflowRunStatus
+  current_node_id: string | null
+  started_at: string
+  completed_at: string | null
+  error: string | null
+  created_at: string
+}
+
+export interface WorkflowStepLog {
+  id: string
+  run_id: string
+  node_id: string
+  node_type: string
+  status: WorkflowStepStatus
+  input: Record<string, unknown>
+  output: Record<string, unknown>
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
 export interface DashboardMetrics {
   active_transitions: number
   intros_sent_this_week: number

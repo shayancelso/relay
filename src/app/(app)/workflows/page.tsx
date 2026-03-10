@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   Plus, Mail, Clock, GitBranch, Calendar, ClipboardList,
   Zap, BarChart3, ArrowRight, Users, RefreshCw, Sparkles,
-  Play, Pause, FileText,
+  Play, Pause, FileText, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -108,35 +108,25 @@ const TEMPLATES: WorkflowTemplate[] = [
   },
 ]
 
-const MY_WORKFLOWS: CustomWorkflow[] = [
-  {
-    id: 'custom-1',
-    name: 'Q1 Enterprise Re-engagement',
-    status: 'active',
-    template: 'Stalled Account Reactivation',
-    runs: 23,
-    completionRate: 78,
-    lastEdited: '2 days ago',
-  },
-  {
-    id: 'custom-2',
-    name: 'SMB Fast Onboard',
-    status: 'draft',
-    template: 'Quick Commercial Handoff',
-    runs: 0,
-    completionRate: 0,
-    lastEdited: '1 week ago',
-  },
-  {
-    id: 'custom-3',
-    name: 'Strategic Renewal Cadence',
-    status: 'paused',
-    template: 'Renewal Prep Sequence',
-    runs: 15,
-    completionRate: 62,
-    lastEdited: '3 days ago',
-  },
-]
+const TEMPLATE_NAMES: Record<string, string> = {
+  'new-account-outreach': 'New Account Outreach',
+  'post-handoff-checkin': 'Post-Handoff Check-in',
+  'renewal-prep-sequence': 'Renewal Prep Sequence',
+  'stalled-account-reactivation': 'Stalled Account Reactivation',
+  'enterprise-high-touch': 'Enterprise High-Touch',
+  'quick-commercial-handoff': 'Quick Commercial Handoff',
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return `${Math.floor(days / 7)}w ago`
+}
 
 const STATS = [
   { label: 'Active Workflows', value: '12', icon: Play, color: 'text-emerald-600' },
@@ -156,6 +146,33 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
 export default function WorkflowsPage() {
   const [tab, setTab] = useState<'templates' | 'my'>('templates')
   const router = useRouter()
+  const [savedWorkflows, setSavedWorkflows] = useState<CustomWorkflow[]>([])
+  const [loadingWorkflows, setLoadingWorkflows] = useState(false)
+
+  useEffect(() => {
+    if (tab === 'my') {
+      setLoadingWorkflows(true)
+      fetch('/api/workflows')
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setSavedWorkflows(
+              data.map((w: Record<string, unknown>) => ({
+                id: w.id as string,
+                name: w.name as string,
+                status: ((w.status as string) || 'draft') as CustomWorkflow['status'],
+                template: TEMPLATE_NAMES[(w.template_id as string) || ''] || 'Custom',
+                runs: 0,
+                completionRate: 0,
+                lastEdited: timeAgo(w.updated_at as string),
+              }))
+            )
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingWorkflows(false))
+    }
+  }, [tab])
 
   return (
     <div className="space-y-6">
@@ -199,7 +216,7 @@ export default function WorkflowsPage() {
       <div className="flex items-center gap-1 border-b">
         {[
           { key: 'templates' as const, label: 'Templates', count: TEMPLATES.length },
-          { key: 'my' as const, label: 'My Workflows', count: MY_WORKFLOWS.length },
+          { key: 'my' as const, label: 'My Workflows', count: savedWorkflows.length },
         ].map((t) => (
           <button
             key={t.key}
@@ -281,56 +298,59 @@ export default function WorkflowsPage() {
       {/* My Workflows Tab */}
       {tab === 'my' && (
         <div className="space-y-3">
-          {MY_WORKFLOWS.map((wf) => {
-            const st = STATUS_STYLES[wf.status]
-            return (
-              <Card
-                key={wf.id}
-                className="group border hover:border-foreground/20 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => router.push(`/workflows/${wf.id}`)}
-              >
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="rounded-lg bg-muted/50 p-2.5">
-                    {wf.status === 'active' ? (
-                      <Play className="h-4 w-4 text-emerald-600" />
-                    ) : wf.status === 'paused' ? (
-                      <Pause className="h-4 w-4 text-amber-600" />
-                    ) : (
-                      <FileText className="h-4 w-4 text-zinc-500" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-sm truncate">{wf.name}</h3>
-                      <Badge
-                        variant="outline"
-                        className={cn('text-[10px] font-semibold capitalize border shrink-0', st.bg, st.text)}
-                      >
-                        {wf.status}
-                      </Badge>
+          {loadingWorkflows ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : savedWorkflows.length === 0 ? (
+            <div className="text-center py-12">
+              <GitBranch className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No workflows yet</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Create one from a template or start from scratch
+              </p>
+            </div>
+          ) : (
+            savedWorkflows.map((wf) => {
+              const st = STATUS_STYLES[wf.status] || STATUS_STYLES.draft
+              return (
+                <Card
+                  key={wf.id}
+                  className="group border hover:border-foreground/20 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => router.push(`/workflows/${wf.id}`)}
+                >
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="rounded-lg bg-muted/50 p-2.5">
+                      {wf.status === 'active' ? (
+                        <Play className="h-4 w-4 text-emerald-600" />
+                      ) : wf.status === 'paused' ? (
+                        <Pause className="h-4 w-4 text-amber-600" />
+                      ) : (
+                        <FileText className="h-4 w-4 text-zinc-500" />
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Based on {wf.template} &middot; Edited {wf.lastEdited}
-                    </p>
-                  </div>
 
-                  <div className="hidden sm:flex items-center gap-6 text-xs text-muted-foreground shrink-0">
-                    <div className="text-center">
-                      <p className="font-semibold text-foreground">{wf.runs}</p>
-                      <p>Runs</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm truncate">{wf.name}</h3>
+                        <Badge
+                          variant="outline"
+                          className={cn('text-[10px] font-semibold capitalize border shrink-0', st.bg, st.text)}
+                        >
+                          {wf.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Based on {wf.template} &middot; Edited {wf.lastEdited}
+                      </p>
                     </div>
-                    <div className="text-center">
-                      <p className="font-semibold text-foreground">{wf.completionRate}%</p>
-                      <p>Completion</p>
-                    </div>
-                  </div>
 
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-foreground/60 transition-colors shrink-0" />
-                </CardContent>
-              </Card>
-            )
-          })}
+                    <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-foreground/60 transition-colors shrink-0" />
+                  </CardContent>
+                </Card>
+              )
+            })
+          )}
         </div>
       )}
     </div>
