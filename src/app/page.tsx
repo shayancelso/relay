@@ -634,6 +634,12 @@ export default function LandingPage() {
             >
               Sign In
             </Link>
+            <Link
+              href="/auth/signup"
+              className="text-sm font-medium rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-emerald-300 hover:bg-emerald-500/20 hover:text-white transition-colors duration-200"
+            >
+              Sign Up
+            </Link>
             <ShimmerButton
               shimmerColor="#34d399"
               background="rgba(16,185,129,0.12)"
