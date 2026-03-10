@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Building2,
@@ -26,9 +26,11 @@ import {
   Link2,
   Shield,
   GitBranch,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRole, DEMO_USERS, getRoleLabel, getRoleDescription, type DemoRole } from '@/lib/role-context'
+import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import {
@@ -104,11 +106,19 @@ const navByRole: Record<DemoRole, { main: NavItem[]; insights?: NavItem[]; confi
 
 export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { role, user, setRole } = useRole()
   const [showSwitcher, setShowSwitcher] = useState(false)
   const [showRoleInfo, setShowRoleInfo] = useState(false)
   const [orgName, setOrgName] = useState('Wealthsimple')
   const nav = navByRole[role]
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+    router.refresh()
+  }
 
   useEffect(() => {
     try {
@@ -272,6 +282,16 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
                   {r === role && <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />}
                 </button>
               ))}
+
+              {/* Sign out */}
+              <div className="mx-1 my-1 h-px bg-white/[0.06]" />
+              <button
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-white/40 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+              >
+                <LogOut className="h-4 w-4 shrink-0" />
+                <span className="text-[12px] font-medium">Sign Out</span>
+              </button>
             </div>
           )}
         </div>

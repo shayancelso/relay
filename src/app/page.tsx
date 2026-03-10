@@ -627,15 +627,23 @@ export default function LandingPage() {
           </div>
 
           {/* CTA */}
-          <ShimmerButton
-            shimmerColor="#34d399"
-            background="rgba(16,185,129,0.12)"
-            borderRadius="8px"
-            className="text-sm font-medium px-5 py-2.5 border-emerald-500/30 text-emerald-300 hover:text-white"
-            onClick={() => setDemoModalOpen(true)}
-          >
-            Request Demo
-          </ShimmerButton>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/auth/login"
+              className="text-sm font-medium text-white/50 hover:text-white/90 transition-colors duration-200"
+            >
+              Sign In
+            </Link>
+            <ShimmerButton
+              shimmerColor="#34d399"
+              background="rgba(16,185,129,0.12)"
+              borderRadius="8px"
+              className="text-sm font-medium px-5 py-2.5 border-emerald-500/30 text-emerald-300 hover:text-white"
+              onClick={() => setDemoModalOpen(true)}
+            >
+              Request Demo
+            </ShimmerButton>
+          </div>
         </div>
       </nav>
 

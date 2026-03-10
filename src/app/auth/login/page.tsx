@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,7 +32,8 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    const next = searchParams.get('next') || '/dashboard'
+    router.push(next)
     router.refresh()
   }
 
