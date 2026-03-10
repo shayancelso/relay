@@ -216,6 +216,35 @@ export interface WorkflowStepLog {
   created_at: string
 }
 
+// Integrations
+export type IntegrationAuthType = 'oauth2' | 'api_key'
+export type IntegrationStatus = 'connected' | 'disconnected' | 'error' | 'pending'
+
+export type IntegrationProvider =
+  | 'salesforce' | 'hubspot'
+  | 'slack' | 'teams'
+  | 'gmail' | 'gcal' | 'outlookcal'
+  | 'zendesk' | 'gainsight' | 'calendly'
+  | 'intercom' | 'freshdesk' | 'totango' | 'churnzero'
+
+export interface IntegrationConnection {
+  id: string
+  org_id: string
+  provider: IntegrationProvider
+  auth_type: IntegrationAuthType
+  status: IntegrationStatus
+  api_key_label: string | null
+  external_account_id: string | null
+  external_account_name: string | null
+  connected_by: string | null
+  connected_at: string | null
+  last_sync_at: string | null
+  last_error: string | null
+  config: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
 export interface DashboardMetrics {
   active_transitions: number
   intros_sent_this_week: number
