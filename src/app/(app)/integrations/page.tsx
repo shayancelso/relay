@@ -24,6 +24,8 @@ import {
   Link2,
   BarChart3,
 } from 'lucide-react'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -591,6 +593,11 @@ function DataFlowStats() {
 
 export default function IntegrationsPage() {
   const [openIntegration, setOpenIntegration] = useState<string | null>(null)
+  const { isTrialMode, enterDemoMode } = useTrialMode()
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Link2} title="Integrations" description="Connect your CRM, email, and calendar tools." ctaLabel="Browse Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-7 max-w-6xl">

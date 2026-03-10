@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRole, DEMO_USERS, getRoleLabel, getRoleDescription, type DemoRole } from '@/lib/role-context'
+import { useAuth } from '@/lib/auth-context'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
@@ -108,10 +109,17 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
   const pathname = usePathname()
   const router = useRouter()
   const { role, user, setRole } = useRole()
+  const { authUser, isAuthenticated } = useAuth()
   const [showSwitcher, setShowSwitcher] = useState(false)
   const [showRoleInfo, setShowRoleInfo] = useState(false)
   const [orgName, setOrgName] = useState('Wealthsimple')
   const nav = navByRole[role]
+
+  // Show real user's org name when authenticated
+  const displayOrgName = isAuthenticated && authUser?.org_name ? authUser.org_name : orgName
+  const displayUserName = isAuthenticated ? authUser?.full_name || 'User' : user.name
+  const displayUserTitle = isAuthenticated ? authUser?.email || '' : user.title
+  const displayInitials = isAuthenticated ? authUser?.avatar_initials || 'U' : user.avatar_initials
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -149,7 +157,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
         <Image src="/relay-icon.png" alt="Relay" width={28} height={28} className="shrink-0" />
         <div className="flex flex-col">
           <span className="text-[13px] font-semibold tracking-tight text-sidebar-foreground">Relay</span>
-          <span className="text-[10px] text-sidebar-foreground/30 tracking-wide">{orgName}</span>
+          <span className="text-[10px] text-sidebar-foreground/30 tracking-wide">{displayOrgName}</span>
         </div>
       </Link>
 
@@ -227,72 +235,87 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
 
       {/* Bottom section */}
       <div className="border-t border-white/[0.06] p-3">
-        {/* User card + inline persona switcher */}
+        {/* User card */}
         <div>
-          <button
-            onClick={() => setShowSwitcher(!showSwitcher)}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-white/[0.04]"
-          >
-            <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-white/[0.1] shrink-0">
-              <Image src={user.avatar_url} alt={user.name} fill className="object-cover" />
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-[12px] font-medium text-sidebar-foreground/80 truncate">{user.name}</p>
-              <p className="text-[10px] text-sidebar-foreground/30 truncate">{user.title}</p>
-            </div>
-            <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-sidebar-foreground/30 transition-transform', showSwitcher && 'rotate-180')} />
-          </button>
-
-          {/* Inline persona list */}
-          {showSwitcher && (
-            <div className="mt-1 space-y-0.5 rounded-xl border border-white/[0.07] bg-white/[0.03] p-1.5">
-              <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/20">
-                  Switch Persona
-                </p>
-                <button
-                  onClick={() => setShowRoleInfo(true)}
-                  className="rounded p-0.5 text-white/20 hover:text-white/60 transition-colors"
-                  title="What can each persona see?"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
+          {isAuthenticated ? (
+            /* Authenticated user — show real info + sign out */
+            <>
+              <div className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.06] shrink-0">
+                  <span className="text-[10px] font-semibold text-sidebar-foreground/60">{displayInitials}</span>
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-[12px] font-medium text-sidebar-foreground/80 truncate">{displayUserName}</p>
+                  <p className="text-[10px] text-sidebar-foreground/30 truncate">{displayUserTitle}</p>
+                </div>
               </div>
-              {(Object.keys(DEMO_USERS) as DemoRole[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => { setRole(r); setShowSwitcher(false) }}
-                  className={cn(
-                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
-                    r === role
-                      ? 'bg-white/[0.08] text-white'
-                      : 'text-white/50 hover:bg-white/[0.05] hover:text-white/80'
-                  )}
-                >
-                  <div className={cn(
-                    'relative h-7 w-7 overflow-hidden rounded-lg border shrink-0',
-                    r === role ? 'border-emerald-500/40' : 'border-white/10'
-                  )}>
-                    <Image src={DEMO_USERS[r].avatar_url} alt={DEMO_USERS[r].name} fill className="object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium truncate">{DEMO_USERS[r].name}</p>
-                    <p className="text-[10px] text-white/30 truncate">{getRoleLabel(r)}</p>
-                  </div>
-                  {r === role && <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />}
-                </button>
-              ))}
-
-              {/* Sign out */}
-              <div className="mx-1 my-1 h-px bg-white/[0.06]" />
               <button
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-white/40 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                className="mt-1 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-white/40 hover:bg-red-500/10 hover:text-red-400 transition-colors"
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 <span className="text-[12px] font-medium">Sign Out</span>
               </button>
-            </div>
+            </>
+          ) : (
+            /* Demo mode — show persona switcher */
+            <>
+              <button
+                onClick={() => setShowSwitcher(!showSwitcher)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-white/[0.04]"
+              >
+                <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-white/[0.1] shrink-0">
+                  <Image src={user.avatar_url} alt={user.name} fill className="object-cover" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-[12px] font-medium text-sidebar-foreground/80 truncate">{user.name}</p>
+                  <p className="text-[10px] text-sidebar-foreground/30 truncate">{user.title}</p>
+                </div>
+                <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-sidebar-foreground/30 transition-transform', showSwitcher && 'rotate-180')} />
+              </button>
+
+              {/* Inline persona list */}
+              {showSwitcher && (
+                <div className="mt-1 space-y-0.5 rounded-xl border border-white/[0.07] bg-white/[0.03] p-1.5">
+                  <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/20">
+                      Switch Persona
+                    </p>
+                    <button
+                      onClick={() => setShowRoleInfo(true)}
+                      className="rounded p-0.5 text-white/20 hover:text-white/60 transition-colors"
+                      title="What can each persona see?"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {(Object.keys(DEMO_USERS) as DemoRole[]).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => { setRole(r); setShowSwitcher(false) }}
+                      className={cn(
+                        'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors',
+                        r === role
+                          ? 'bg-white/[0.08] text-white'
+                          : 'text-white/50 hover:bg-white/[0.05] hover:text-white/80'
+                      )}
+                    >
+                      <div className={cn(
+                        'relative h-7 w-7 overflow-hidden rounded-lg border shrink-0',
+                        r === role ? 'border-emerald-500/40' : 'border-white/10'
+                      )}>
+                        <Image src={DEMO_USERS[r].avatar_url} alt={DEMO_USERS[r].name} fill className="object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-medium truncate">{DEMO_USERS[r].name}</p>
+                        <p className="text-[10px] text-white/30 truncate">{getRoleLabel(r)}</p>
+                      </div>
+                      {r === role && <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

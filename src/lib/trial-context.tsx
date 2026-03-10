@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect } from 'react'
+import { useAuth } from '@/lib/auth-context'
 
 interface TrialModeContextValue {
   isTrialMode: boolean
@@ -19,23 +20,33 @@ const TrialModeContext = createContext<TrialModeContextValue>({
 })
 
 export function TrialModeProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth()
   const [isTrialMode, setIsTrialMode] = useState(false)
   const [isDemoMode, setIsDemoMode] = useState(false)
   const [hasTrial, setHasTrial] = useState(false)
 
   useEffect(() => {
+    if (isLoading) return
+
     try {
       const hasTrialData = !!localStorage.getItem('relay-trial-data')
       const demoModeFlag = localStorage.getItem('relay-demo-mode') === 'true'
       const hasDemoRole  = !!localStorage.getItem('relay-demo-role')
       const isDemoActive = demoModeFlag || hasDemoRole
+
       setHasTrial(hasTrialData)
       setIsDemoMode(isDemoActive)
-      setIsTrialMode(hasTrialData && !isDemoActive)
+
+      // Authenticated users who haven't entered demo mode → show empty states
+      if (isAuthenticated && !isDemoActive) {
+        setIsTrialMode(true)
+      } else {
+        setIsTrialMode(hasTrialData && !isDemoActive)
+      }
     } catch {
       // ignore
     }
-  }, [])
+  }, [isAuthenticated, isLoading])
 
   const enterDemoMode = () => {
     try { localStorage.setItem('relay-demo-mode', 'true') } catch { /* ignore */ }
@@ -46,7 +57,7 @@ export function TrialModeProvider({ children }: { children: React.ReactNode }) {
   const exitDemoMode = () => {
     try { localStorage.removeItem('relay-demo-mode') } catch { /* ignore */ }
     setIsDemoMode(false)
-    if (hasTrial) setIsTrialMode(true)
+    if (isAuthenticated || hasTrial) setIsTrialMode(true)
   }
 
   return (

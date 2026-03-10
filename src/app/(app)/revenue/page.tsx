@@ -21,6 +21,8 @@ import {
   Minus,
 } from 'lucide-react'
 import { cn, formatCurrency, getHealthBg } from '@/lib/utils'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 const RevenueChart = dynamic(
   () => import('./revenue-chart').then(m => ({ default: m.RevenueChart })),
@@ -223,6 +225,11 @@ function NpsChange({ value }: { value: number }) {
 
 export default function RevenuePage() {
   const [activeDateRange, setActiveDateRange] = useState<DateRange>('This Quarter')
+  const { isTrialMode, enterDemoMode } = useTrialMode()
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Shield} title="Revenue Impact" description="Track revenue at risk during account transitions." ctaLabel="Go to Dashboard" ctaHref="/dashboard" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-6 pb-10">

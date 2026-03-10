@@ -14,9 +14,11 @@ import { useRole } from '@/lib/role-context'
 import { cn } from '@/lib/utils'
 import {
   User, Building2, Link2, CreditCard, Check, ExternalLink, Shield, Bell,
-  Zap, Globe, Database, Mail, Calendar, MessageSquare, ArrowRight,
+  Zap, Globe, Database, Mail, Calendar, MessageSquare, ArrowRight, Settings,
 } from 'lucide-react'
 import { IntegrationConfigureSheet } from '@/components/settings/integration-configure-sheet'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 const integrations = [
   { id: 'salesforce', name: 'Salesforce', description: 'Sync accounts, contacts, and opportunities', icon: Database, connected: true, status: 'Last synced 2h ago' },
@@ -38,6 +40,7 @@ const plans = [
 
 export default function SettingsPage() {
   const { user } = useRole()
+  const { isTrialMode, enterDemoMode } = useTrialMode()
   const [notifications, setNotifications] = useState({
     transitions: true,
     briefs: true,
@@ -48,6 +51,10 @@ export default function SettingsPage() {
   })
   const [openIntegration, setOpenIntegration] = useState<string | null>(null)
   const [activeTab, setActiveTab] = usePersistedState('relay-settings-tab', 'profile')
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Settings} title="Settings" description="Configure your organization and preferences." ctaLabel="Go to Dashboard" ctaHref="/dashboard" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="max-w-4xl space-y-6">

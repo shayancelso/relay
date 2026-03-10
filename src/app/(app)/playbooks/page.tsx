@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge'
 import {
   Clock, CheckCircle2, Mail, FileText, Calendar, Users,
   ChevronRight, Zap, Shield, Globe, Building2,
-  Target, Plus, Sparkles, Copy, Pencil,
+  Target, Plus, Sparkles, Copy, Pencil, BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -734,6 +736,7 @@ export default function PlaybooksPage() {
   const [expandedStep, setExpandedStep] = useState<string | null>(null)
   const [editingStep, setEditingStep] = useState<string | null>(null)
   const [editedScripts, setEditedScripts] = useState<Record<string, string>>({})
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const selectPlaybook = (id: string) => {
     setExpandedId(expandedId === id ? null : id)
@@ -744,6 +747,10 @@ export default function PlaybooksPage() {
   const toggleStep = (stepId: string) => {
     setExpandedStep(expandedStep === stepId ? null : stepId)
     setEditingStep(null)
+  }
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={BookOpen} title="Playbooks" description="Build handoff guides and playbooks for your team." ctaLabel="Create Playbook" ctaHref="/playbooks" onExploreDemo={enterDemoMode} />
   }
 
   return (

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
+import { AuthProvider } from '@/lib/auth-context'
 import { RoleProvider } from '@/lib/role-context'
 import { TrialModeProvider } from '@/lib/trial-context'
 import { EquityProvider } from '@/lib/equity-context'
@@ -17,6 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
+    <AuthProvider>
     <TrialModeProvider>
     <RoleProvider>
     <EquityProvider>
@@ -40,5 +42,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </EquityProvider>
     </RoleProvider>
     </TrialModeProvider>
+    </AuthProvider>
   )
 }

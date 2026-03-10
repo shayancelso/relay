@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Command, Search, Menu } from 'lucide-react'
 import { useRole, getRoleLabel } from '@/lib/role-context'
+import { useAuth } from '@/lib/auth-context'
 import { useTrialMode } from '@/lib/trial-context'
 import { cn } from '@/lib/utils'
 import { NotificationPanel } from './notifications'
@@ -38,8 +39,13 @@ const roleBadgeColors: Record<string, string> = {
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname()
   const { role, user } = useRole()
+  const { authUser, isAuthenticated } = useAuth()
   const { isDemoMode, hasTrial, exitDemoMode } = useTrialMode()
   const pageTitle = getPageTitle(pathname)
+
+  const displayName = isAuthenticated ? authUser?.full_name || 'User' : user.name
+  const displayTitle = isAuthenticated ? authUser?.email || '' : user.title
+  const displayInitials = isAuthenticated ? authUser?.avatar_initials || 'U' : user.avatar_initials
 
   return (
     <>
@@ -53,15 +59,19 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           >
             <Menu className="h-4.5 w-4.5" />
           </button>
-          <div
-            className={cn(
-              'hidden sm:block rounded-md border px-2 py-0.5 text-[10px] font-medium',
-              roleBadgeColors[role]
-            )}
-          >
-            {getRoleLabel(role)}
-          </div>
-          <div className="hidden sm:block h-4 w-px bg-border/60" />
+          {!isAuthenticated && (
+            <>
+              <div
+                className={cn(
+                  'hidden sm:block rounded-md border px-2 py-0.5 text-[10px] font-medium',
+                  roleBadgeColors[role]
+                )}
+              >
+                {getRoleLabel(role)}
+              </div>
+              <div className="hidden sm:block h-4 w-px bg-border/60" />
+            </>
+          )}
           <h2 className="text-sm font-semibold tracking-tight text-foreground truncate max-w-[120px] sm:max-w-none">
             {pageTitle}
           </h2>
@@ -131,13 +141,13 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           <div className="flex items-center gap-2.5">
             <div className="hidden text-right sm:block">
               <p className="text-[12px] font-medium leading-tight text-foreground">
-                {user.name}
+                {displayName}
               </p>
-              <p className="text-[10px] text-muted-foreground/60">{user.title}</p>
+              <p className="text-[10px] text-muted-foreground/60">{displayTitle}</p>
             </div>
             <Avatar className="h-8 w-8 border border-border/40">
               <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/5 text-[10px] font-semibold text-primary">
-                {user.avatar_initials}
+                {displayInitials}
               </AvatarFallback>
             </Avatar>
           </div>

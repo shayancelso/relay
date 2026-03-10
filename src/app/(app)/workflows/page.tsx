@@ -10,6 +10,8 @@ import {
   Play, Pause, FileText, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -148,6 +150,7 @@ export default function WorkflowsPage() {
   const router = useRouter()
   const [savedWorkflows, setSavedWorkflows] = useState<CustomWorkflow[]>([])
   const [loadingWorkflows, setLoadingWorkflows] = useState(false)
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   useEffect(() => {
     if (tab === 'my') {
@@ -173,6 +176,10 @@ export default function WorkflowsPage() {
         .finally(() => setLoadingWorkflows(false))
     }
   }, [tab])
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={GitBranch} title="Workflows" description="Create automated outreach sequences for your accounts." ctaLabel="Create Workflow" ctaHref="/workflows/new" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <div className="space-y-6">
