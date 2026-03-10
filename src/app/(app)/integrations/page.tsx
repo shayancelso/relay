@@ -596,7 +596,7 @@ export default function IntegrationsPage() {
   const { isTrialMode, enterDemoMode } = useTrialMode()
 
   if (isTrialMode) {
-    return <TrialPageEmpty icon={Link2} title="Integrations" description="Connect your CRM, email, and calendar tools." ctaLabel="Browse Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+    return <TrialPageEmpty icon={Link2} title="Integrations" description="Connect your CRM, email, and calendar tools to get started." ctaLabel="Explore Demo Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
   }
 
   return (

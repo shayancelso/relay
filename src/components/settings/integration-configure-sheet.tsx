@@ -110,10 +110,20 @@ function SheetBody({ integrationId }: { integrationId: string }) {
       return <ZendeskConfigure />
     case 'teams':
       return <TeamsConnect />
+    case 'gmail':
+      return <CalendarConfigure calendar="google" />
+    case 'calendly':
+      return <CalendarConfigure calendar="google" />
     default:
       return (
-        <div className="flex items-center justify-center h-full">
-          <p className="text-[13px] text-muted-foreground">No configuration available for this integration.</p>
+        <div className="flex flex-col items-center justify-center h-full gap-3 py-12">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
+            <span className="text-lg text-muted-foreground/40">🔌</span>
+          </div>
+          <p className="text-[13px] font-medium text-foreground">Coming Soon</p>
+          <p className="text-[11px] text-muted-foreground text-center max-w-[240px]">
+            This integration is on our roadmap. Contact your account team for early access.
+          </p>
         </div>
       )
   }
