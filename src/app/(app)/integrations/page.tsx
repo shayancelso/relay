@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -314,13 +315,47 @@ function timeAgo(dateStr: string): string {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function IntegrationsPage() {
+function IntegrationsContent() {
   const { isAuthenticated } = useAuth()
+  const searchParams = useSearchParams()
   const [connections, setConnections] = useState<IntegrationConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [connectingDef, setConnectingDef] = useState<IntegrationDefinition | null>(null)
+  const toastShown = useRef(false)
+
+  // Handle OAuth return params
+  useEffect(() => {
+    if (toastShown.current) return
+    const connected = searchParams.get('connected')
+    const error = searchParams.get('error')
+    if (connected) {
+      const def = getIntegrationDef(connected)
+      toast.success(`${def?.name || connected} connected!`, { description: 'Integration is now active.' })
+      toastShown.current = true
+      window.history.replaceState({}, '', '/integrations')
+    } else if (error) {
+      const messages: Record<string, string> = {
+        access_denied: 'You denied access. Try again when ready.',
+        not_configured: 'This integration is not configured yet. Contact support.',
+        token_exchange_failed: 'Failed to complete authentication. Please try again.',
+        oauth_failed: 'Something went wrong. Please try again.',
+      }
+      toast.error('Connection failed', { description: messages[error] || error })
+      toastShown.current = true
+      window.history.replaceState({}, '', '/integrations')
+    }
+  }, [searchParams])
 
   const groups = getIntegrationGroups()
+
+  // Handle connect: OAuth → redirect, API key → open sheet
+  const handleConnect = (def: IntegrationDefinition) => {
+    if (def.authType === 'oauth2') {
+      window.location.href = `/api/integrations/oauth/${def.id}`
+    } else {
+      setConnectingDef(def)
+    }
+  }
 
   const fetchConnections = useCallback(async () => {
     try {
@@ -419,7 +454,7 @@ export default function IntegrationsPage() {
                     key={def.id}
                     def={def}
                     connection={getConnection(def.id)}
-                    onConnect={setConnectingDef}
+                    onConnect={handleConnect}
                     onDisconnect={handleDisconnect}
                     onConfigure={handleConfigure}
                   />
@@ -437,6 +472,14 @@ export default function IntegrationsPage() {
         onConnected={fetchConnections}
       />
     </div>
+  )
+}
+
+export default function IntegrationsPage() {
+  return (
+    <Suspense>
+      <IntegrationsContent />
+    </Suspense>
   )
 }
 
