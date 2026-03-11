@@ -22,9 +22,10 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL(`/integrations?error=missing_params`, request.url))
     }
 
-    // Validate state against cookie
+    // Validate state and get PKCE verifier from cookies
     const cookieStore = await cookies()
     const savedState = cookieStore.get('oauth_state')?.value
+    const codeVerifier = cookieStore.get('oauth_verifier')?.value
     if (!savedState || savedState !== state) {
       return NextResponse.redirect(new URL(`/integrations?error=invalid_state`, request.url))
     }
@@ -55,6 +56,11 @@ export async function GET(request: Request) {
       client_secret: clientSecret,
       redirect_uri: callbackUrl,
     })
+
+    // Include PKCE code_verifier if available
+    if (codeVerifier) {
+      tokenBody.set('code_verifier', codeVerifier)
+    }
 
     const tokenRes = await fetch(config.tokenUrl, {
       method: 'POST',
@@ -123,9 +129,10 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL(`/integrations?error=db_error`, request.url))
     }
 
-    // Clear the state cookie
+    // Clear the OAuth cookies
     const response = NextResponse.redirect(new URL(`/integrations?connected=${provider}`, request.url))
     response.cookies.delete('oauth_state')
+    response.cookies.delete('oauth_verifier')
     return response
   } catch (err) {
     console.error('OAuth callback error:', err)
