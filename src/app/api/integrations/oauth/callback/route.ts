@@ -22,17 +22,16 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL(`/integrations?error=missing_params`, request.url))
     }
 
-    // Validate state and get PKCE verifier from cookies
+    // Validate state against cookie
     const cookieStore = await cookies()
     const savedState = cookieStore.get('oauth_state')?.value
-    const codeVerifier = cookieStore.get('oauth_verifier')?.value
     if (!savedState || savedState !== state) {
       return NextResponse.redirect(new URL(`/integrations?error=invalid_state`, request.url))
     }
 
-    // Decode state to get org_id and user_id
+    // Decode state to get org_id, user_id, and PKCE verifier
     const stateData = JSON.parse(Buffer.from(state, 'base64url').toString())
-    const { org_id, user_id } = stateData
+    const { org_id, user_id, code_verifier: codeVerifier } = stateData
 
     if (!org_id || !user_id) {
       return NextResponse.redirect(new URL(`/integrations?error=invalid_state`, request.url))
@@ -132,7 +131,6 @@ export async function GET(request: Request) {
     // Clear the OAuth cookies
     const response = NextResponse.redirect(new URL(`/integrations?connected=${provider}`, request.url))
     response.cookies.delete('oauth_state')
-    response.cookies.delete('oauth_verifier')
     return response
   } catch (err) {
     console.error('OAuth callback error:', err)

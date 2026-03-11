@@ -4,6 +4,20 @@ import { getOAuthConfig, getCallbackUrl } from '@/lib/integrations/oauth-config'
 import { NextResponse } from 'next/server'
 import { randomBytes, createHash } from 'crypto'
 
+// Generate PKCE code verifier and challenge (RFC 7636)
+function generatePKCE() {
+  // Use hex encoding for verifier (64 chars, all alphanumeric, avoids base64url edge cases)
+  const verifier = randomBytes(32).toString('hex')
+  // SHA256 hash → manual base64url encoding (no padding)
+  const challenge = createHash('sha256')
+    .update(verifier, 'ascii')
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+  return { verifier, challenge }
+}
+
 // GET /api/integrations/oauth/[provider] — initiate OAuth flow
 export async function GET(
   request: Request,
@@ -44,12 +58,16 @@ export async function GET(
       return NextResponse.redirect(new URL(`/integrations?error=not_configured`, request.url))
     }
 
-    // Generate state parameter (CSRF protection + carries org context)
+    // Generate PKCE
+    const { verifier, challenge } = generatePKCE()
+
+    // Generate state parameter (CSRF protection + carries org context + PKCE verifier)
     const stateData = JSON.stringify({
       org_id: profile.org_id,
       user_id: user.id,
       provider,
       nonce: randomBytes(16).toString('hex'),
+      code_verifier: verifier,
     })
     const state = Buffer.from(stateData).toString('base64url')
 
@@ -63,6 +81,8 @@ export async function GET(
     authUrl.searchParams.set('response_type', 'code')
     authUrl.searchParams.set('scope', config.scopes.join(' '))
     authUrl.searchParams.set('state', state)
+    authUrl.searchParams.set('code_challenge', challenge)
+    authUrl.searchParams.set('code_challenge_method', 'S256')
 
     // Provider-specific params
     if (provider === 'gcal' || provider === 'gmail') {
@@ -70,13 +90,13 @@ export async function GET(
       authUrl.searchParams.set('prompt', 'consent')
     }
 
-    // Set state in a cookie for validation on callback
+    // Store state in cookie for CSRF validation on callback
     const response = NextResponse.redirect(authUrl.toString())
     response.cookies.set('oauth_state', state, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 600, // 10 minutes
+      maxAge: 600,
       path: '/',
     })
 
