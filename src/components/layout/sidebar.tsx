@@ -31,6 +31,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useRole, DEMO_USERS, getRoleLabel, getRoleDescription, type DemoRole } from '@/lib/role-context'
 import { useAuth } from '@/lib/auth-context'
+import { useTrialMode } from '@/lib/trial-context'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
@@ -110,6 +111,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
   const router = useRouter()
   const { role, user, setRole } = useRole()
   const { authUser, isAuthenticated } = useAuth()
+  const { isTrialMode } = useTrialMode()
   const [showSwitcher, setShowSwitcher] = useState(false)
   const [showRoleInfo, setShowRoleInfo] = useState(false)
   const [orgName, setOrgName] = useState('Wealthsimple')
@@ -213,7 +215,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
                         )}
                       />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {item.badge && (
+                      {item.badge && !isTrialMode && (
                         <span
                           className={cn(
                             'ml-auto text-[10px] font-medium tabular-nums rounded-full px-1.5 py-0.5',

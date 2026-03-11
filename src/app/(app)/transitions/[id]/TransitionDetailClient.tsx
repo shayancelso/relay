@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 import { motion } from 'motion/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +22,7 @@ import {
 } from '@/lib/utils'
 import {
   ArrowRight,
+  ArrowLeftRight,
   Building2,
   Calendar,
   DollarSign,
@@ -72,7 +75,12 @@ export function TransitionDetailClient({
   activities,
   emails,
 }: TransitionDetailClientProps) {
+  const { isTrialMode, enterDemoMode } = useTrialMode()
   const [currentStatus, setCurrentStatus] = useState<string>(transition.status)
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={ArrowLeftRight} title="Transition Detail" description="This is demo data. Connect your CRM to see real transitions." ctaLabel="Go to Transitions" ctaHref="/transitions" onExploreDemo={enterDemoMode} />
+  }
   const [briefTrigger, setBriefTrigger] = useState(0)
   const [emailTrigger, setEmailTrigger] = useState(0)
   const [showMeetingScheduler, setShowMeetingScheduler] = useState(false)

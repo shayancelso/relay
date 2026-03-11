@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { demoAccounts } from '@/lib/demo-data'
+import { useTrialMode } from '@/lib/trial-context'
 
 interface Notification {
   id: string
@@ -229,10 +230,20 @@ const BUCKET_ORDER: Notification['bucket'][] = ['today', 'yesterday', 'earlier']
 // ---------------------------------------------------------------------------
 export function NotificationPanel() {
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS)
+  const { isTrialMode } = useTrialMode()
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [activeTab, setActiveTab] = useState<CategoryTab>('all')
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  // Seed notifications only in demo mode (not trial mode)
+  const [seeded, setSeeded] = useState(false)
+  useEffect(() => {
+    if (!seeded) {
+      setNotifications(isTrialMode ? [] : INITIAL_NOTIFICATIONS)
+      setSeeded(true)
+    }
+  }, [isTrialMode, seeded])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -248,21 +259,22 @@ export function NotificationPanel() {
   }, [])
 
   // Real-time simulation: add a new notification every 60 seconds, starting after 2 min
+  // Only run in demo mode (not for authenticated trial users)
   useEffect(() => {
+    if (isTrialMode) return
     const cleanupRef = { current: () => {} }
     const delay = setTimeout(() => {
       const interval = setInterval(() => {
         const newNotif = generateRandomNotification()
         setNotifications((prev) => [newNotif, ...prev].slice(0, 50))
       }, 60000)
-      // Store interval id so we can clear on unmount
       cleanupRef.current = () => clearInterval(interval)
     }, 120000)
     return () => {
       clearTimeout(delay)
       cleanupRef.current()
     }
-  }, [])
+  }, [isTrialMode])
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))

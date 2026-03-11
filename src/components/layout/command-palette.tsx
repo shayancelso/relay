@@ -28,6 +28,7 @@ import {
 import { demoAccounts, demoTransitions, demoTeamMembers } from '@/lib/demo-data'
 import { formatCurrency, formatSegment, formatStatus, getHealthBg, cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useTrialMode } from '@/lib/trial-context'
 
 // ---------------------------------------------------------------------------
 // Recent item type stored in localStorage
@@ -82,6 +83,7 @@ export function CommandPalette() {
   const [search, setSearch] = useState('')
   const [recentItems, setRecentItems] = useState<RecentItem[]>([])
   const router = useRouter()
+  const { isTrialMode } = useTrialMode()
 
   // Load recent on open
   useEffect(() => {
@@ -119,11 +121,11 @@ export function CommandPalette() {
   // ---------------------------------------------------------------------------
   // Derived data
   // ---------------------------------------------------------------------------
-  const topAccounts = [...demoAccounts]
+  const topAccounts = isTrialMode ? [] : [...demoAccounts]
     .sort((a, b) => b.arr - a.arr)
     .slice(0, 8)
 
-  const activeTransitions = demoTransitions
+  const activeTransitions = isTrialMode ? [] : demoTransitions
     .filter((t) => !['completed', 'cancelled'].includes(t.status))
     .slice(0, 6)
     .map((t) => ({
@@ -132,9 +134,9 @@ export function CommandPalette() {
     }))
 
   const showRecent = recentItems.length > 0 && !search
-  const showAccounts = activeCategory === 'all' || activeCategory === 'account'
-  const showTransitions = activeCategory === 'all' || activeCategory === 'transition'
-  const showTeam = activeCategory === 'all' || activeCategory === 'team'
+  const showAccounts = !isTrialMode && (activeCategory === 'all' || activeCategory === 'account')
+  const showTransitions = !isTrialMode && (activeCategory === 'all' || activeCategory === 'transition')
+  const showTeam = !isTrialMode && (activeCategory === 'all' || activeCategory === 'team')
   const showPages = activeCategory === 'all'
   const showActions = activeCategory === 'all'
 

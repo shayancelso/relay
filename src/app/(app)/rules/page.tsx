@@ -4195,7 +4195,9 @@ export default function RulesPage() {
     setEquityRules(prev => [...prev, rule])
   }
 
-  // Rules engine works without CRM data — always show it for authenticated users
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={SlidersHorizontal} title="Assignment Rules" description="Configure routing rules once your team and accounts are connected." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+  }
 
   return (
     <TooltipProvider>

@@ -27,6 +27,8 @@ import { formatCurrency, getHealthBg, getSegmentColor, formatSegment } from '@/l
 import { toast } from 'sonner'
 import { demoTeamMembers, demoAccounts } from '@/lib/demo-data'
 import { RecommendationCards } from '@/components/assignment/recommendation-cards'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -185,6 +187,7 @@ function ScoreBar({ score }: { score: number }) {
 export default function NewTransitionPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const [step, setStep]                           = useState<Step>('select_rep')
   const [submitting, setSubmitting]               = useState(false)
@@ -344,6 +347,10 @@ export default function NewTransitionPage() {
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={ArrowRight} title="New Transition" description="Connect your CRM and team before creating transitions." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-12">
 

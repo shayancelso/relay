@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useTrialMode } from '@/lib/trial-context'
+import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 import { usePersistedState } from '@/hooks/use-persisted-state'
 import Link from 'next/link'
 import {
@@ -197,7 +199,12 @@ function HealthTooltip({ active, payload, label }: { active?: boolean; payload?:
 // ---------------------------------------------------------------------------
 
 export default function AccountDetailClient({ account, owner, contacts, transitions, activities }: Props) {
+  const { isTrialMode, enterDemoMode } = useTrialMode()
   const [activeTab, setActiveTab] = usePersistedState<Tab>('relay-account-detail-tab', 'overview')
+
+  if (isTrialMode) {
+    return <TrialPageEmpty icon={Building2} title="Account Detail" description="This is demo data. Connect your CRM to see real accounts." ctaLabel="Go to Accounts" ctaHref="/accounts" onExploreDemo={enterDemoMode} />
+  }
 
   const healthHistory = generateHealthHistory(account.health_score)
 
