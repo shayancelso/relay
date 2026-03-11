@@ -34,6 +34,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { IntegrationConfigureSheet } from '@/components/settings/integration-configure-sheet'
 
 // ─── Integration Card ────────────────────────────────────────────────────────
 
@@ -321,6 +322,7 @@ function IntegrationsContent() {
   const [connections, setConnections] = useState<IntegrationConnection[]>([])
   const [loading, setLoading] = useState(true)
   const [connectingDef, setConnectingDef] = useState<IntegrationDefinition | null>(null)
+  const [configuringProvider, setConfiguringProvider] = useState<string | null>(null)
   const toastShown = useRef(false)
 
   // Handle OAuth return params
@@ -395,7 +397,7 @@ function IntegrationsContent() {
   }
 
   const handleConfigure = (def: IntegrationDefinition, _connection: IntegrationConnection) => {
-    toast.info(`${def.name} configuration`, { description: 'Configuration panel coming soon.' })
+    setConfiguringProvider(def.id)
   }
 
   const connectedCount = connections.filter((c) => c.status === 'connected').length
@@ -470,6 +472,12 @@ function IntegrationsContent() {
         def={connectingDef}
         onClose={() => setConnectingDef(null)}
         onConnected={fetchConnections}
+      />
+
+      {/* Configure Sheet */}
+      <IntegrationConfigureSheet
+        integrationId={configuringProvider}
+        onClose={() => setConfiguringProvider(null)}
       />
     </div>
   )
