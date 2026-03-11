@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
+// POST /api/team/invite — invite a new team member
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -24,10 +25,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    if (!['admin', 'manager', 'rep'].includes(role)) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+    }
+
     const admin = createAdminClient()
 
-    // Create auth user with invite
-    const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email)
+    // Check if user already exists in this org
+    const { data: existing } = await admin
+      .from('users')
+      .select('id')
+      .eq('org_id', profile.org_id)
+      .eq('email', email)
+      .single()
+
+    if (existing) {
+      return NextResponse.json({ error: 'User already exists in this organization' }, { status: 409 })
+    }
+
+    // Create auth user with invite, passing metadata
+    const { data: authData, error: authError } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { full_name, org_id: profile.org_id, role },
+    })
 
     if (authError) {
       return NextResponse.json({ error: authError.message }, { status: 500 })
@@ -37,8 +56,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
     }
 
-    // Create user record
-    const { error: userError } = await admin
+    // Insert into users table
+    const { data: newUser, error: userError } = await admin
       .from('users')
       .insert({
         id: authData.user.id,
@@ -47,13 +66,16 @@ export async function POST(request: Request) {
         full_name,
         role,
       })
+      .select('id, email, full_name, role, avatar_url, capacity, specialties, created_at')
+      .single()
 
     if (userError) {
       return NextResponse.json({ error: userError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
-  } catch {
+    return NextResponse.json(newUser, { status: 201 })
+  } catch (err) {
+    console.error('Team invite error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

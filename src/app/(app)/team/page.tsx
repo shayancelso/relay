@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { usePersistedState } from '@/hooks/use-persisted-state'
 import { demoTeamMembers, demoAccounts, demoTransitions } from '@/lib/demo-data'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useRole } from '@/lib/role-context'
+import { useAuth } from '@/lib/auth-context'
 import { useEquityRules } from '@/lib/equity-context'
 import { filterRepsByScope, filterAccountsByScope } from '@/lib/equity-scope'
 import { formatCurrency, getInitials, cn } from '@/lib/utils'
@@ -23,6 +26,11 @@ import {
   UserX,
   BarChart3,
   SlidersHorizontal,
+  Plus,
+  Mail,
+  Loader2,
+  UserPlus,
+  Play,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -34,6 +42,7 @@ import type { PieLabelRenderProps } from 'recharts'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { toast } from 'sonner'
 import { useTrialMode } from '@/lib/trial-context'
 import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
 
@@ -1306,6 +1315,227 @@ function BookDistributionChart({
 }
 
 // ---------------------------------------------------------------------------
+// Team Management (for authenticated users without demo data)
+// ---------------------------------------------------------------------------
+
+interface TeamMember {
+  id: string
+  email: string
+  full_name: string
+  role: string
+  avatar_url: string | null
+  capacity: number
+  specialties: string[]
+  created_at: string
+}
+
+function TeamManagement({ onExploreDemo }: { onExploreDemo: () => void }) {
+  const { authUser } = useAuth()
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showInvite, setShowInvite] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviteRole, setInviteRole] = useState('rep')
+  const [inviting, setInviting] = useState(false)
+
+  const fetchMembers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/team')
+      if (res.ok) {
+        const data = await res.json()
+        setMembers(Array.isArray(data) ? data : [])
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchMembers() }, [fetchMembers])
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim() || !inviteName.trim()) return
+    setInviting(true)
+    try {
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail, full_name: inviteName, role: inviteRole }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Invite failed')
+      }
+      toast.success('Invite sent!', { description: `${inviteName} will receive an email to join your team.` })
+      setInviteEmail('')
+      setInviteName('')
+      setInviteRole('rep')
+      setShowInvite(false)
+      fetchMembers()
+    } catch (err) {
+      toast.error('Invite failed', { description: err instanceof Error ? err.message : 'Please try again.' })
+    } finally {
+      setInviting(false)
+    }
+  }
+
+  const roleLabel = (r: string) =>
+    r === 'admin' ? 'Admin' : r === 'manager' ? 'Manager' : 'Rep'
+  const roleBadgeColor = (r: string) =>
+    r === 'admin' ? 'bg-violet-50 text-violet-600 border-violet-200' :
+    r === 'manager' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+    'bg-stone-50 text-stone-600 border-stone-200'
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Team</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your team members and invite new people
+          </p>
+        </div>
+        <Button onClick={() => setShowInvite(true)} size="sm" className="gap-1.5">
+          <UserPlus className="h-3.5 w-3.5" />
+          Invite Member
+        </Button>
+      </div>
+
+      {/* Invite form */}
+      {showInvite && (
+        <Card>
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">Invite a team member</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px]">Full name</Label>
+                <Input
+                  placeholder="Jane Smith"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  className="text-[13px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px]">Email</Label>
+                <Input
+                  type="email"
+                  placeholder="jane@company.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="text-[13px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px]">Role</Label>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger className="text-[13px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rep">Rep</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setShowInvite(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!inviteEmail.trim() || !inviteName.trim() || inviting}
+                onClick={handleInvite}
+              >
+                {inviting ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Plus className="mr-1.5 h-3 w-3" />}
+                Send Invite
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Team list */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : members.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
+              <Users className="h-5 w-5 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium">No team members yet</p>
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              Invite your first team member to start collaborating on account transitions.
+            </p>
+            <Button size="sm" className="mt-2 gap-1.5" onClick={() => setShowInvite(true)}>
+              <UserPlus className="h-3.5 w-3.5" />
+              Invite Member
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border">
+              {members.map((member) => (
+                <div key={member.id} className="flex items-center gap-4 px-5 py-4">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="text-[11px] font-semibold bg-muted">
+                      {getInitials(member.full_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold truncate">{member.full_name}</span>
+                      {member.id === authUser?.id && (
+                        <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-medium">You</span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">{member.email}</span>
+                  </div>
+                  <Badge variant="outline" className={cn('text-[10px] h-5 px-2', roleBadgeColor(member.role))}>
+                    {roleLabel(member.role)}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground/50 w-20 text-right">
+                    {new Date(member.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Explore demo footer */}
+      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-5 py-4">
+        <div>
+          <p className="text-[13px] font-medium">Want to see the full team analytics?</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Explore the demo to see equity charts, ramp tracking, and more.</p>
+        </div>
+        <button
+          onClick={onExploreDemo}
+          className="shrink-0 flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-[12px] font-medium hover:bg-muted transition-colors"
+        >
+          <Play className="h-3 w-3 text-emerald-500" />
+          Explore demo
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -1472,16 +1702,7 @@ export default function TeamPage() {
   const activeRepsTotal = demoTeamMembers.filter(m => m.role === 'rep').length
 
   if (isTrialMode) {
-    return (
-      <TrialPageEmpty
-        icon={Users}
-        title="Your Team"
-        description="Invite team members to collaborate on account transitions."
-        ctaLabel="Manage team"
-        ctaHref="/settings"
-        onExploreDemo={enterDemoMode}
-      />
-    )
+    return <TeamManagement onExploreDemo={enterDemoMode} />
   }
 
   const SortChevron = ({ k }: { k: SortKey }) =>

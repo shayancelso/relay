@@ -4195,9 +4195,7 @@ export default function RulesPage() {
     setEquityRules(prev => [...prev, rule])
   }
 
-  if (isTrialMode) {
-    return <TrialPageEmpty icon={Users} title="Assignment Rules" description="Configure routing rules to automatically assign accounts to the right reps during transitions." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
-  }
+  // Rules engine works without CRM data — always show it for authenticated users
 
   return (
     <TooltipProvider>
