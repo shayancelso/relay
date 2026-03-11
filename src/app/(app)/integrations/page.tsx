@@ -44,15 +44,18 @@ function IntegrationCard({
   onConnect,
   onDisconnect,
   onConfigure,
+  oauthAvailable,
 }: {
   def: IntegrationDefinition
   connection: IntegrationConnection | null
   onConnect: (def: IntegrationDefinition) => void
   onDisconnect: (provider: string) => void
   onConfigure: (def: IntegrationDefinition, connection: IntegrationConnection) => void
+  oauthAvailable?: boolean
 }) {
   const isConnected = connection?.status === 'connected'
   const isError = connection?.status === 'error'
+  const needsSetup = def.authType === 'oauth2' && oauthAvailable === false && !isConnected
 
   return (
     <Card className={cn('group relative overflow-hidden', isConnected && 'border-border/60')}>
@@ -88,12 +91,16 @@ function IntegrationCard({
                       <span className="h-1.5 w-1.5 rounded-full bg-red-500 inline-block" />
                       Error
                     </Badge>
+                  ) : needsSetup ? (
+                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-amber-50 text-amber-600 border-amber-200">
+                      Setup Required
+                    </Badge>
                   ) : (
                     <Badge variant="outline" className="text-[9px] h-4 px-1.5 text-muted-foreground/60">
                       Available
                     </Badge>
                   )}
-                  {def.authType === 'oauth2' && !isConnected && (
+                  {def.authType === 'oauth2' && !isConnected && !needsSetup && (
                     <span className="text-[9px] text-muted-foreground/40">OAuth</span>
                   )}
                 </div>
@@ -144,6 +151,14 @@ function IntegrationCard({
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </>
+                ) : needsSetup ? (
+                  <button
+                    onClick={() => onConnect(def)}
+                    className="rounded-md border border-amber-300 bg-amber-50 text-amber-700 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-100 transition-colors flex items-center gap-1"
+                  >
+                    <Settings className="h-3 w-3" />
+                    Setup
+                  </button>
                 ) : (
                   <button
                     onClick={() => onConnect(def)}
@@ -323,6 +338,7 @@ function IntegrationsContent() {
   const [loading, setLoading] = useState(true)
   const [connectingDef, setConnectingDef] = useState<IntegrationDefinition | null>(null)
   const [configuringProvider, setConfiguringProvider] = useState<string | null>(null)
+  const [oauthAvailability, setOauthAvailability] = useState<Record<string, boolean>>({})
   const toastShown = useRef(false)
 
   // Handle OAuth return params
@@ -338,9 +354,13 @@ function IntegrationsContent() {
     } else if (error) {
       const messages: Record<string, string> = {
         access_denied: 'You denied access. Try again when ready.',
-        not_configured: 'This integration is not configured yet. Contact support.',
+        not_configured: 'OAuth credentials not configured. Add the provider client ID and secret to your environment variables.',
         token_exchange_failed: 'Failed to complete authentication. Please try again.',
         oauth_failed: 'Something went wrong. Please try again.',
+        no_org: 'No organization found. Please contact support.',
+        unsupported_provider: 'This provider is not supported yet.',
+        db_error: 'Failed to save connection. Please try again.',
+        callback_failed: 'OAuth callback failed. Please try again.',
       }
       toast.error('Connection failed', { description: messages[error] || error })
       toastShown.current = true
@@ -353,6 +373,14 @@ function IntegrationsContent() {
   // Handle connect: OAuth → redirect, API key → open sheet
   const handleConnect = (def: IntegrationDefinition) => {
     if (def.authType === 'oauth2') {
+      // Check if credentials are configured before redirecting
+      if (oauthAvailability[def.id] === false) {
+        toast.error(`${def.name} not configured`, {
+          description: `Add ${def.name} OAuth credentials (client ID & secret) to your environment variables to enable this integration.`,
+          duration: 6000,
+        })
+        return
+      }
       window.location.href = `/api/integrations/oauth/${def.id}`
     } else {
       setConnectingDef(def)
@@ -373,13 +401,26 @@ function IntegrationsContent() {
     }
   }, [])
 
+  const fetchAvailableProviders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/integrations/available')
+      if (res.ok) {
+        const data = await res.json()
+        setOauthAvailability(data)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchConnections()
+      fetchAvailableProviders()
     } else {
       setLoading(false)
     }
-  }, [isAuthenticated, fetchConnections])
+  }, [isAuthenticated, fetchConnections, fetchAvailableProviders])
 
   const getConnection = (provider: string) =>
     connections.find((c) => c.provider === provider) || null
@@ -459,6 +500,7 @@ function IntegrationsContent() {
                     onConnect={handleConnect}
                     onDisconnect={handleDisconnect}
                     onConfigure={handleConfigure}
+                    oauthAvailable={def.authType === 'oauth2' ? oauthAvailability[def.id] : undefined}
                   />
                 ))}
               </div>
