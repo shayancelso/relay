@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import { usePersistedState } from '@/hooks/use-persisted-state'
+import { useState, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import {
   GripVertical,
@@ -39,8 +38,6 @@ import {
   Lock,
   Scale,
   X,
-  ArrowRight,
-  Check,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -82,9 +79,6 @@ import { cn } from '@/lib/utils'
 import { demoTeamMembers, demoAccounts } from '@/lib/demo-data'
 import { useTrialMode } from '@/lib/trial-context'
 import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
-import { useEquityRules } from '@/lib/equity-context'
-import type { EquityMetric, TargetType, SegmentTarget, EquityRule, EquityRuleScope } from '@/lib/equity-types'
-import { filterRepsByScope, filterAccountsByScope } from '@/lib/equity-scope'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -151,7 +145,20 @@ type Rule = {
   mustFollow: boolean // true = hard constraint, cannot be violated by equity pass
 }
 
-// EquityMetric, TargetType, SegmentTarget, EquityRule — imported from @/lib/equity-types
+type EquityMetric = 'arr' | 'account_count' | 'employee_count' | 'custom'
+
+type EquityRule = {
+  id: string
+  name: string
+  metric: EquityMetric
+  customFieldName?: string  // e.g. "open_tickets"
+  customFieldUnit?: string  // e.g. "tickets"
+  tolerance: number         // e.g. 20 = within ±20% of the team mean
+  weight: number            // 1–100
+  mustFollow: boolean
+  active: boolean
+  description: string
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -266,14 +273,6 @@ function getOperatorsForField(field: ConditionField): ConditionOperator[] {
   if (type === 'enum') return ['equals', 'not_equals', 'is_any_of']
   return ['equals', 'not_equals', 'contains']
 }
-
-const FORM_SEGMENTS = [
-  { key: 'enterprise', label: 'Enterprise', color: '#fbbf24' },
-  { key: 'fins', label: 'FINS', color: '#34d399' },
-  { key: 'corporate', label: 'Corporate', color: '#a78bfa' },
-  { key: 'international', label: 'International', color: '#fb7185' },
-  { key: 'commercial', label: 'Commercial', color: '#38bdf8' },
-]
 
 const PICKABLE_MEMBERS = demoTeamMembers.filter(
   m => (m.role === 'rep' || m.role === 'manager') && m.capacity > 0
@@ -532,7 +531,50 @@ const DEMO_RULES: Rule[] = [
 // Equity Rules + Book of Business Data
 // ---------------------------------------------------------------------------
 
-// DEMO_EQUITY_RULES — imported via equity context
+const DEMO_EQUITY_RULES: EquityRule[] = [
+  {
+    id: 'eq-1',
+    name: 'ARR Balance',
+    metric: 'arr',
+    tolerance: 20,
+    weight: 85,
+    mustFollow: true,
+    active: true,
+    description: "No rep's total managed ARR should exceed ±20% of the team mean ($1.95M)",
+  },
+  {
+    id: 'eq-2',
+    name: 'Account Count Balance',
+    metric: 'account_count',
+    tolerance: 15,
+    weight: 90,
+    mustFollow: true,
+    active: true,
+    description: 'All reps should carry within ±15% of the average account count',
+  },
+  {
+    id: 'eq-3',
+    name: 'Employee Headcount',
+    metric: 'employee_count',
+    tolerance: 25,
+    weight: 60,
+    mustFollow: false,
+    active: true,
+    description: 'Cumulative employee count across each book should be within ±25% of the mean',
+  },
+  {
+    id: 'eq-4',
+    name: 'Custom: Open Tickets',
+    metric: 'custom',
+    customFieldName: 'open_tickets',
+    customFieldUnit: 'tickets',
+    tolerance: 20,
+    weight: 35,
+    mustFollow: false,
+    active: false,
+    description: 'Example: if you track open support tickets per account, this rule balances books by total support load',
+  },
+]
 
 // James O'Brien is ~23.8% over mean ARR and ~24% over mean account count → triggers EQ-1 and EQ-2
 const BOOK_DATA = [
@@ -959,7 +1001,6 @@ function RuleCard({
   onDuplicate,
   onMoveUp,
   onMoveDown,
-  onEdit,
 }: {
   rule: Rule
   onToggle: (id: string) => void
@@ -967,7 +1008,6 @@ function RuleCard({
   onDuplicate: (id: string) => void
   onMoveUp: (id: string) => void
   onMoveDown: (id: string) => void
-  onEdit: (id: string) => void
 }) {
   const maxHits = 300
   const hitPct = Math.min((rule.hitCount / maxHits) * 100, 100)
@@ -1064,7 +1104,7 @@ function RuleCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem className="gap-2 text-xs" onClick={() => onEdit(rule.id)}>
+            <DropdownMenuItem className="gap-2 text-xs">
               <Edit3 className="w-3.5 h-3.5" />
               Edit Rule
             </DropdownMenuItem>
@@ -1167,15 +1207,10 @@ function CatchAllCard() {
             <Shuffle className="w-3.5 h-3.5 text-amber-600" />
             <span>Round-robin across all available reps</span>
           </div>
-          <div className="flex items-center gap-1 ml-2 flex-wrap">
-            {demoTeamMembers.slice(2, 14).map((m) => (
+          <div className="flex items-center gap-1 ml-2">
+            {demoTeamMembers.slice(2).map((m) => (
               <Avatar key={m.id} userId={m.id} size="sm" />
             ))}
-            {demoTeamMembers.slice(2).length > 12 && (
-              <span className="text-[10px] font-semibold text-amber-600 ml-0.5">
-                +{demoTeamMembers.slice(2).length - 12}
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -1300,12 +1335,10 @@ function NewRuleSheet({
   open,
   onClose,
   onSave,
-  editRule,
 }: {
   open: boolean
   onClose: () => void
   onSave: (rule: Rule) => void
-  editRule?: Rule | null
 }) {
   const [name, setName]               = useState('')
   const [conditions, setConditions]   = useState<Condition[]>([
@@ -1317,8 +1350,6 @@ function NewRuleSheet({
   const [weight, setWeight]           = useState(70)
   const [mustFollow, setMustFollow]   = useState(false)
 
-  const isEditing = !!editRule
-
   const reset = () => {
     setName('')
     setConditions([{ id: 'new-c-1', field: 'segment', operator: 'equals', value: '' }])
@@ -1329,49 +1360,10 @@ function NewRuleSheet({
     setMustFollow(false)
   }
 
-  // Pre-fill form when editing an existing rule
-  useEffect(() => {
-    if (editRule) {
-      setName(editRule.name)
-      const flatConditions: Condition[] = editRule.conditionGroup.conditions.map((c, i) => {
-        if ('field' in c) return c as Condition
-        return { id: `edit-c-${i}`, field: 'segment' as ConditionField, operator: 'equals' as ConditionOperator, value: '' }
-      })
-      setConditions(flatConditions.length > 0 ? flatConditions : [{ id: 'new-c-1', field: 'segment', operator: 'equals', value: '' }])
-      setLogic(editRule.conditionGroup.logic)
-      setActionType(editRule.action.type)
-      setSelectedRepIds(editRule.action.userIds)
-      setWeight(editRule.weight)
-      setMustFollow(editRule.mustFollow)
-    } else {
-      reset()
-    }
-  }, [editRule])
-
   const handleSave = () => {
     if (!name.trim()) { toast.error('Rule name required'); return }
     if (selectedRepIds.length === 0) { toast.error('Select at least one rep or manager'); return }
     const filledConditions = conditions.filter(c => c.value !== '')
-    if (editRule) {
-      const updatedRule: Rule = {
-        ...editRule,
-        name: name.trim(),
-        weight,
-        mustFollow,
-        conditionGroup: { id: editRule.conditionGroup.id, logic, conditions: filledConditions },
-        action: {
-          type: actionType,
-          userIds: selectedRepIds,
-          label: buildActionLabel(actionType, selectedRepIds),
-        },
-        modifiedAt: 'Just now',
-        version: editRule.version + 1,
-      }
-      onSave(updatedRule)
-      toast.success('Rule updated', { description: `"${name.trim()}" has been saved.` })
-      onClose()
-      return
-    }
     const newRule: Rule = {
       id: `rule-${Date.now()}`,
       name: name.trim(),
@@ -1407,7 +1399,7 @@ function NewRuleSheet({
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-xl flex flex-col p-0 overflow-hidden">
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-stone-200 shrink-0">
-          <SheetTitle className="text-base">{isEditing ? 'Edit Rule' : 'New Rule'}</SheetTitle>
+          <SheetTitle className="text-base">New Rule</SheetTitle>
           <SheetDescription className="text-xs">
             Configure a routing rule. Accounts will be evaluated top-to-bottom until the first match.
           </SheetDescription>
@@ -1583,8 +1575,8 @@ function NewRuleSheet({
             Cancel
           </Button>
           <Button onClick={handleSave} className="flex-1 press-scale gap-1.5">
-            {isEditing ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {isEditing ? 'Save Changes' : 'Create Rule'}
+            <Plus className="w-3.5 h-3.5" />
+            Create Rule
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -1615,7 +1607,7 @@ function RulesTab({
       }
       return next
     })
-  }, [setRules])
+  }, [])
 
   const handleDelete = useCallback((id: string) => {
     setRules((prev) => {
@@ -1623,7 +1615,7 @@ function RulesTab({
       return filtered.map((r, i) => ({ ...r, priority: i + 1 }))
     })
     toast.success('Rule deleted')
-  }, [setRules])
+  }, [])
 
   const handleDuplicate = useCallback((id: string) => {
     setRules((prev) => {
@@ -1642,7 +1634,7 @@ function RulesTab({
       return [...prev, newRule]
     })
     toast.success('Rule duplicated')
-  }, [setRules])
+  }, [])
 
   const handleMoveUp = useCallback((id: string) => {
     setRules((prev) => {
@@ -1652,7 +1644,7 @@ function RulesTab({
       ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
       return next.map((r, i) => ({ ...r, priority: i + 1 }))
     })
-  }, [setRules])
+  }, [])
 
   const handleMoveDown = useCallback((id: string) => {
     setRules((prev) => {
@@ -1662,17 +1654,11 @@ function RulesTab({
       ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
       return next.map((r, i) => ({ ...r, priority: i + 1 }))
     })
-  }, [setRules])
+  }, [])
 
-  const [editingRule, setEditingRule] = useState<Rule | null>(null)
-
-  const handleEdit = useCallback((id: string) => {
-    setEditingRule(rules.find(r => r.id === id) ?? null)
-  }, [rules])
-
-  const handleEditSave = useCallback((updated: Rule) => {
-    setRules(prev => prev.map(r => r.id === updated.id ? updated : r))
-  }, [setRules])
+  const handleNewRule = useCallback(() => {
+    toast('New rule editor coming soon', { description: 'Rule builder will open here' })
+  }, [])
 
   return (
     <div className="flex flex-col gap-4">
@@ -1688,28 +1674,20 @@ function RulesTab({
             onDuplicate={handleDuplicate}
             onMoveUp={handleMoveUp}
             onMoveDown={handleMoveDown}
-            onEdit={handleEdit}
           />
         ))}
 
         <CatchAllCard />
       </div>
-
-      <NewRuleSheet
-        open={editingRule !== null}
-        onClose={() => setEditingRule(null)}
-        onSave={handleEditSave}
-        editRule={editingRule}
-      />
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// TAB 2 — Presets
+// TAB 2 — Templates
 // ---------------------------------------------------------------------------
 
-const PRESETS = [
+const TEMPLATES = [
   // ── Match Rules ──────────────────────────────────────────────────────────
   {
     id: 't1',
@@ -1717,16 +1695,8 @@ const PRESETS = [
     icon: Globe,
     title: 'Territory-Based Routing',
     description: 'Route accounts automatically based on geography, region, or territory assignments.',
-    bestFor: 'Best for teams with international or regional account pools',
-    useCase: 'Use this when your team serves distinct geographies or territories. Routes international-segment accounts to reps who specialize in cross-border relationships, ensuring language and timezone alignment.',
     badge: 'Popular',
     badgeColor: 'bg-sky-100 text-sky-700',
-    conditions: [{ field: 'segment' as ConditionField, operator: 'equals' as ConditionOperator, value: 'international' }],
-    logic: 'AND' as const,
-    actionType: 'round_robin' as ActionType,
-    repIds: ['user-5', 'user-6'],
-    weight: 75,
-    mustFollow: false,
   },
   {
     id: 't2',
@@ -1734,19 +1704,8 @@ const PRESETS = [
     icon: Layers,
     title: 'Segment Tiering',
     description: "Split accounts across Enterprise, Corporate, and Commercial teams by segment.",
-    bestFor: 'Best for orgs with distinct enterprise and commercial motions',
-    useCase: 'Use this when your enterprise accounts need dedicated senior reps. Filters for high-ARR enterprise accounts and hard-assigns them to your strongest closer, preventing them from being diluted across the team.',
     badge: 'Recommended',
     badgeColor: 'bg-emerald-100 text-emerald-700',
-    conditions: [
-      { field: 'segment' as ConditionField, operator: 'equals' as ConditionOperator, value: 'enterprise' },
-      { field: 'arr' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '100000' },
-    ],
-    logic: 'AND' as const,
-    actionType: 'assign_to' as ActionType,
-    repIds: ['user-4'],
-    weight: 85,
-    mustFollow: true,
   },
   {
     id: 't3',
@@ -1754,16 +1713,8 @@ const PRESETS = [
     icon: BarChart3,
     title: 'Capacity Balancing',
     description: "Distribute accounts evenly based on each rep's current capacity and workload.",
-    bestFor: 'Best for even workload distribution across your team',
-    useCase: 'Use this as a baseline rule when you want to prevent any single rep from getting overloaded. No conditions means every account is eligible — the system picks whoever has the most bandwidth.',
     badge: null,
     badgeColor: '',
-    conditions: [],
-    logic: 'AND' as const,
-    actionType: 'least_loaded' as ActionType,
-    repIds: ['user-3', 'user-4', 'user-5', 'user-6'],
-    weight: 70,
-    mustFollow: false,
   },
   {
     id: 't4',
@@ -1771,16 +1722,8 @@ const PRESETS = [
     icon: Target,
     title: 'Specialty Matching',
     description: 'Match account industry or vertical to the rep with the most relevant expertise.',
-    bestFor: 'Best for vertical-focused teams (fintech, healthcare, etc.)',
-    useCase: 'Use this when account outcomes improve with industry expertise. Matches accounts in a specific vertical to reps who know that space, improving time-to-value and retention.',
     badge: null,
     badgeColor: '',
-    conditions: [{ field: 'industry' as ConditionField, operator: 'equals' as ConditionOperator, value: 'Fintech' }],
-    logic: 'AND' as const,
-    actionType: 'round_robin' as ActionType,
-    repIds: ['user-4', 'user-6'],
-    weight: 75,
-    mustFollow: false,
   },
   {
     id: 't5',
@@ -1788,16 +1731,8 @@ const PRESETS = [
     icon: Heart,
     title: 'Health-Based Escalation',
     description: 'Automatically escalate at-risk accounts to managers or senior reps.',
-    bestFor: 'Best for protecting at-risk accounts from churn',
-    useCase: 'Use this to automatically flag and reassign accounts showing early signs of churn. When health score drops below threshold, the account escalates to a manager or senior rep for intervention.',
     badge: null,
     badgeColor: '',
-    conditions: [{ field: 'health_score' as ConditionField, operator: 'less_than' as ConditionOperator, value: '40' }],
-    logic: 'AND' as const,
-    actionType: 'assign_to' as ActionType,
-    repIds: ['user-2'],
-    weight: 95,
-    mustFollow: true,
   },
   {
     id: 't6',
@@ -1805,16 +1740,8 @@ const PRESETS = [
     icon: Shuffle,
     title: 'Round-Robin Default',
     description: 'Simple, even distribution across all available reps with no conditions.',
-    bestFor: 'Best as a catch-all fallback for unmatched accounts',
-    useCase: 'Use this as the lowest-priority rule to ensure no account falls through the cracks. Distributes evenly across all available reps with no conditions — simple and fair.',
     badge: null,
     badgeColor: '',
-    conditions: [],
-    logic: 'AND' as const,
-    actionType: 'round_robin' as ActionType,
-    repIds: ['user-3', 'user-4', 'user-5', 'user-6', 'user-9', 'user-10'],
-    weight: 50,
-    mustFollow: false,
   },
   {
     id: 't7',
@@ -1822,16 +1749,8 @@ const PRESETS = [
     icon: User,
     title: 'Rep Experience Routing',
     description: 'Route accounts needing complex onboarding to reps with 2+ years of experience.',
-    bestFor: 'Best for complex onboarding or high-touch accounts',
-    useCase: 'Use this when newer reps shouldn\'t handle complex accounts alone. Filters for reps with 2+ years of experience, then picks the least loaded among them.',
     badge: 'New',
     badgeColor: 'bg-violet-100 text-violet-700',
-    conditions: [{ field: 'rep_experience_years' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '2' }],
-    logic: 'AND' as const,
-    actionType: 'least_loaded' as ActionType,
-    repIds: ['user-3', 'user-4'],
-    weight: 80,
-    mustFollow: false,
   },
   {
     id: 't8',
@@ -1839,20 +1758,8 @@ const PRESETS = [
     icon: TrendingUp,
     title: 'Top Performer Assignment',
     description: 'Direct high-value cross-sell opportunities to your top-performing AMs.',
-    bestFor: 'Best for high-value upsell and cross-sell opportunities',
-    useCase: 'Use this to route your best expansion opportunities to proven closers. Targets healthy, high-ARR accounts and assigns them to top-tier performers who can maximize revenue.',
     badge: null,
     badgeColor: '',
-    conditions: [
-      { field: 'health_score' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '80' },
-      { field: 'arr' as ConditionField, operator: 'greater_than' as ConditionOperator, value: '50000' },
-      { field: 'rep_performance_tier' as ConditionField, operator: 'equals' as ConditionOperator, value: 'top_performer' },
-    ],
-    logic: 'AND' as const,
-    actionType: 'round_robin' as ActionType,
-    repIds: ['user-3', 'user-9'],
-    weight: 60,
-    mustFollow: false,
   },
   {
     id: 't9',
@@ -1860,288 +1767,75 @@ const PRESETS = [
     icon: Target,
     title: 'Industry Expert Match',
     description: 'Match account vertical to the rep with documented specialty expertise in that industry.',
-    bestFor: 'Best for healthcare or regulated-industry accounts',
-    useCase: 'Use this when domain expertise is non-negotiable. Matches accounts to reps with documented specialty in a specific industry vertical like healthcare.',
     badge: null,
     badgeColor: '',
-    conditions: [{ field: 'rep_industry_expertise' as ConditionField, operator: 'equals' as ConditionOperator, value: 'Healthcare' }],
-    logic: 'AND' as const,
-    actionType: 'round_robin' as ActionType,
-    repIds: ['user-5', 'user-3'],
-    weight: 75,
-    mustFollow: false,
+  },
+  // ── Equity Rules ─────────────────────────────────────────────────────────
+  {
+    id: 't10',
+    section: 'equity' as const,
+    icon: Scale,
+    title: 'ARR Book Balancer',
+    description: "Keep all reps' total managed ARR within ±20% of the team mean.",
+    badge: 'Equity',
+    badgeColor: 'bg-emerald-100 text-emerald-700',
+  },
+  {
+    id: 't11',
+    section: 'equity' as const,
+    icon: Users,
+    title: 'Account Count Equity',
+    description: 'Ensure no rep carries more than ±20% more accounts than the average.',
+    badge: 'Equity',
+    badgeColor: 'bg-emerald-100 text-emerald-700',
   },
 ]
 
-type PresetType = typeof PRESETS[number]
-
-// ---------------------------------------------------------------------------
-// Account match evaluator — counts how many demoAccounts match a preset's conditions
-// ---------------------------------------------------------------------------
-
-function countMatchingAccounts(conditions: { field: ConditionField; operator: ConditionOperator; value: string }[], logic: 'AND' | 'OR'): number {
-  // Filter to only account-field conditions (skip rep-field conditions)
-  const accountConditions = conditions.filter(c => !REP_FIELDS.has(c.field))
-  if (accountConditions.length === 0) return demoAccounts.length
-
-  return demoAccounts.filter(account => {
-    const results = accountConditions.map(c => {
-      if (c.field === 'segment') return account.segment === c.value
-      if (c.field === 'industry') return account.industry === c.value
-      if (c.field === 'geography') return account.geography === c.value
-      if (c.field === 'arr') {
-        const v = parseInt(c.value)
-        if (c.operator === 'greater_than') return account.arr > v
-        if (c.operator === 'less_than') return account.arr < v
-        return account.arr === v
-      }
-      if (c.field === 'health_score') {
-        const v = parseInt(c.value)
-        if (c.operator === 'greater_than') return account.health_score > v
-        if (c.operator === 'less_than') return account.health_score < v
-        return account.health_score === v
-      }
-      return false
-    })
-    return logic === 'AND' ? results.every(Boolean) : results.some(Boolean)
-  }).length
-}
-
-// ---------------------------------------------------------------------------
-// Preset Preview Sheet
-// ---------------------------------------------------------------------------
-
-function PresetPreviewSheet({
-  preset,
-  open,
-  onClose,
-  onUsePreset,
-}: {
-  preset: PresetType | null
-  open: boolean
-  onClose: () => void
-  onUsePreset: (t: PresetType) => void
-}) {
-  if (!preset) return null
-  const Icon = preset.icon
-  const matchCount = countMatchingAccounts(preset.conditions, preset.logic)
-
-  return (
-    <Sheet open={open} onOpenChange={v => { if (!v) onClose() }}>
-      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0 overflow-hidden">
-        <SheetHeader className="px-6 pt-6 pb-5 border-b border-stone-200 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-stone-100 flex items-center justify-center shrink-0">
-              <Icon className="w-5 h-5 text-stone-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <SheetTitle className="text-base">{preset.title}</SheetTitle>
-                {preset.badge && (
-                  <Badge className={cn('text-[10px] h-5 px-1.5', preset.badgeColor)}>
-                    {preset.badge}
-                  </Badge>
-                )}
-              </div>
-              <SheetDescription className="text-xs mt-1">{preset.description}</SheetDescription>
-            </div>
-          </div>
-        </SheetHeader>
-
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="flex flex-col gap-5 px-6 py-6">
-            {/* When to use this */}
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 flex flex-col gap-2">
-              <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">When to use this</h4>
-              <p className="text-sm text-stone-700 leading-relaxed">{preset.useCase}</p>
-            </div>
-
-            {/* Conditions */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/30 p-4 flex flex-col gap-2.5">
-              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Conditions</h4>
-              {preset.conditions.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No conditions — applies to all accounts</p>
-              ) : (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {preset.conditions.map((c, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      {i > 0 && (
-                        <span className="text-[10px] font-semibold text-stone-400 uppercase">
-                          {preset.logic}
-                        </span>
-                      )}
-                      <ConditionBadge condition={{ id: `preview-${i}`, ...c }} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Action */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/30 p-4 flex flex-col gap-2.5">
-              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Action</h4>
-              <div className="flex flex-col gap-2.5">
-                <Badge variant="outline" className="w-fit text-xs gap-1.5 py-1 px-2.5">
-                  {preset.actionType === 'round_robin' && <Shuffle className="w-3 h-3" />}
-                  {preset.actionType === 'least_loaded' && <BarChart3 className="w-3 h-3" />}
-                  {preset.actionType === 'assign_to' && <User className="w-3 h-3" />}
-                  {preset.actionType === 'round_robin' ? 'Round Robin' : preset.actionType === 'least_loaded' ? 'Least Loaded' : 'Assign To'}
-                </Badge>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {preset.repIds.map(id => {
-                    const member = demoTeamMembers.find(m => m.id === id)
-                    if (!member) return null
-                    return (
-                      <div key={id} className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-full py-0.5 pl-0.5 pr-2.5">
-                        <Avatar userId={id} size="sm" />
-                        <span className="text-xs text-stone-700">{member.full_name}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Settings */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/30 p-4 flex flex-col gap-2.5">
-              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Settings</h4>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs gap-1 py-0.5 px-2.5">
-                  <Scale className="w-3 h-3" />
-                  Weight: {preset.weight}
-                </Badge>
-                {preset.mustFollow && (
-                  <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs gap-1 py-0.5 px-2.5">
-                    <Lock className="w-3 h-3" />
-                    Must Follow
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Impact preview */}
-            <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 flex flex-col gap-2.5">
-              <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Impact Preview</h4>
-              <div className="flex items-center gap-6">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-2xl font-bold text-stone-900">~{matchCount.toLocaleString()}</span>
-                  <span className="text-xs text-muted-foreground">accounts would match</span>
-                </div>
-                <div className="w-px h-10 bg-stone-200" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-2xl font-bold text-stone-900">{preset.repIds.length}</span>
-                  <span className="text-xs text-muted-foreground">assigned reps</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ScrollArea>
-
-        <SheetFooter className="px-6 py-4 border-t border-stone-200 shrink-0 flex flex-row gap-2 sm:flex-row">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            className="flex-1 press-scale"
-            onClick={() => { onUsePreset(preset); onClose() }}
-          >
-            Use This Preset
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-function PresetCard({
+function TemplateCard({
   t,
-  onUsePreset,
   onPreview,
-  selected,
-  onToggleSelect,
-  anySelected,
-  applied,
+  isPreviewActive,
 }: {
-  t: PresetType
-  onUsePreset: (t: PresetType) => void
-  onPreview: (t: PresetType) => void
-  selected: boolean
-  onToggleSelect: (id: string) => void
-  anySelected: boolean
-  applied: boolean
+  t: typeof TEMPLATES[0]
+  onPreview?: () => void
+  isPreviewActive?: boolean
 }) {
   const Icon = t.icon
   return (
     <div className={cn(
-      'group bg-white rounded-xl border p-4 flex flex-col gap-3 card-hover transition-all duration-200',
-      applied
-        ? 'border-emerald-200 bg-emerald-50/30'
-        : selected
-          ? 'ring-2 ring-emerald-500/40 border-emerald-300'
-          : 'border-stone-200'
+      "group bg-white rounded-xl border p-4 flex flex-col gap-3 card-hover",
+      isPreviewActive ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-stone-200'
     )}>
       <div className="flex items-start justify-between">
-        <div className={cn(
-          'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
-          applied ? 'bg-emerald-100' : 'bg-stone-100 group-hover:bg-stone-200'
-        )}>
-          <Icon className={cn('w-4.5 h-4.5', applied ? 'text-emerald-600' : 'text-stone-600')} />
+        <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center group-hover:bg-stone-200 transition-colors">
+          <Icon className="w-4.5 h-4.5 text-stone-600" />
         </div>
-        <div className="flex items-center gap-2">
-          {applied ? (
-            <Badge className="text-[10px] h-5 px-1.5 bg-emerald-100 text-emerald-700 border-emerald-300 gap-1">
-              <CheckCircle2 className="w-3 h-3" />
-              Applied
-            </Badge>
-          ) : t.badge ? (
-            <Badge className={cn('text-[10px] h-5 px-1.5', t.badgeColor)}>
-              {t.badge}
-            </Badge>
-          ) : null}
-          <div className={cn(
-            'transition-opacity duration-150',
-            applied
-              ? 'opacity-50 pointer-events-none'
-              : anySelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          )}>
-            <Checkbox
-              checked={selected}
-              disabled={applied}
-              onCheckedChange={() => onToggleSelect(t.id)}
-            />
-          </div>
-        </div>
+        {t.badge && (
+          <Badge className={cn('text-[10px] h-5 px-1.5', t.badgeColor)}>
+            {t.badge}
+          </Badge>
+        )}
       </div>
       <div className="flex flex-col gap-1 flex-1">
         <h4 className="text-sm font-semibold text-stone-800">{t.title}</h4>
         <p className="text-xs text-muted-foreground leading-relaxed">{t.description}</p>
-        <p className="text-[11px] text-stone-500 italic mt-0.5">{t.bestFor}</p>
       </div>
       <div className="flex items-center gap-2 pt-1">
-        {applied ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-7 text-xs border-emerald-300 text-emerald-700 gap-1"
-            disabled
-          >
-            <CheckCircle2 className="w-3 h-3" />
-            Applied
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            className="flex-1 h-7 text-xs press-scale"
-            onClick={() => onUsePreset(t)}
-          >
-            Use Preset
-          </Button>
-        )}
         <Button
           size="sm"
-          variant="outline"
-          className="h-7 text-xs press-scale"
-          onClick={() => onPreview(t)}
+          className="flex-1 h-7 text-xs press-scale"
+          onClick={() => toast.success('Template applied — 1 new rule created')}
+        >
+          Use Template
+        </Button>
+        <Button
+          size="sm"
+          variant={isPreviewActive ? 'default' : 'outline'}
+          className={cn(
+            "h-7 text-xs press-scale",
+            isPreviewActive && 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          )}
+          onClick={onPreview ?? (() => toast('Preview coming soon'))}
         >
           Preview
         </Button>
@@ -2151,38 +1845,959 @@ function PresetCard({
 }
 
 // ---------------------------------------------------------------------------
-// TAB 2 — Presets
+// Equity Template → metric mapping
 // ---------------------------------------------------------------------------
 
-function PresetsTab({ onGoToBook, onUsePreset, onApplyBatch, appliedPresetIds }: { onGoToBook: () => void; onUsePreset: (t: PresetType) => void; onApplyBatch: (presets: PresetType[]) => void; appliedPresetIds: Set<string> }) {
-  const [previewPreset, setPreviewPreset] = useState<PresetType | null>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+const EQUITY_TEMPLATE_CONFIG: Record<string, { metric: 'arr' | 'account_count'; tolerance: number }> = {
+  t10: { metric: 'arr',           tolerance: 20 },
+  t11: { metric: 'account_count', tolerance: 20 },
+}
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+
+// ---------------------------------------------------------------------------
+// Preview Helper Components
+// ---------------------------------------------------------------------------
+
+function PreviewSectionHeader({ label }: { label: string }) {
+  return <h5 className="text-[11px] font-medium text-stone-500 uppercase tracking-wide">{label}</h5>
+}
+
+function PreviewSummaryBadges({ items }: { items: { icon: typeof Globe; label: string; color: string }[] }) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      {items.map((item, i) => {
+        const Icon = item.icon
+        return (
+          <div key={i} className={cn('flex items-center gap-1.5 px-2.5 py-1 rounded-lg border', item.color)}>
+            <Icon className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">{item.label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function HorizontalBar({ label, value, maxValue, color, rightLabel }: {
+  label: string; value: number; maxValue: number; color: string; rightLabel: string
+}) {
+  const pct = maxValue > 0 ? (value / maxValue) * 100 : 0
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] text-stone-600 w-24 truncate flex-shrink-0">{label}</span>
+      <div className="flex-1 h-5 bg-stone-50 rounded overflow-hidden">
+        <div className={cn('h-full rounded', color)} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[10px] font-medium text-stone-600 w-16 text-right flex-shrink-0">{rightLabel}</span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t1 — Territory-Based Routing Preview
+// ---------------------------------------------------------------------------
+
+function PreviewTerritoryRouting() {
+  const countryRec: Record<string, { count: number; arr: number }> = {}
+  demoAccounts.forEach(a => {
+    const country = a.country || 'Unknown'
+    if (!countryRec[country]) countryRec[country] = { count: 0, arr: 0 }
+    countryRec[country].count++
+    countryRec[country].arr += a.arr
+  })
+  const countries = Object.entries(countryRec)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => b.arr - a.arr)
+    .slice(0, 10)
+  const maxArr = Math.max(...countries.map(c => c.arr))
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const countryCount = Object.keys(countryRec).length
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: Globe, label: `${countryCount} countries`, color: 'bg-sky-50 border-sky-200 text-sky-700' },
+        { icon: Users, label: `${activeReps.length} reps`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+      ]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="ARR by Country (Top 10)" />
+        <div className="flex flex-col gap-1">
+          {countries.map(c => (
+            <HorizontalBar key={c.name} label={c.name} value={c.arr} maxValue={maxArr} color="bg-sky-400" rightLabel={formatBookARR(c.arr)} />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Rep Regional Coverage" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Accounts</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Countries</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeReps.slice(0, 10).map(rep => {
+                const ra = demoAccounts.filter(a => a.current_owner_id === rep.id)
+                const rc = new Set(ra.map(a => a.country).filter(Boolean)).size
+                return (
+                  <tr key={rep.id} className="border-b border-stone-100 last:border-0">
+                    <td className="py-1.5 px-3 text-stone-700">{rep.full_name}</td>
+                    <td className="py-1.5 px-3 text-right font-medium text-stone-700">{ra.length}</td>
+                    <td className="py-1.5 px-3 text-right text-stone-700">{rc}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t2 — Segment Tiering Preview
+// ---------------------------------------------------------------------------
+
+function PreviewSegmentTiering() {
+  const segments = ['enterprise', 'corporate', 'commercial', 'fins', 'international'] as const
+  const segColors: Record<string, string> = {
+    enterprise: 'bg-violet-400', corporate: 'bg-sky-400', commercial: 'bg-emerald-400',
+    fins: 'bg-amber-400', international: 'bg-rose-400',
+  }
+  const segData = segments.map(seg => {
+    const accts = demoAccounts.filter(a => a.segment === seg)
+    return { name: seg, count: accts.length, arr: accts.reduce((s, a) => s + a.arr, 0) }
+  }).sort((a, b) => b.arr - a.arr)
+  const maxArr = Math.max(...segData.map(s => s.arr))
+  const totalAccounts = demoAccounts.length
+  const totalArr = demoAccounts.reduce((s, a) => s + a.arr, 0)
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: Layers, label: `${segments.length} segments`, color: 'bg-violet-50 border-violet-200 text-violet-700' },
+        { icon: BarChart3, label: `${totalAccounts} accounts`, color: 'bg-sky-50 border-sky-200 text-sky-700' },
+        { icon: TrendingUp, label: formatBookARR(totalArr), color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+      ]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="ARR by Segment" />
+        <div className="flex flex-col gap-1">
+          {segData.map(s => (
+            <HorizontalBar key={s.name} label={s.name.charAt(0).toUpperCase() + s.name.slice(1)} value={s.arr} maxValue={maxArr} color={segColors[s.name]} rightLabel={formatBookARR(s.arr)} />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Segment Detail" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Segment</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Accounts</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">ARR</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Avg ARR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {segData.map(s => (
+                <tr key={s.name} className="border-b border-stone-100 last:border-0">
+                  <td className="py-1.5 px-3 text-stone-700 capitalize">{s.name}</td>
+                  <td className="py-1.5 px-3 text-right font-medium text-stone-700">{s.count}</td>
+                  <td className="py-1.5 px-3 text-right text-stone-700">{formatBookARR(s.arr)}</td>
+                  <td className="py-1.5 px-3 text-right text-stone-700">{s.count > 0 ? formatBookARR(Math.round(s.arr / s.count)) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t3 — Capacity Balancing Preview
+// ---------------------------------------------------------------------------
+
+function PreviewCapacityBalancing() {
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const repData = activeReps.map(rep => {
+    const accts = demoAccounts.filter(a => a.current_owner_id === rep.id).length
+    const util = rep.capacity > 0 ? Math.round((accts / rep.capacity) * 100) : 0
+    return { id: rep.id, name: rep.full_name, accounts: accts, capacity: rep.capacity, util }
+  }).sort((a, b) => b.util - a.util)
+
+  const meanUtil = repData.length > 0 ? Math.round(repData.reduce((s, r) => s + r.util, 0) / repData.length) : 0
+  const overloaded = repData.filter(r => r.util > 100).length
+  const underloaded = repData.filter(r => r.util < 50).length
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: BarChart3, label: `${meanUtil}% avg util`, color: 'bg-sky-50 border-sky-200 text-sky-700' },
+        ...(overloaded > 0 ? [{ icon: ShieldAlert, label: `${overloaded} overloaded`, color: 'bg-amber-50 border-amber-200 text-amber-700' }] : []),
+        ...(underloaded > 0 ? [{ icon: Info, label: `${underloaded} underloaded`, color: 'bg-sky-50 border-sky-200 text-sky-700' }] : []),
+      ] as { icon: typeof Globe; label: string; color: string }[]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Utilization by Rep" />
+        <div className="flex flex-col gap-1">
+          {repData.slice(0, 15).map(r => (
+            <HorizontalBar
+              key={r.id}
+              label={r.name.split(' ')[0]}
+              value={r.util}
+              maxValue={Math.max(120, ...repData.map(x => x.util))}
+              color={r.util > 100 ? 'bg-amber-400' : r.util < 50 ? 'bg-sky-300' : 'bg-emerald-400'}
+              rightLabel={`${r.util}%`}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Rep Detail" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Accounts</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Capacity</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Util %</th>
+                <th className="text-center py-1.5 px-3 font-medium text-stone-600">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repData.slice(0, 15).map(r => (
+                <tr key={r.id} className="border-b border-stone-100 last:border-0">
+                  <td className="py-1.5 px-3 text-stone-700">{r.name}</td>
+                  <td className="py-1.5 px-3 text-right font-medium text-stone-700">{r.accounts}</td>
+                  <td className="py-1.5 px-3 text-right text-stone-700">{r.capacity}</td>
+                  <td className="py-1.5 px-3 text-right">
+                    <span className={cn('inline-block px-1.5 py-0.5 rounded text-[10px] font-medium',
+                      r.util > 100 ? 'text-amber-700 bg-amber-50' : r.util < 50 ? 'text-sky-700 bg-sky-50' : 'text-emerald-700 bg-emerald-50'
+                    )}>{r.util}%</span>
+                  </td>
+                  <td className="py-1.5 px-3 text-center">
+                    {r.util > 100 ? (
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] h-4 px-1.5">Over</Badge>
+                    ) : r.util < 50 ? (
+                      <Badge className="bg-sky-100 text-sky-700 border-sky-200 text-[10px] h-4 px-1.5">Under</Badge>
+                    ) : (
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-4 px-1.5">OK</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t4 — Specialty Matching Preview
+// ---------------------------------------------------------------------------
+
+function PreviewSpecialtyMatching() {
+  const industryRec: Record<string, { count: number; arr: number }> = {}
+  demoAccounts.forEach(a => {
+    const ind = a.industry || 'Unknown'
+    if (!industryRec[ind]) industryRec[ind] = { count: 0, arr: 0 }
+    industryRec[ind].count++
+    industryRec[ind].arr += a.arr
+  })
+  const industries = Object.entries(industryRec)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12)
+  const maxCount = Math.max(...industries.map(i => i.count))
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const specialtySet = new Set(activeReps.flatMap(r => r.specialties))
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: Target, label: `${Object.keys(industryRec).length} industries`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        { icon: Users, label: `${activeReps.length} reps`, color: 'bg-sky-50 border-sky-200 text-sky-700' },
+        { icon: Layers, label: `${specialtySet.size} specialties`, color: 'bg-violet-50 border-violet-200 text-violet-700' },
+      ]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Top Industries by Account Count" />
+        <div className="flex flex-col gap-1">
+          {industries.map(ind => (
+            <HorizontalBar key={ind.name} label={ind.name} value={ind.count} maxValue={maxCount} color="bg-emerald-400" rightLabel={`${ind.count}`} />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Rep Specialty Coverage" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Specialties</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Accounts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeReps.filter(r => r.specialties.length > 0).slice(0, 12).map(rep => {
+                const ra = demoAccounts.filter(a => a.current_owner_id === rep.id).length
+                return (
+                  <tr key={rep.id} className="border-b border-stone-100 last:border-0">
+                    <td className="py-1.5 px-3 text-stone-700">{rep.full_name}</td>
+                    <td className="py-1.5 px-3 text-stone-500 text-[10px]">{rep.specialties.join(', ')}</td>
+                    <td className="py-1.5 px-3 text-right font-medium text-stone-700">{ra}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t5 — Health-Based Escalation Preview
+// ---------------------------------------------------------------------------
+
+function PreviewHealthEscalation() {
+  const atRisk = demoAccounts.filter(a => a.health_score < 40).sort((a, b) => a.health_score - b.health_score)
+  const healthy = demoAccounts.filter(a => a.health_score >= 70).length
+  const buckets = [
+    { label: '0–20', min: 0, max: 20, color: 'bg-red-400' },
+    { label: '20–40', min: 20, max: 40, color: 'bg-amber-400' },
+    { label: '40–60', min: 40, max: 60, color: 'bg-yellow-300' },
+    { label: '60–80', min: 60, max: 80, color: 'bg-emerald-300' },
+    { label: '80–100', min: 80, max: 101, color: 'bg-emerald-500' },
+  ]
+  const bucketData = buckets.map(b => ({
+    ...b,
+    count: demoAccounts.filter(a => a.health_score >= b.min && a.health_score < b.max).length,
+  }))
+  const maxBucket = Math.max(...bucketData.map(b => b.count))
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: ShieldAlert, label: `${atRisk.length} at-risk`, color: 'bg-red-50 border-red-200 text-red-700' },
+        { icon: CheckCircle2, label: `${healthy} healthy`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        { icon: BarChart3, label: `${demoAccounts.length} total`, color: 'bg-stone-50 border-stone-200 text-stone-700' },
+      ]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Health Score Distribution" />
+        <div className="flex flex-col gap-1">
+          {bucketData.map(b => (
+            <HorizontalBar key={b.label} label={b.label} value={b.count} maxValue={maxBucket} color={b.color} rightLabel={`${b.count}`} />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Top At-Risk Accounts" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Account</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Health</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">ARR</th>
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Owner</th>
+              </tr>
+            </thead>
+            <tbody>
+              {atRisk.slice(0, 15).map(a => {
+                const owner = demoTeamMembers.find(m => m.id === a.current_owner_id)
+                return (
+                  <tr key={a.id} className="border-b border-stone-100 last:border-0">
+                    <td className="py-1.5 px-3 text-stone-700 max-w-[140px] truncate">{a.name}</td>
+                    <td className="py-1.5 px-3 text-right">
+                      <span className={cn('inline-block px-1.5 py-0.5 rounded text-[10px] font-medium',
+                        a.health_score < 20 ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
+                      )}>{a.health_score}</span>
+                    </td>
+                    <td className="py-1.5 px-3 text-right text-stone-700">{formatBookARR(a.arr)}</td>
+                    <td className="py-1.5 px-3 text-stone-500 text-[10px] max-w-[100px] truncate">{owner?.full_name ?? '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t6 — Round-Robin Default Preview
+// ---------------------------------------------------------------------------
+
+function PreviewRoundRobin() {
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const repData = activeReps.map(rep => {
+    const count = demoAccounts.filter(a => a.current_owner_id === rep.id).length
+    return { id: rep.id, name: rep.full_name, count }
+  }).sort((a, b) => b.count - a.count)
+
+  const mean = repData.length > 0 ? Math.round(repData.reduce((s, r) => s + r.count, 0) / repData.length) : 0
+  const maxCount = Math.max(...repData.map(r => r.count))
+  const maxDev = Math.max(...repData.map(r => Math.abs(r.count - mean)))
+  const imbalanced = repData.filter(r => Math.abs(r.count - mean) > mean * 0.3).length
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: Shuffle, label: `${activeReps.length} reps`, color: 'bg-sky-50 border-sky-200 text-sky-700' },
+        { icon: BarChart3, label: `${mean} avg accounts`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        ...(imbalanced > 0 ? [{ icon: ShieldAlert, label: `${imbalanced} imbalanced`, color: 'bg-amber-50 border-amber-200 text-amber-700' }] : []),
+      ] as { icon: typeof Globe; label: string; color: string }[]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Account Distribution" />
+        <div className="flex flex-col gap-1">
+          {repData.slice(0, 15).map(r => {
+            const dev = r.count - mean
+            return (
+              <HorizontalBar
+                key={r.id}
+                label={r.name.split(' ')[0]}
+                value={r.count}
+                maxValue={maxCount}
+                color={Math.abs(dev) > mean * 0.3 ? 'bg-amber-400' : 'bg-emerald-400'}
+                rightLabel={`${r.count}`}
+              />
+            )
+          })}
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="h-px flex-1 bg-stone-200" />
+          <span className="text-[10px] text-stone-400">Mean: {mean} accounts</span>
+          <div className="h-px flex-1 bg-stone-200" />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Distribution Detail" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Accounts</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">vs Mean</th>
+                <th className="text-center py-1.5 px-3 font-medium text-stone-600">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repData.slice(0, 15).map(r => {
+                const dev = r.count - mean
+                const devPct = mean > 0 ? Math.round((dev / mean) * 100) : 0
+                const flagged = Math.abs(devPct) > 30
+                return (
+                  <tr key={r.id} className="border-b border-stone-100 last:border-0">
+                    <td className="py-1.5 px-3 text-stone-700">{r.name}</td>
+                    <td className="py-1.5 px-3 text-right font-medium text-stone-700">{r.count}</td>
+                    <td className="py-1.5 px-3 text-right">
+                      <span className={cn('inline-block px-1.5 py-0.5 rounded text-[10px] font-medium',
+                        flagged ? (dev > 0 ? 'text-amber-700 bg-amber-50' : 'text-sky-700 bg-sky-50') : 'text-emerald-700 bg-emerald-50'
+                      )}>{dev > 0 ? '+' : ''}{devPct}%</span>
+                    </td>
+                    <td className="py-1.5 px-3 text-center">
+                      {flagged ? (
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] h-4 px-1.5">Imbalanced</Badge>
+                      ) : (
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-4 px-1.5">OK</Badge>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t7 — Rep Experience Routing Preview
+// ---------------------------------------------------------------------------
+
+function PreviewRepExperience() {
+  const now = new Date('2026-03-03')
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const repData = activeReps.map(rep => {
+    const start = new Date(rep.created_at)
+    const months = Math.max(0, Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30)))
+    const years = (months / 12).toFixed(1)
+    const experienced = months >= 24
+    const accts = demoAccounts.filter(a => a.current_owner_id === rep.id)
+    const complexCount = accts.filter(a => a.arr > 200000).length
+    return { id: rep.id, name: rep.full_name, months, years, experienced, accounts: accts.length, complexCount }
+  }).sort((a, b) => b.months - a.months)
+
+  const expCount = repData.filter(r => r.experienced).length
+  const juniorCount = repData.filter(r => !r.experienced).length
+  const maxMonths = Math.max(...repData.map(r => r.months))
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: User, label: `${expCount} experienced`, color: 'bg-violet-50 border-violet-200 text-violet-700' },
+        { icon: Users, label: `${juniorCount} junior`, color: 'bg-sky-50 border-sky-200 text-sky-700' },
+        { icon: BarChart3, label: `${activeReps.length} total`, color: 'bg-stone-50 border-stone-200 text-stone-700' },
+      ]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Rep Tenure (months)" />
+        <div className="flex flex-col gap-1">
+          {repData.slice(0, 15).map(r => (
+            <HorizontalBar
+              key={r.id}
+              label={r.name.split(' ')[0]}
+              value={r.months}
+              maxValue={maxMonths}
+              color={r.experienced ? 'bg-violet-400' : 'bg-sky-300'}
+              rightLabel={`${r.years}y`}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="h-px flex-1 bg-stone-200" />
+          <span className="text-[10px] text-stone-400">2+ years = experienced</span>
+          <div className="h-px flex-1 bg-stone-200" />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Rep Detail" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Tenure</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Accounts</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Complex</th>
+                <th className="text-center py-1.5 px-3 font-medium text-stone-600">Level</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repData.slice(0, 15).map(r => (
+                <tr key={r.id} className="border-b border-stone-100 last:border-0">
+                  <td className="py-1.5 px-3 text-stone-700">{r.name}</td>
+                  <td className="py-1.5 px-3 text-right text-stone-700">{r.years}y</td>
+                  <td className="py-1.5 px-3 text-right font-medium text-stone-700">{r.accounts}</td>
+                  <td className="py-1.5 px-3 text-right text-stone-700">{r.complexCount}</td>
+                  <td className="py-1.5 px-3 text-center">
+                    {r.experienced ? (
+                      <Badge className="bg-violet-100 text-violet-700 border-violet-200 text-[10px] h-4 px-1.5">Senior</Badge>
+                    ) : (
+                      <Badge className="bg-sky-100 text-sky-700 border-sky-200 text-[10px] h-4 px-1.5">Junior</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t8 — Top Performer Assignment Preview
+// ---------------------------------------------------------------------------
+
+function PreviewTopPerformer() {
+  const highValue = demoAccounts
+    .filter(a => a.arr > 200000 && a.health_score > 70)
+    .sort((a, b) => b.arr - a.arr)
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const repHV = activeReps.map(rep => {
+    const hv = highValue.filter(a => a.current_owner_id === rep.id)
+    return { id: rep.id, name: rep.full_name, count: hv.length, arr: hv.reduce((s, a) => s + a.arr, 0) }
+  }).filter(r => r.count > 0).sort((a, b) => b.arr - a.arr)
+
+  const maxHV = Math.max(...(repHV.length > 0 ? repHV.map(r => r.count) : [0]))
+  const totalHVArr = highValue.reduce((s, a) => s + a.arr, 0)
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: TrendingUp, label: `${highValue.length} high-value`, color: 'bg-amber-50 border-amber-200 text-amber-700' },
+        { icon: Users, label: `${repHV.length} reps`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        { icon: BarChart3, label: formatBookARR(totalHVArr), color: 'bg-violet-50 border-violet-200 text-violet-700' },
+      ]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="High-Value Accounts per Rep" />
+        <div className="flex flex-col gap-1">
+          {repHV.slice(0, 12).map(r => (
+            <HorizontalBar key={r.id} label={r.name.split(' ')[0]} value={r.count} maxValue={maxHV} color="bg-amber-400" rightLabel={`${r.count} (${formatBookARR(r.arr)})`} />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Top High-Value Accounts" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Account</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">ARR</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Health</th>
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Owner</th>
+              </tr>
+            </thead>
+            <tbody>
+              {highValue.slice(0, 15).map(a => {
+                const owner = demoTeamMembers.find(m => m.id === a.current_owner_id)
+                return (
+                  <tr key={a.id} className="border-b border-stone-100 last:border-0">
+                    <td className="py-1.5 px-3 text-stone-700 max-w-[140px] truncate">{a.name}</td>
+                    <td className="py-1.5 px-3 text-right font-medium text-stone-700">{formatBookARR(a.arr)}</td>
+                    <td className="py-1.5 px-3 text-right">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 bg-emerald-50">{a.health_score}</span>
+                    </td>
+                    <td className="py-1.5 px-3 text-stone-500 text-[10px] max-w-[100px] truncate">{owner?.full_name ?? '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t9 — Industry Expert Match Preview
+// ---------------------------------------------------------------------------
+
+function PreviewIndustryExpert() {
+  const industryRec: Record<string, { count: number; arr: number; ownerIds: string[] }> = {}
+  demoAccounts.forEach(a => {
+    const ind = a.industry || 'Unknown'
+    if (!industryRec[ind]) industryRec[ind] = { count: 0, arr: 0, ownerIds: [] }
+    industryRec[ind].count++
+    industryRec[ind].arr += a.arr
+    if (a.current_owner_id && !industryRec[ind].ownerIds.includes(a.current_owner_id)) {
+      industryRec[ind].ownerIds.push(a.current_owner_id)
+    }
+  })
+  const industries = Object.entries(industryRec)
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      arr: data.arr,
+      reps: data.ownerIds.length,
+      topRep: (() => {
+        const repCounts = data.ownerIds.map(id => ({
+          id,
+          name: demoTeamMembers.find(m => m.id === id)?.full_name ?? '—',
+          c: demoAccounts.filter(a => (a.industry || 'Unknown') === name && a.current_owner_id === id).length,
+        }))
+        return repCounts.sort((a, b) => b.c - a.c)[0]?.name ?? '—'
+      })(),
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12)
+  const maxCount = Math.max(...industries.map(i => i.count))
+  const noExpert = industries.filter(i => i.reps <= 1).length
+  const totalIndustries = Object.keys(industryRec).length
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: Target, label: `${totalIndustries} industries`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        { icon: Users, label: `${industries.filter(i => i.reps > 1).length} with experts`, color: 'bg-violet-50 border-violet-200 text-violet-700' },
+        ...(noExpert > 0 ? [{ icon: ShieldAlert, label: `${noExpert} gaps`, color: 'bg-amber-50 border-amber-200 text-amber-700' }] : []),
+      ] as { icon: typeof Globe; label: string; color: string }[]} />
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Top Industries by Account Count" />
+        <div className="flex flex-col gap-1">
+          {industries.map(ind => (
+            <HorizontalBar key={ind.name} label={ind.name} value={ind.count} maxValue={maxCount} color={ind.reps > 1 ? 'bg-emerald-400' : 'bg-amber-300'} rightLabel={`${ind.count}`} />
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Industry Expert Mapping" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Industry</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Accounts</th>
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Top Expert</th>
+                <th className="text-center py-1.5 px-3 font-medium text-stone-600">Coverage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {industries.map(ind => (
+                <tr key={ind.name} className="border-b border-stone-100 last:border-0">
+                  <td className="py-1.5 px-3 text-stone-700 max-w-[120px] truncate">{ind.name}</td>
+                  <td className="py-1.5 px-3 text-right font-medium text-stone-700">{ind.count}</td>
+                  <td className="py-1.5 px-3 text-stone-500 text-[10px] max-w-[100px] truncate">{ind.topRep}</td>
+                  <td className="py-1.5 px-3 text-center">
+                    {ind.reps > 2 ? (
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-4 px-1.5">Strong</Badge>
+                    ) : ind.reps > 1 ? (
+                      <Badge className="bg-sky-100 text-sky-700 border-sky-200 text-[10px] h-4 px-1.5">OK</Badge>
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] h-4 px-1.5">Gap</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// t10/t11 — Equity Preview (refactored from EquityPreviewPanel)
+// ---------------------------------------------------------------------------
+
+function PreviewEquity({ metric, tolerance }: { metric: 'arr' | 'account_count'; tolerance: number }) {
+  const metricLabel = metric === 'arr' ? 'ARR' : 'Account Count'
+
+  const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
+  const repBookData = activeReps
+    .map(rep => {
+      const repAccounts = demoAccounts.filter(a => a.current_owner_id === rep.id)
+      if (repAccounts.length === 0) return null
+      const arr      = repAccounts.reduce((s, a) => s + a.arr, 0)
+      const accounts = repAccounts.length
+      return { repId: rep.id, name: rep.full_name, arr, accounts }
     })
+    .filter(Boolean) as { repId: string; name: string; arr: number; accounts: number }[]
+
+  const n = repBookData.length
+  if (n === 0) return null
+
+  const getValue = (r: typeof repBookData[0]) => metric === 'arr' ? r.arr : r.accounts
+  const mean = repBookData.reduce((s, r) => s + getValue(r), 0) / n
+
+  const repRows = repBookData
+    .map(rep => {
+      const value = getValue(rep)
+      const dev = mean > 0 ? ((value - mean) / mean) * 100 : 0
+      const devRounded = Math.round(dev)
+      const flagged = Math.abs(dev) > tolerance
+      return { ...rep, value, dev: devRounded, flagged }
+    })
+    .sort((a, b) => {
+      if (a.flagged !== b.flagged) return a.flagged ? -1 : 1
+      return Math.abs(b.dev) - Math.abs(a.dev)
+    })
+
+  const inRange  = repRows.filter(r => !r.flagged).length
+  const outRange = repRows.filter(r => r.flagged).length
+  const maxValue = Math.max(...repRows.map(r => r.value))
+
+  const formatValue = (v: number) => {
+    if (metric === 'arr') return formatBookARR(v)
+    return String(v)
   }
 
-  const handleApplySelected = () => {
-    const selected = PRESETS.filter(p => selectedIds.has(p.id) && !appliedPresetIds.has(p.id))
-    if (selected.length === 0) return
-    onApplyBatch(selected)
-    setSelectedIds(new Set())
+  const devColor = (dev: number, flagged: boolean) => {
+    if (!flagged) return 'text-emerald-700 bg-emerald-50'
+    if (dev > 0)  return Math.abs(dev) > 40 ? 'text-red-700 bg-red-50' : 'text-amber-700 bg-amber-50'
+    return 'text-sky-700 bg-sky-50'
+  }
+
+  const barColor = (dev: number, flagged: boolean) => {
+    if (!flagged) return 'bg-emerald-400'
+    if (dev > 0)  return Math.abs(dev) > 40 ? 'bg-red-400' : 'bg-amber-400'
+    return 'bg-sky-400'
+  }
+
+  const toleranceLow  = mean * (1 - tolerance / 100)
+  const toleranceHigh = mean * (1 + tolerance / 100)
+
+  return (
+    <div className="flex flex-col gap-4">
+      <PreviewSummaryBadges items={[
+        { icon: Scale, label: `${metricLabel} ±${tolerance}%`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        { icon: BarChart3, label: `Mean: ${formatValue(Math.round(mean))}`, color: 'bg-stone-50 border-stone-200 text-stone-700' },
+        { icon: CheckCircle2, label: `${inRange} in range`, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+        ...(outRange > 0 ? [{ icon: ShieldAlert, label: `${outRange} flagged`, color: 'bg-amber-50 border-amber-200 text-amber-700' }] : []),
+      ] as { icon: typeof Globe; label: string; color: string }[]} />
+
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Distribution" />
+        <div className="flex flex-col gap-1">
+          {repRows.map(rep => {
+            const pct = maxValue > 0 ? (rep.value / maxValue) * 100 : 0
+            const meanPct = maxValue > 0 ? (mean / maxValue) * 100 : 0
+            const tolLowPct = maxValue > 0 ? (toleranceLow / maxValue) * 100 : 0
+            const tolHighPct = maxValue > 0 ? Math.min((toleranceHigh / maxValue) * 100, 100) : 0
+
+            return (
+              <div key={rep.repId} className="flex items-center gap-2">
+                <span className="text-[11px] text-stone-600 w-24 truncate flex-shrink-0">{rep.name.split(' ')[0]}</span>
+                <div className="flex-1 h-5 bg-stone-50 rounded relative overflow-hidden">
+                  <div
+                    className="absolute top-0 bottom-0 bg-emerald-100/50 border-l border-r border-emerald-300/40"
+                    style={{ left: `${tolLowPct}%`, width: `${tolHighPct - tolLowPct}%` }}
+                  />
+                  <div
+                    className="absolute top-0 bottom-0 w-px bg-stone-400"
+                    style={{ left: `${meanPct}%` }}
+                  />
+                  <div
+                    className={cn('h-full rounded transition-all', barColor(rep.dev, rep.flagged))}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <span className={cn(
+                  'text-[10px] font-medium w-12 text-right flex-shrink-0',
+                  rep.flagged ? (rep.dev > 0 ? 'text-amber-600' : 'text-sky-600') : 'text-emerald-600'
+                )}>
+                  {rep.dev > 0 ? '+' : ''}{rep.dev}%
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <PreviewSectionHeader label="Rep Detail" />
+        <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-stone-50 border-b border-stone-200">
+                <th className="text-left py-1.5 px-3 font-medium text-stone-600">Rep</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">{metricLabel}</th>
+                <th className="text-right py-1.5 px-3 font-medium text-stone-600">Deviation</th>
+                <th className="text-center py-1.5 px-3 font-medium text-stone-600">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {repRows.map(rep => (
+                <tr key={rep.repId} className="border-b border-stone-100 last:border-0">
+                  <td className="py-1.5 px-3 text-stone-700">{rep.name}</td>
+                  <td className="py-1.5 px-3 text-right text-stone-700 font-medium">{formatValue(rep.value)}</td>
+                  <td className="py-1.5 px-3 text-right">
+                    <span className={cn('inline-block px-1.5 py-0.5 rounded text-[10px] font-medium', devColor(rep.dev, rep.flagged))}>
+                      {rep.dev > 0 ? '+' : ''}{rep.dev}%
+                    </span>
+                  </td>
+                  <td className="py-1.5 px-3 text-center">
+                    {rep.flagged ? (
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] h-4 px-1.5">Flagged</Badge>
+                    ) : (
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-4 px-1.5">OK</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Template Preview Router
+// ---------------------------------------------------------------------------
+
+function TemplatePreviewContent({ templateId }: { templateId: string }) {
+  const config = EQUITY_TEMPLATE_CONFIG[templateId]
+  switch (templateId) {
+    case 't1': return <PreviewTerritoryRouting />
+    case 't2': return <PreviewSegmentTiering />
+    case 't3': return <PreviewCapacityBalancing />
+    case 't4': return <PreviewSpecialtyMatching />
+    case 't5': return <PreviewHealthEscalation />
+    case 't6': return <PreviewRoundRobin />
+    case 't7': return <PreviewRepExperience />
+    case 't8': return <PreviewTopPerformer />
+    case 't9': return <PreviewIndustryExpert />
+    case 't10':
+    case 't11':
+      return config ? <PreviewEquity metric={config.metric} tolerance={config.tolerance} /> : null
+    default:
+      return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Template Preview Sheet
+// ---------------------------------------------------------------------------
+
+function TemplatePreviewSheet({
+  templateId,
+  onClose,
+}: {
+  templateId: string | null
+  onClose: () => void
+}) {
+  const template = templateId ? TEMPLATES.find(t => t.id === templateId) : null
+
+  return (
+    <Sheet open={templateId !== null} onOpenChange={(open) => { if (!open) onClose() }}>
+      <SheetContent className="sm:max-w-[500px] flex flex-col p-0">
+        {template && (
+          <>
+            <SheetHeader className="px-6 pt-6 pb-4 border-b border-stone-200">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center">
+                  {(() => { const Icon = template.icon; return <Icon className="w-4.5 h-4.5 text-stone-600" /> })()}
+                </div>
+                <div className="flex-1">
+                  <SheetTitle className="text-sm font-semibold text-stone-800">{template.title}</SheetTitle>
+                  <SheetDescription className="text-xs text-muted-foreground mt-0.5">{template.description}</SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+            <ScrollArea className="flex-1 px-6 py-4">
+              <TemplatePreviewContent templateId={templateId!} />
+            </ScrollArea>
+            <SheetFooter className="px-6 py-4 border-t border-stone-200 gap-2">
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onClose}>Close</Button>
+              <Button size="sm" className="h-8 text-xs" onClick={() => { toast.success('Template applied — 1 new rule created'); onClose() }}>
+                Use Template
+              </Button>
+            </SheetFooter>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TAB 2 — Templates
+// ---------------------------------------------------------------------------
+
+function TemplatesTab() {
+  const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null)
+
+  const matchTemplates = TEMPLATES.filter((t) => t.section === 'match')
+  const equityTemplates = TEMPLATES.filter((t) => t.section === 'equity')
+
+  const handlePreview = (id: string) => {
+    setPreviewTemplateId(prev => (prev === id ? null : id))
   }
 
   return (
-    <div className="flex flex-col gap-8 relative">
-      <PresetPreviewSheet
-        preset={previewPreset}
-        open={previewPreset !== null}
-        onClose={() => setPreviewPreset(null)}
-        onUsePreset={onUsePreset}
-      />
-
+    <div className="flex flex-col gap-8">
       {/* Match Rules section */}
       <div className="flex flex-col gap-4">
         <div>
@@ -2192,70 +2807,52 @@ function PresetsTab({ onGoToBook, onUsePreset, onApplyBatch, appliedPresetIds }:
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {PRESETS.map((t) => (
-            <PresetCard
+          {matchTemplates.map((t) => (
+            <TemplateCard
               key={t.id}
               t={t}
-              onUsePreset={onUsePreset}
-              onPreview={setPreviewPreset}
-              selected={selectedIds.has(t.id)}
-              onToggleSelect={toggleSelect}
-              anySelected={selectedIds.size > 0}
-              applied={appliedPresetIds.has(t.id)}
+              onPreview={() => handlePreview(t.id)}
+              isPreviewActive={previewTemplateId === t.id}
             />
           ))}
         </div>
       </div>
 
-      {/* Equity callout — link to Book of Business tab */}
-      <div className="flex items-center gap-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
-        <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-          <Scale className="w-4.5 h-4.5 text-emerald-600" />
+      {/* Equity Rules section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-stone-800">Equity Rules</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Keep rep books balanced by ARR, account count, or custom metrics.
+            </p>
+          </div>
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-5 ml-1">
+            <Scale className="w-2.5 h-2.5 mr-0.5" />
+            Book of Business
+          </Badge>
         </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-stone-800">Looking for equity rules?</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Configure book-balancing constraints in the <span className="font-medium text-stone-700">Book of Business</span> tab.
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {equityTemplates.map((t) => (
+            <TemplateCard
+              key={t.id}
+              t={t}
+              onPreview={() => handlePreview(t.id)}
+              isPreviewActive={previewTemplateId === t.id}
+            />
+          ))}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 text-xs gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-100 flex-shrink-0"
-          onClick={onGoToBook}
-        >
-          Book of Business
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Button>
       </div>
 
-      {/* Floating action bar for multi-select */}
-      {selectedIds.size >= 2 && (
-        <div className="sticky bottom-0 bg-white border border-stone-200 rounded-xl shadow-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-stone-700">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 inline mr-1.5" />
-              {selectedIds.size} presets selected
-            </span>
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="text-xs text-stone-500 hover:text-stone-700 transition-colors"
-            >
-              Clear
-            </button>
-          </div>
-          <Button
-            size="sm"
-            className="h-8 text-xs press-scale gap-1.5"
-            onClick={handleApplySelected}
-          >
-            Apply {selectedIds.size} Presets
-          </Button>
-        </div>
-      )}
+      {/* Template Preview Sheet */}
+      <TemplatePreviewSheet
+        templateId={previewTemplateId}
+        onClose={() => setPreviewTemplateId(null)}
+      />
     </div>
   )
 }
+
 
 // ---------------------------------------------------------------------------
 // TAB 3 — Simulator
@@ -2839,12 +3436,10 @@ function AddEquityRuleSheet({
   open,
   onClose,
   onSave,
-  editRule,
 }: {
   open: boolean
   onClose: () => void
   onSave: (rule: EquityRule) => void
-  editRule?: EquityRule | null
 }) {
   const [name, setName]                   = useState('')
   const [metric, setMetric]               = useState<EquityMetric>('arr')
@@ -2854,70 +3449,30 @@ function AddEquityRuleSheet({
   const [weight, setWeight]               = useState(70)
   const [mustFollow, setMustFollow]       = useState(false)
   const [description, setDescription]     = useState('')
-  const [targetType, setTargetType]       = useState<TargetType>('mean_relative')
-  const [defaultTarget, setDefaultTarget] = useState(70)
-  const [segmentTargets, setSegmentTargets] = useState<Record<string, string>>({})
 
-  // Scope state
-  const [scopeOpen, setScopeOpen]                   = useState(false)
-  const [scopeSegments, setScopeSegments]           = useState<string[]>([])
-  const [scopeExcludeOnRamp, setScopeExcludeOnRamp] = useState(false)
-  const [scopeRepSpecialties, setScopeRepSpecialties] = useState<string[]>([])
-
-  const REP_SPECIALTIES = [
-    { key: 'enterprise', label: 'Enterprise' },
-    { key: 'fins', label: 'FINS' },
-    { key: 'corporate', label: 'Corporate' },
-    { key: 'commercial', label: 'Commercial' },
-    { key: 'international', label: 'International' },
-  ]
-
-  const hasScope = scopeSegments.length > 0 || scopeExcludeOnRamp || scopeRepSpecialties.length > 0
-  const buildScope = (): EquityRuleScope | undefined => {
-    if (!hasScope) return undefined
-    return {
-      ...(scopeSegments.length > 0 ? { segments: scopeSegments } : {}),
-      ...(scopeExcludeOnRamp ? { excludeOnRamp: true } : {}),
-      ...(scopeRepSpecialties.length > 0 ? { repSpecialties: scopeRepSpecialties } : {}),
-    }
-  }
-
-  // Auto-switch target mode when metric changes
-  const handleMetricChange = (m: EquityMetric) => {
-    setMetric(m)
-    if (m === 'custom') {
-      setTargetType('absolute')
-    } else {
-      setTargetType('mean_relative')
-    }
-  }
-
-  // Live mean preview from real account data (scope-aware)
+  // Live mean preview from real account data
   const liveMean = useMemo(() => {
-    const allActiveReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
-    const scope = buildScope()
-    const activeReps = filterRepsByScope(allActiveReps, scope)
+    const activeReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
     if (metric === 'arr') {
       const vals = activeReps
-        .map(r => filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), scope).reduce((s, a) => s + a.arr, 0))
+        .map(r => demoAccounts.filter(a => a.current_owner_id === r.id).reduce((s, a) => s + a.arr, 0))
         .filter(v => v > 0)
       return vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
     }
     if (metric === 'account_count') {
       const vals = activeReps
-        .map(r => filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), scope).length)
+        .map(r => demoAccounts.filter(a => a.current_owner_id === r.id).length)
         .filter(v => v > 0)
       return vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
     }
     if (metric === 'employee_count') {
       const vals = activeReps
-        .map(r => filterAccountsByScope(demoAccounts.filter(a => a.current_owner_id === r.id), scope).reduce((s, a) => s + (a.employee_count ?? 0), 0))
+        .map(r => demoAccounts.filter(a => a.current_owner_id === r.id).reduce((s, a) => s + (a.employee_count ?? 0), 0))
         .filter(v => v > 0)
       return vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
     }
     return 0
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metric, scopeSegments, scopeExcludeOnRamp, scopeRepSpecialties])
+  }, [metric])
 
   const formatMean = (v: number) => {
     if (metric === 'arr') return formatBookARR(v)
@@ -2933,43 +3488,7 @@ function AddEquityRuleSheet({
     setWeight(70)
     setMustFollow(false)
     setDescription('')
-    setTargetType('mean_relative')
-    setDefaultTarget(70)
-    setSegmentTargets({})
-    setScopeOpen(false)
-    setScopeSegments([])
-    setScopeExcludeOnRamp(false)
-    setScopeRepSpecialties([])
   }
-
-  // Pre-populate form when editing
-  useEffect(() => {
-    if (open && editRule) {
-      setName(editRule.name)
-      setMetric(editRule.metric)
-      setCustomFieldName(editRule.customFieldName ?? '')
-      setCustomFieldUnit(editRule.customFieldUnit ?? '')
-      setTolerance(editRule.tolerance)
-      setWeight(editRule.weight)
-      setMustFollow(editRule.mustFollow)
-      setDescription(editRule.description ?? '')
-      setTargetType(editRule.targetType ?? 'mean_relative')
-      setDefaultTarget(editRule.defaultTarget ?? 70)
-      const segMap: Record<string, string> = {}
-      if (editRule.segmentTargets) {
-        for (const st of editRule.segmentTargets) {
-          segMap[st.segment] = String(st.target)
-        }
-      }
-      setSegmentTargets(segMap)
-      setScopeSegments(editRule.scope?.segments ?? [])
-      setScopeExcludeOnRamp(editRule.scope?.excludeOnRamp ?? false)
-      setScopeRepSpecialties(editRule.scope?.repSpecialties ?? [])
-    } else if (open && !editRule) {
-      reset()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editRule])
 
   const handleSave = () => {
     if (!name.trim()) { toast.error('Rule name required'); return }
@@ -2977,18 +3496,8 @@ function AddEquityRuleSheet({
       toast.error('Custom field name required')
       return
     }
-
-    const isAbsolute = targetType === 'absolute'
-
-    const autoDesc = isAbsolute
-      ? (() => {
-          const overrides = FORM_SEGMENTS
-            .filter(s => segmentTargets[s.key] && segmentTargets[s.key].trim() !== '')
-            .map(s => `${s.label}: ${segmentTargets[s.key]}`)
-            .join(', ')
-          return `Target: ${defaultTarget} (±${tolerance}${metric === 'custom' ? customFieldUnit || 'pts' : '%'})${overrides ? `. ${overrides}` : ''}`
-        })()
-      : metric === 'arr'
+    const autoDesc =
+      metric === 'arr'
         ? `No rep's total managed ARR should exceed ±${tolerance}% of the team mean (${formatMean(liveMean)})`
         : metric === 'account_count'
         ? `All reps should carry within ±${tolerance}% of the average account count (${Math.round(liveMean)})`
@@ -2996,17 +3505,8 @@ function AddEquityRuleSheet({
         ? `Cumulative employee count across each book should be within ±${tolerance}% of the mean`
         : `Balance ${customFieldName} across rep books within ±${tolerance}% of the mean`
 
-    const parsedSegmentTargets: SegmentTarget[] | undefined = isAbsolute
-      ? FORM_SEGMENTS
-          .filter(s => segmentTargets[s.key] && segmentTargets[s.key].trim() !== '')
-          .map(s => ({ segment: s.key, target: parseFloat(segmentTargets[s.key]) }))
-          .filter(s => !isNaN(s.target))
-      : undefined
-
-    const scope = buildScope()
-
     const newRule: EquityRule = {
-      id: editRule?.id ?? `eq-${Date.now()}`,
+      id: `eq-${Date.now()}`,
       name: name.trim(),
       metric,
       customFieldName: metric === 'custom' ? customFieldName.trim() : undefined,
@@ -3016,17 +3516,9 @@ function AddEquityRuleSheet({
       mustFollow,
       active: true,
       description: description.trim() || autoDesc,
-      ...(isAbsolute ? {
-        targetType: 'absolute' as const,
-        defaultTarget,
-        segmentTargets: parsedSegmentTargets && parsedSegmentTargets.length > 0 ? parsedSegmentTargets : undefined,
-      } : {}),
-      ...(scope ? { scope } : {}),
     }
     onSave(newRule)
-    toast.success(editRule ? 'Equity rule updated' : 'Equity rule created', {
-      description: `"${name.trim()}" ${editRule ? 'has been updated.' : 'is now active.'}`,
-    })
+    toast.success('Equity rule created', { description: `"${name.trim()}" is now active.` })
     reset()
     onClose()
   }
@@ -3042,7 +3534,7 @@ function AddEquityRuleSheet({
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-stone-200 shrink-0">
           <SheetTitle className="flex items-center gap-2 text-base">
             <Scale className="w-4 h-4 text-emerald-600" />
-            {editRule ? 'Edit Equity Rule' : 'Add Equity Rule'}
+            Add Equity Rule
           </SheetTitle>
           <SheetDescription className="text-xs">
             Configure a book-of-business balancing constraint.
@@ -3075,7 +3567,7 @@ function AddEquityRuleSheet({
                 ] as const).map(({ v, label, desc }) => (
                   <button
                     key={v}
-                    onClick={() => handleMetricChange(v)}
+                    onClick={() => setMetric(v)}
                     className={cn(
                       'flex flex-col items-start p-3 rounded-lg border text-left transition-colors',
                       metric === v
@@ -3116,95 +3608,22 @@ function AddEquityRuleSheet({
               </div>
             )}
 
-            {/* Target Mode */}
-            <div className="flex flex-col gap-2">
-              <Label className="text-xs font-semibold text-stone-700">Target Mode</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {([
-                  { v: 'mean_relative' as const, label: 'Team Mean (±%)', desc: 'Relative to team average' },
-                  { v: 'absolute' as const, label: 'Fixed Target', desc: 'Absolute value per segment' },
-                ] as const).map(({ v, label, desc }) => (
-                  <button
-                    key={v}
-                    onClick={() => setTargetType(v)}
-                    className={cn(
-                      'flex flex-col items-start p-3 rounded-lg border text-left transition-colors',
-                      targetType === v
-                        ? 'bg-stone-800 text-white border-stone-800'
-                        : 'border-stone-200 hover:bg-stone-50 text-stone-700'
-                    )}
-                  >
-                    <span className="text-xs font-semibold">{label}</span>
-                    <span className={cn('text-[10px] mt-0.5', targetType === v ? 'text-stone-300' : 'text-muted-foreground')}>
-                      {desc}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Default Target (absolute mode only) */}
-            {targetType === 'absolute' && (
-              <div className="flex flex-col gap-2">
-                <Label className="text-xs font-semibold text-stone-700">Base Target (all segments)</Label>
-                <Input
-                  type="number"
-                  value={defaultTarget}
-                  onChange={e => setDefaultTarget(parseInt(e.target.value) || 0)}
-                  className="h-9 text-sm w-32"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Default target for segments without a specific override.
-                </p>
-              </div>
-            )}
-
-            {/* Per-Segment Targets (absolute mode only) */}
-            {targetType === 'absolute' && (
-              <div className="flex flex-col gap-2">
-                <Label className="text-xs font-semibold text-stone-700">Per-Segment Targets</Label>
-                <div className="space-y-2 p-3 rounded-lg bg-stone-50 border border-stone-200">
-                  {FORM_SEGMENTS.map(seg => (
-                    <div key={seg.key} className="flex items-center gap-3">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: seg.color }}
-                      />
-                      <span className="text-xs font-medium text-stone-700 w-24 shrink-0">{seg.label}</span>
-                      <Input
-                        type="number"
-                        placeholder={String(defaultTarget)}
-                        value={segmentTargets[seg.key] || ''}
-                        onChange={e => setSegmentTargets(prev => ({ ...prev, [seg.key]: e.target.value }))}
-                        className="h-7 text-xs w-20"
-                      />
-                      <span className="text-[10px] text-muted-foreground">
-                        {segmentTargets[seg.key] ? '' : `= ${defaultTarget}`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Tolerance slider + live preview */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold text-stone-700">Tolerance</Label>
-                <span className="text-sm font-bold text-stone-800">
-                  ±{tolerance}{targetType === 'absolute' ? (customFieldUnit || 'pts') : '%'}
-                </span>
+                <span className="text-sm font-bold text-stone-800">±{tolerance}%</span>
               </div>
               <input
                 type="range"
-                min={targetType === 'absolute' ? 1 : 5}
-                max={targetType === 'absolute' ? 25 : 50}
-                step={targetType === 'absolute' ? 1 : 5}
+                min={5}
+                max={50}
+                step={5}
                 value={tolerance}
                 onChange={e => setTolerance(parseInt(e.target.value))}
                 className="w-full accent-stone-800"
               />
-              {targetType === 'mean_relative' && liveMean > 0 && (
+              {liveMean > 0 && (
                 <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-stone-50 border border-stone-200 mt-1">
                   <div className="text-center">
                     <p className="text-[10px] text-muted-foreground">Floor</p>
@@ -3221,22 +3640,6 @@ function AddEquityRuleSheet({
                     <p className="text-xs font-bold text-stone-700">
                       {formatMean(liveMean * (1 + tolerance / 100))}
                     </p>
-                  </div>
-                </div>
-              )}
-              {targetType === 'absolute' && (
-                <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-stone-50 border border-stone-200 mt-1">
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground">Floor</p>
-                    <p className="text-xs font-bold text-stone-700">{defaultTarget - tolerance}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground">Target</p>
-                    <p className="text-xs font-bold text-emerald-700">{defaultTarget}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] text-muted-foreground">Ceiling</p>
-                    <p className="text-xs font-bold text-stone-700">{defaultTarget + tolerance}</p>
                   </div>
                 </div>
               )}
@@ -3274,114 +3677,6 @@ function AddEquityRuleSheet({
               <Switch checked={mustFollow} onCheckedChange={setMustFollow} />
             </div>
 
-            {/* Scope (collapsible) */}
-            <div className="flex flex-col gap-0">
-              <button
-                type="button"
-                onClick={() => setScopeOpen(v => !v)}
-                className="flex items-center justify-between w-full py-2 group"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-stone-400" />
-                  <span className="text-xs font-semibold text-stone-700">Scope</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!scopeOpen && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {hasScope
-                        ? [
-                            scopeSegments.length > 0 && scopeSegments.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', '),
-                            scopeExcludeOnRamp && 'Excl. on-ramp',
-                            scopeRepSpecialties.length > 0 && scopeRepSpecialties.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') + ' reps',
-                          ].filter(Boolean).join(' · ')
-                        : 'All reps, all segments'}
-                    </span>
-                  )}
-                  {scopeOpen ? <ChevronUp className="w-3.5 h-3.5 text-stone-400" /> : <ChevronDown className="w-3.5 h-3.5 text-stone-400" />}
-                </div>
-              </button>
-
-              {scopeOpen && (
-                <div className="flex flex-col gap-4 p-3 rounded-lg bg-stone-50 border border-stone-200">
-                  {/* Account Segments */}
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[11px] font-semibold text-stone-600">Account Segments</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {FORM_SEGMENTS.map(seg => {
-                        const isSelected = scopeSegments.includes(seg.key)
-                        return (
-                          <button
-                            key={seg.key}
-                            type="button"
-                            onClick={() =>
-                              setScopeSegments(prev =>
-                                isSelected ? prev.filter(s => s !== seg.key) : [...prev, seg.key],
-                              )
-                            }
-                            className={cn(
-                              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
-                              isSelected
-                                ? 'border-violet-400 bg-violet-100 text-violet-800'
-                                : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-100',
-                            )}
-                          >
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: seg.color }}
-                            />
-                            {seg.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">Only count accounts in selected segments.</p>
-                  </div>
-
-                  {/* Exclude On-Ramp */}
-                  <div className="flex items-center justify-between p-2.5 rounded-lg border border-stone-200 bg-white">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-amber-500" />
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-semibold text-stone-700">Exclude On-Ramp</span>
-                        <span className="text-[10px] text-muted-foreground">Reps with &lt;12 months tenure excluded</span>
-                      </div>
-                    </div>
-                    <Switch checked={scopeExcludeOnRamp} onCheckedChange={setScopeExcludeOnRamp} />
-                  </div>
-
-                  {/* Rep Specialties */}
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[11px] font-semibold text-stone-600">Rep Specialties</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {REP_SPECIALTIES.map(spec => {
-                        const isSelected = scopeRepSpecialties.includes(spec.key)
-                        return (
-                          <button
-                            key={spec.key}
-                            type="button"
-                            onClick={() =>
-                              setScopeRepSpecialties(prev =>
-                                isSelected ? prev.filter(s => s !== spec.key) : [...prev, spec.key],
-                              )
-                            }
-                            className={cn(
-                              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
-                              isSelected
-                                ? 'border-sky-400 bg-sky-100 text-sky-800'
-                                : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-100',
-                            )}
-                          >
-                            {spec.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">Only apply to reps with these specialties.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Description */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-semibold text-stone-700">Description (optional)</Label>
@@ -3402,7 +3697,7 @@ function AddEquityRuleSheet({
           </Button>
           <Button onClick={handleSave} className="flex-1 press-scale gap-1.5">
             <Scale className="w-3.5 h-3.5" />
-            {editRule ? 'Save Changes' : 'Create Equity Rule'}
+            Create Equity Rule
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -3417,42 +3712,15 @@ function AddEquityRuleSheet({
 function BookOfBusinessTab({
   equityRules,
   setEquityRules,
+  onAddEquityRule,
 }: {
   equityRules: EquityRule[]
   setEquityRules: React.Dispatch<React.SetStateAction<EquityRule[]>>
+  onAddEquityRule: () => void
 }) {
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false)
   const [sortCol, setSortCol] = useState<string>('arr')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [segmentFilters, setSegmentFilters] = useState<string[]>([])
-  const [focusedRuleId, setFocusedRuleId] = useState<string | null>(null)
-  const [editingRule, setEditingRule] = useState<EquityRule | null>(null)
-  const [editSheetOpen, setEditSheetOpen] = useState(false)
-
-  const toggleSegmentFilter = (key: string) => {
-    setSegmentFilters(prev =>
-      prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]
-    )
-  }
-
-  const handleFocusRule = (rule: EquityRule) => {
-    if (focusedRuleId === rule.id) {
-      // Toggle off
-      setFocusedRuleId(null)
-      setSegmentFilters([])
-    } else {
-      setFocusedRuleId(rule.id)
-      setSegmentFilters(rule.scope?.segments ?? [])
-    }
-  }
-
-  const clearAllFilters = () => {
-    setSegmentFilters([])
-    setFocusedRuleId(null)
-    setShowFlaggedOnly(false)
-  }
-
-  const hasActiveFilters = segmentFilters.length > 0 || focusedRuleId !== null
 
   const handleColSort = (col: string) => {
     if (col === sortCol) {
@@ -3486,7 +3754,7 @@ function BookOfBusinessTab({
       }[]
   }, [])
 
-  // Global team means (used as fallback when rules have no scope)
+  // Team means
   const means = useMemo(() => {
     const n = repBookData.length
     if (n === 0) return { arr: 0, accounts: 0, employees: 0, open_tickets: 0 }
@@ -3504,45 +3772,6 @@ function BookOfBusinessTab({
   const employeesRule = equityRules.find(r => r.active && r.metric === 'employee_count')
   const customRule    = equityRules.find(r => r.active && r.metric === 'custom')
 
-  // Get scoped stats for a rule — filters reps + accounts by scope, computes mean
-  const getScopedStats = useCallback((rule: EquityRule) => {
-    const allActiveReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
-    const scopedReps = filterRepsByScope(allActiveReps, rule.scope)
-    const scopedRepIds = new Set(scopedReps.map(r => r.id))
-
-    const vals = repBookData
-      .filter(rep => scopedRepIds.has(rep.repId))
-      .map(rep => {
-        if (rule.scope?.segments && rule.scope.segments.length > 0) {
-          const repAccounts = filterAccountsByScope(
-            demoAccounts.filter(a => a.current_owner_id === rep.repId),
-            rule.scope,
-          )
-          if (rule.metric === 'arr') return repAccounts.reduce((s, a) => s + a.arr, 0)
-          if (rule.metric === 'account_count') return repAccounts.length
-          if (rule.metric === 'employee_count') return repAccounts.reduce((s, a) => s + (a.employee_count ?? 0), 0)
-        }
-        if (rule.metric === 'arr') return rep.arr
-        if (rule.metric === 'account_count') return rep.accounts
-        if (rule.metric === 'employee_count') return rep.employees
-        if (rule.metric === 'custom') return rep.open_tickets
-        return 0
-      })
-
-    const mean = vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
-    return { mean, scopedRepIds, vals }
-  }, [repBookData])
-
-  // Precompute per-rule scoped means + in-scope rep sets
-  const scopedMeans = useMemo(() => {
-    const result: Record<string, { mean: number; scopedRepIds: Set<string> }> = {}
-    for (const rule of [arrRule, accountsRule, employeesRule, customRule]) {
-      if (!rule) continue
-      result[rule.id] = getScopedStats(rule)
-    }
-    return result
-  }, [arrRule, accountsRule, employeesRule, customRule, getScopedStats])
-
   // If the sorted column's rule gets toggled off, fall back to name sort
   const effectiveSortCol = (
     (sortCol === 'arr'       && !arrRule) ||
@@ -3551,63 +3780,30 @@ function BookOfBusinessTab({
     (sortCol === 'custom'    && !customRule)
   ) ? 'name' : sortCol
 
-  // Helper: get the scoped metric value for a rep (recomputes from scoped accounts if needed)
-  const getScopedValue = useCallback((rep: typeof repBookData[0], rule: EquityRule) => {
-    if (rule.scope?.segments && rule.scope.segments.length > 0) {
-      const repAccounts = filterAccountsByScope(
-        demoAccounts.filter(a => a.current_owner_id === rep.repId),
-        rule.scope,
-      )
-      if (rule.metric === 'arr') return repAccounts.reduce((s, a) => s + a.arr, 0)
-      if (rule.metric === 'account_count') return repAccounts.length
-      if (rule.metric === 'employee_count') return repAccounts.reduce((s, a) => s + (a.employee_count ?? 0), 0)
-    }
-    if (rule.metric === 'arr') return rep.arr
-    if (rule.metric === 'account_count') return rep.accounts
-    if (rule.metric === 'employee_count') return rep.employees
-    if (rule.metric === 'custom') return rep.open_tickets
-    return 0
-  }, [repBookData])
-
-  // Per-rep deviation + flag status (scope-aware)
+  // Per-rep deviation + flag status
   const repMatrix = useMemo(() => {
     return repBookData.map(rep => {
-      // Per-rule: compute deviation against scoped mean, track in-scope status
-      const computeMetric = (rule: EquityRule | undefined, globalMean: number, rawVal: number) => {
-        if (!rule) return { dev: 0, flagged: false, inScope: true }
-        const scoped = scopedMeans[rule.id]
-        const inScope = scoped ? scoped.scopedRepIds.has(rep.repId) : true
-        if (!inScope) return { dev: 0, flagged: false, inScope: false }
-        const mean = scoped?.mean ?? globalMean
-        const val = rule.scope?.segments && rule.scope.segments.length > 0
-          ? getScopedValue(rep, rule)
-          : rawVal
-        const dev = mean > 0 ? ((val - mean) / mean) * 100 : 0
-        const flagged = Math.abs(dev) > rule.tolerance
-        return { dev, flagged, inScope: true }
-      }
+      const arrDev         = means.arr > 0          ? ((rep.arr - means.arr) / means.arr) * 100                         : 0
+      const accountsDev    = means.accounts > 0     ? ((rep.accounts - means.accounts) / means.accounts) * 100          : 0
+      const employeesDev   = means.employees > 0    ? ((rep.employees - means.employees) / means.employees) * 100       : 0
+      const openTicketsDev = means.open_tickets > 0 ? ((rep.open_tickets - means.open_tickets) / means.open_tickets) * 100 : 0
 
-      const arrM      = computeMetric(arrRule,       means.arr,          rep.arr)
-      const accM      = computeMetric(accountsRule,  means.accounts,     rep.accounts)
-      const empM      = computeMetric(employeesRule, means.employees,    rep.employees)
-      const tickM     = computeMetric(customRule,    means.open_tickets, rep.open_tickets)
-
-      const hasFlag = arrM.flagged || accM.flagged || empM.flagged || tickM.flagged
+      const isArrFlagged         = arrRule       ? Math.abs(arrDev)         > arrRule.tolerance       : false
+      const isAccountsFlagged    = accountsRule  ? Math.abs(accountsDev)    > accountsRule.tolerance  : false
+      const isEmployeesFlagged   = employeesRule ? Math.abs(employeesDev)   > employeesRule.tolerance : false
+      const isOpenTicketsFlagged = customRule    ? Math.abs(openTicketsDev) > customRule.tolerance    : false
+      const hasFlag = isArrFlagged || isAccountsFlagged || isEmployeesFlagged || isOpenTicketsFlagged
 
       return {
         ...rep,
-        arrDev:         Math.round(arrM.dev),
-        accountsDev:    Math.round(accM.dev),
-        employeesDev:   Math.round(empM.dev),
-        openTicketsDev: Math.round(tickM.dev),
-        isArrFlagged: arrM.flagged, isAccountsFlagged: accM.flagged,
-        isEmployeesFlagged: empM.flagged, isOpenTicketsFlagged: tickM.flagged,
-        arrInScope: arrM.inScope, accountsInScope: accM.inScope,
-        employeesInScope: empM.inScope, ticketsInScope: tickM.inScope,
-        hasFlag,
+        arrDev:         Math.round(arrDev),
+        accountsDev:    Math.round(accountsDev),
+        employeesDev:   Math.round(employeesDev),
+        openTicketsDev: Math.round(openTicketsDev),
+        isArrFlagged, isAccountsFlagged, isEmployeesFlagged, isOpenTicketsFlagged, hasFlag,
       }
     })
-  }, [repBookData, means, arrRule, accountsRule, employeesRule, customRule, scopedMeans, getScopedValue])
+  }, [repBookData, means, arrRule, accountsRule, employeesRule, customRule])
 
   const totalFlagged = repMatrix.filter(r => r.hasFlag).length
 
@@ -3619,7 +3815,6 @@ function BookOfBusinessTab({
     getValue:  (r: typeof repMatrix[0]) => number
     getDev:    (r: typeof repMatrix[0]) => number
     isFlagged: (r: typeof repMatrix[0]) => boolean
-    isInScope: (r: typeof repMatrix[0]) => boolean
     format:    (v: number) => string
     meanVal:   () => number
   }
@@ -3628,20 +3823,17 @@ function BookOfBusinessTab({
   if (arrRule) activeMetricCols.push({
     key: 'arr', label: 'ARR', tolerance: arrRule.tolerance,
     getValue:  r => r.arr,       getDev:    r => r.arrDev,         isFlagged: r => r.isArrFlagged,
-    isInScope: r => r.arrInScope,
-    format:    v => formatBookARR(v), meanVal: () => scopedMeans[arrRule.id]?.mean ?? means.arr,
+    format:    v => formatBookARR(v), meanVal: () => means.arr,
   })
   if (accountsRule) activeMetricCols.push({
     key: 'accounts', label: 'Accounts', tolerance: accountsRule.tolerance,
     getValue:  r => r.accounts,  getDev:    r => r.accountsDev,    isFlagged: r => r.isAccountsFlagged,
-    isInScope: r => r.accountsInScope,
-    format:    v => String(v),   meanVal: () => scopedMeans[accountsRule.id]?.mean ?? means.accounts,
+    format:    v => String(v),   meanVal: () => means.accounts,
   })
   if (employeesRule) activeMetricCols.push({
     key: 'employees', label: 'Employees', tolerance: employeesRule.tolerance,
     getValue:  r => r.employees, getDev:    r => r.employeesDev,   isFlagged: r => r.isEmployeesFlagged,
-    isInScope: r => r.employeesInScope,
-    format:    v => v.toLocaleString(), meanVal: () => scopedMeans[employeesRule.id]?.mean ?? means.employees,
+    format:    v => v.toLocaleString(), meanVal: () => means.employees,
   })
   if (customRule) {
     const rawName = customRule.customFieldName ?? 'custom'
@@ -3650,40 +3842,13 @@ function BookOfBusinessTab({
     activeMetricCols.push({
       key: 'custom', label, tolerance: customRule.tolerance,
       getValue:  r => r.open_tickets,       getDev:    r => r.openTicketsDev,  isFlagged: r => r.isOpenTicketsFlagged,
-      isInScope: r => r.ticketsInScope,
       format:    v => unit ? `${v.toLocaleString()} ${unit}` : v.toLocaleString(),
-      meanVal: () => scopedMeans[customRule.id]?.mean ?? means.open_tickets,
+      meanVal: () => means.open_tickets,
     })
   }
 
   const displayReps = useMemo(() => {
-    let filtered = repMatrix
-
-    // Focus filter: only show reps in scope for the focused rule
-    if (focusedRuleId) {
-      const focusedRule = equityRules.find(r => r.id === focusedRuleId)
-      if (focusedRule) {
-        const allActiveReps = demoTeamMembers.filter(m => m.role === 'rep' && m.capacity > 0)
-        const scopedReps = filterRepsByScope(allActiveReps, focusedRule.scope)
-        const scopedRepIds = new Set(scopedReps.map(r => r.id))
-        filtered = filtered.filter(r => scopedRepIds.has(r.repId))
-      }
-    }
-
-    // Segment filter: keep only reps with at least one account in selected segments
-    if (segmentFilters.length > 0) {
-      const segSet = new Set(segmentFilters)
-      filtered = filtered.filter(r => {
-        const repAccounts = demoAccounts.filter(a => a.current_owner_id === r.repId)
-        return repAccounts.some(a => segSet.has(a.segment))
-      })
-    }
-
-    // Flagged filter
-    if (showFlaggedOnly) {
-      filtered = filtered.filter(r => r.hasFlag)
-    }
-
+    const filtered = showFlaggedOnly ? repMatrix.filter(r => r.hasFlag) : repMatrix
     const col = effectiveSortCol
     return [...filtered].sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1
@@ -3693,16 +3858,21 @@ function BookOfBusinessTab({
       if (col === 'custom')    return dir * (a.open_tickets - b.open_tickets)
       return dir * (a.arr - b.arr)
     })
-  }, [repMatrix, showFlaggedOnly, effectiveSortCol, sortDir, focusedRuleId, segmentFilters, equityRules])
+  }, [repMatrix, showFlaggedOnly, effectiveSortCol, sortDir])
 
-  const filteredFlagged = displayReps.filter(r => r.hasFlag).length
-
-  // Equity rules: compute out-of-range count using scoped data
+  // Equity rules: compute out-of-range count using real data
   const getRuleOutOfRange = (rule: EquityRule) => {
-    const { vals, mean } = getScopedStats(rule)
+    const vals = repBookData.map(rep => {
+      if (rule.metric === 'arr')            return rep.arr
+      if (rule.metric === 'account_count')  return rep.accounts
+      if (rule.metric === 'employee_count') return rep.employees
+      if (rule.metric === 'custom')         return rep.open_tickets
+      return 0
+    })
+    const m = vals.length > 0 ? vals.reduce((a, b) => a + b) / vals.length : 0
     return vals.filter(v => {
       const tol = rule.tolerance / 100
-      return v > mean * (1 + tol) || v < mean * (1 - tol)
+      return v > m * (1 + tol) || v < m * (1 - tol)
     }).length
   }
 
@@ -3720,16 +3890,6 @@ function BookOfBusinessTab({
     return 'text-sky-700 bg-sky-50'
   }
 
-  const handleEquityRuleSave = (rule: EquityRule) => {
-    setEquityRules(prev => {
-      const idx = prev.findIndex(r => r.id === rule.id)
-      if (idx >= 0) {
-        return prev.map(r => r.id === rule.id ? rule : r)
-      }
-      return [...prev, rule]
-    })
-  }
-
   return (
     <div className="flex flex-col gap-8">
 
@@ -3742,7 +3902,7 @@ function BookOfBusinessTab({
               Hard and soft constraints to keep rep books balanced.
             </p>
           </div>
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => { setEditingRule(null); setEditSheetOpen(true) }}>
+          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={onAddEquityRule}>
             <Plus className="w-3.5 h-3.5" />
             Add Equity Rule
           </Button>
@@ -3785,48 +3945,21 @@ function BookOfBusinessTab({
                           Custom: {rule.customFieldName}
                         </span>
                       )}
-                      {rule.scope?.segments && rule.scope.segments.length > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-200">
-                          {rule.scope.segments.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')}
-                        </span>
-                      )}
-                      {rule.scope?.excludeOnRamp && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                          Excl. on-ramp
-                        </span>
-                      )}
-                      {rule.scope?.repSpecialties && rule.scope.repSpecialties.length > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">
-                          {rule.scope.repSpecialties.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')} reps
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{rule.description}</p>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                    <button
-                      onClick={() => { setEditingRule(rule); setEditSheetOpen(true) }}
-                      className="w-7 h-7 rounded-md flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <Switch
-                      checked={rule.active}
-                      onCheckedChange={() => {
-                        setEquityRules(prev => prev.map(r => r.id === rule.id ? { ...r, active: !r.active } : r))
-                        // Auto-clear focus when the focused rule is toggled off
-                        if (rule.active && focusedRuleId === rule.id) {
-                          setFocusedRuleId(null)
-                          setSegmentFilters([])
-                        }
-                        toast.success(rule.active ? 'Equity rule disabled' : 'Equity rule enabled')
-                      }}
-                    />
-                  </div>
+                  <Switch
+                    checked={rule.active}
+                    onCheckedChange={() => {
+                      setEquityRules(prev => prev.map(r => r.id === rule.id ? { ...r, active: !r.active } : r))
+                      toast.success(rule.active ? 'Equity rule disabled' : 'Equity rule enabled')
+                    }}
+                    className="shrink-0 mt-0.5"
+                  />
                 </div>
                 <div className="flex items-center gap-4 text-xs text-stone-500 pt-2 border-t border-stone-100 flex-wrap">
                   <span>
-                    Tolerance: within <span className="font-semibold text-stone-700">±{rule.tolerance}%</span> of {rule.scope ? 'scoped' : 'team'} mean
+                    Tolerance: within <span className="font-semibold text-stone-700">±{rule.tolerance}%</span> of team mean
                   </span>
                   {rule.active && (
                     ruleOOR > 0 ? (
@@ -3839,20 +3972,6 @@ function BookOfBusinessTab({
                         <CheckCircle2 className="w-3 h-3" />All balanced
                       </span>
                     )
-                  )}
-                  {rule.active && (
-                    <button
-                      onClick={() => handleFocusRule(rule)}
-                      className={cn(
-                        'ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors',
-                        focusedRuleId === rule.id
-                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
-                          : 'text-stone-400 hover:text-stone-600 hover:bg-stone-100 border border-transparent'
-                      )}
-                    >
-                      <Target className="w-3 h-3" />
-                      {focusedRuleId === rule.id ? 'Focused' : 'Focus'}
-                    </button>
                   )}
                 </div>
               </div>
@@ -3867,31 +3986,10 @@ function BookOfBusinessTab({
           <div>
             <h3 className="text-sm font-semibold text-stone-800">Book Equity Analysis</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {hasActiveFilters ? (
-                <>
-                  {displayReps.length} rep{displayReps.length !== 1 ? 's' : ''}
-                  {segmentFilters.length > 0 && (
-                    <> &middot; {segmentFilters.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ')} segment{segmentFilters.length > 1 ? 's' : ''}</>
-                  )}
-                  {focusedRuleId && (
-                    <> &middot; {equityRules.find(r => r.id === focusedRuleId)?.name} scope</>
-                  )}
-                </>
-              ) : (
-                <>All {repBookData.length} active reps — deviation from team mean, flagged by active equity rules.</>
-              )}
+              All {repBookData.length} active reps — deviation from team mean, flagged by active equity rules.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {hasActiveFilters && (
-              <button
-                onClick={clearAllFilters}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-stone-200 text-[11px] font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-50 transition-colors"
-              >
-                <X className="w-3 h-3" />
-                Clear filters
-              </button>
-            )}
             {totalFlagged > 0 && (
               <button
                 onClick={() => setShowFlaggedOnly(v => !v)}
@@ -3909,49 +4007,11 @@ function BookOfBusinessTab({
           </div>
         </div>
 
-        {/* Segment filter chips */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wide mr-1">Segment</span>
-          {FORM_SEGMENTS.map(seg => {
-            const isActive = segmentFilters.includes(seg.key)
-            return (
-              <button
-                key={seg.key}
-                onClick={() => {
-                  toggleSegmentFilter(seg.key)
-                  // Clear focus if user manually changes segments
-                  if (focusedRuleId) setFocusedRuleId(null)
-                }}
-                className={cn(
-                  'px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border',
-                  isActive
-                    ? 'text-white border-transparent shadow-sm'
-                    : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300 hover:text-stone-700'
-                )}
-                style={isActive ? { backgroundColor: seg.color } : undefined}
-              >
-                {seg.label}
-              </button>
-            )
-          })}
-        </div>
-
         {activeMetricCols.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2 rounded-xl border border-stone-200 bg-white">
             <Scale className="w-6 h-6 text-stone-300" />
             <p className="text-sm font-medium text-stone-400">No active equity rules</p>
             <p className="text-xs text-stone-400">Enable a rule above to see the book distribution analysis.</p>
-          </div>
-        ) : displayReps.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3 rounded-xl border border-stone-200 bg-white">
-            <Target className="w-6 h-6 text-stone-300" />
-            <p className="text-sm font-medium text-stone-400">No reps match current filters</p>
-            <button
-              onClick={clearAllFilters}
-              className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
-            >
-              Clear filters
-            </button>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
@@ -4028,20 +4088,6 @@ function BookOfBusinessTab({
 
                           {/* Data cells */}
                           {activeMetricCols.map(col => {
-                            const inScope = col.isInScope(rep)
-                            if (!inScope) {
-                              return (
-                                <div
-                                  key={col.key}
-                                  className={cn(
-                                    'flex items-center justify-end pr-4 opacity-40',
-                                    effectiveSortCol === col.key && 'bg-stone-50/80'
-                                  )}
-                                >
-                                  <span className="text-[11px] italic text-stone-400">n/a</span>
-                                </div>
-                              )
-                            }
                             const val     = col.getValue(rep)
                             const dev     = col.getDev(rep)
                             const flagged = col.isFlagged(rep)
@@ -4093,9 +4139,7 @@ function BookOfBusinessTab({
 
                   {/* Footer: team means */}
                   <div className="px-5 py-3 bg-stone-50 border-t border-stone-100 flex items-center gap-6 flex-wrap text-xs text-stone-500">
-                    <span className="font-medium text-stone-400 uppercase tracking-wide text-[10px]">
-                      {hasActiveFilters ? 'Filtered means' : 'Team means'}
-                    </span>
+                    <span className="font-medium text-stone-400 uppercase tracking-wide text-[10px]">Team means</span>
                     {activeMetricCols.map(col => (
                       <span key={col.key} className="flex items-center gap-1.5">
                         <span className="text-stone-400">{col.label}:</span>
@@ -4103,10 +4147,10 @@ function BookOfBusinessTab({
                       </span>
                     ))}
                     <span className="ml-auto flex items-center gap-1.5">
-                      {filteredFlagged > 0 ? (
+                      {totalFlagged > 0 ? (
                         <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
                           <ShieldAlert className="w-3 h-3" />
-                          {filteredFlagged} rep{filteredFlagged > 1 ? 's' : ''} out of range
+                          {totalFlagged} rep{totalFlagged > 1 ? 's' : ''} out of range
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-emerald-700">
@@ -4121,13 +4165,6 @@ function BookOfBusinessTab({
           </div>
         )}
       </div>
-
-      <AddEquityRuleSheet
-        open={editSheetOpen}
-        onClose={() => setEditSheetOpen(false)}
-        onSave={handleEquityRuleSave}
-        editRule={editingRule}
-      />
     </div>
   )
 }
@@ -4140,18 +4177,12 @@ export default function RulesPage() {
   const { isTrialMode, enterDemoMode } = useTrialMode()
 
   // Lifted state — shared across tabs
-  const [rules, setRules]               = usePersistedState<Rule[]>('relay-routing-rules', DEMO_RULES)
-  const { equityRules, setEquityRules } = useEquityRules()
+  const [rules, setRules]               = useState<Rule[]>(DEMO_RULES)
+  const [equityRules, setEquityRules]   = useState<EquityRule[]>(DEMO_EQUITY_RULES)
   const [newRuleOpen, setNewRuleOpen]   = useState(false)
-  const [activeTab, setActiveTab]       = usePersistedState('relay-rules-tab', 'rules')
+  const [addEquityOpen, setAddEquityOpen] = useState(false)
 
   const activeCount = rules.filter(r => r.active).length
-
-  // Derive which presets are already applied (matched by rule name = preset title)
-  const appliedPresetIds = useMemo(() => {
-    const ruleNames = new Set(rules.map(r => r.name))
-    return new Set(PRESETS.filter(p => ruleNames.has(p.title)).map(p => p.id))
-  }, [rules])
 
   const handleNewRule = (rule: Rule) => {
     setRules(prev => {
@@ -4160,59 +4191,9 @@ export default function RulesPage() {
     })
   }
 
-  const presetToRule = useCallback((preset: PresetType, priorityOffset: number): Rule => {
-    const now = Date.now() + priorityOffset
-    const conditions: Condition[] = preset.conditions.map((c, i) => ({
-      id: `tc-${now}-${i}`,
-      field: c.field,
-      operator: c.operator,
-      value: c.value,
-    }))
-    return {
-      id: `rule-${now}`,
-      name: preset.title,
-      priority: 0,
-      active: true,
-      conditionGroup: {
-        id: `cg-${now}`,
-        logic: preset.logic,
-        conditions,
-      },
-      action: {
-        type: preset.actionType,
-        userIds: preset.repIds,
-        label: buildActionLabel(preset.actionType, preset.repIds),
-      },
-      hitCount: 0,
-      lastTriggered: 'Never',
-      createdBy: 'Sarah Chen',
-      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      modifiedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      version: 1,
-      weight: preset.weight,
-      mustFollow: preset.mustFollow,
-    }
-  }, [])
-
-  const handleUsePreset = useCallback((preset: PresetType) => {
-    const rule = presetToRule(preset, 0)
-    setRules(prev => [...prev, { ...rule, priority: prev.length + 1 }])
-    setActiveTab('rules')
-    toast.success('Preset applied', { description: `"${preset.title}" added to your rules.` })
-  }, [presetToRule])
-
-  const handleApplyBatch = useCallback((presets: PresetType[]) => {
-    setRules(prev => {
-      const newRules = presets.map((p, i) => ({
-        ...presetToRule(p, i),
-        priority: prev.length + 1 + i,
-      }))
-      return [...prev, ...newRules]
-    })
-    setActiveTab('rules')
-    const names = presets.map(p => p.title).join(', ')
-    toast.success(`${presets.length} presets applied`, { description: names })
-  }, [presetToRule])
+  const handleNewEquityRule = (rule: EquityRule) => {
+    setEquityRules(prev => [...prev, rule])
+  }
 
   if (isTrialMode) {
     return <TrialPageEmpty icon={Users} title="Assignment Rules" description="Configure routing rules to automatically assign accounts to the right reps during transitions." ctaLabel="Go to Integrations" ctaHref="/integrations" onExploreDemo={enterDemoMode} />
@@ -4227,6 +4208,12 @@ export default function RulesPage() {
           onClose={() => setNewRuleOpen(false)}
           onSave={handleNewRule}
         />
+        <AddEquityRuleSheet
+          open={addEquityOpen}
+          onClose={() => setAddEquityOpen(false)}
+          onSave={handleNewEquityRule}
+        />
+
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
@@ -4254,11 +4241,11 @@ export default function RulesPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="rules" className="w-full">
           <TabsList className="bg-transparent border-b border-stone-200 rounded-none w-full justify-start h-auto p-0 gap-0">
             {[
               { value: 'rules',     label: 'Rules',            icon: SlidersHorizontal },
-              { value: 'presets',   label: 'Presets',           icon: Layers },
+              { value: 'templates', label: 'Templates',        icon: Layers },
               { value: 'simulator', label: 'Simulator',        icon: Play },
               { value: 'history',   label: 'History',          icon: History },
               { value: 'book',      label: 'Book of Business', icon: BarChart3 },
@@ -4288,8 +4275,8 @@ export default function RulesPage() {
             <TabsContent value="rules" className="mt-0">
               <RulesTab rules={rules} setRules={setRules} />
             </TabsContent>
-            <TabsContent value="presets" className="mt-0">
-              <PresetsTab onGoToBook={() => setActiveTab('book')} onUsePreset={handleUsePreset} onApplyBatch={handleApplyBatch} appliedPresetIds={appliedPresetIds} />
+            <TabsContent value="templates" className="mt-0">
+              <TemplatesTab />
             </TabsContent>
             <TabsContent value="simulator" className="mt-0">
               <SimulatorTab />
@@ -4301,6 +4288,7 @@ export default function RulesPage() {
               <BookOfBusinessTab
                 equityRules={equityRules}
                 setEquityRules={setEquityRules}
+                onAddEquityRule={() => setAddEquityOpen(true)}
               />
             </TabsContent>
           </div>

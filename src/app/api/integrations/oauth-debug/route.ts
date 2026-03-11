@@ -4,7 +4,7 @@ import { getOAuthConfig, getCallbackUrl } from '@/lib/integrations/oauth-config'
 import { NextResponse } from 'next/server'
 import { randomBytes, createHash } from 'crypto'
 
-// GET /api/integrations/oauth/debug?provider=salesforce — show auth URL for debugging
+// GET /api/integrations/oauth-debug?provider=salesforce — show auth URL for debugging
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
