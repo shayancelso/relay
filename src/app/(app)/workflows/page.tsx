@@ -177,10 +177,6 @@ export default function WorkflowsPage() {
     }
   }, [tab])
 
-  if (isTrialMode) {
-    return <TrialPageEmpty icon={GitBranch} title="Workflows" description="Create automated outreach sequences for your accounts." ctaLabel="Create Workflow" ctaHref="/workflows/new" onExploreDemo={enterDemoMode} />
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}

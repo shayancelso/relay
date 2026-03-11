@@ -995,10 +995,6 @@ export default function PlaybooksPage() {
     setExpandedId(pb.id)
   }
 
-  if (isTrialMode) {
-    return <TrialPageEmpty icon={BookOpen} title="Playbooks" description="Build handoff guides and playbooks for your team." ctaLabel="Explore Demo" ctaHref="/playbooks" onExploreDemo={enterDemoMode} />
-  }
-
   return (
     <div className="space-y-6">
       <CreatePlaybookSheet open={createOpen} onClose={() => setCreateOpen(false)} onSave={handleCreatePlaybook} />
