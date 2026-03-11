@@ -1062,7 +1062,7 @@ function WorkflowBuilder() {
                   const res = await fetch('/api/workflows', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...payload, org_id: '00000000-0000-0000-0000-000000000001' }),
+                    body: JSON.stringify(payload),
                   })
                   const data = await res.json()
                   if (data.id) setSavedId(data.id)

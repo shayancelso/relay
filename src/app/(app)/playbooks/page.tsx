@@ -3,14 +3,26 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 import {
   Clock, CheckCircle2, Mail, FileText, Calendar, Users,
   ChevronRight, Zap, Shield, Globe, Building2,
-  Target, Plus, Sparkles, Copy, Pencil, BookOpen,
+  Target, Plus, Sparkles, Copy, Pencil, BookOpen, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTrialMode } from '@/lib/trial-context'
 import { TrialPageEmpty } from '@/components/trial/trial-page-empty'
+import { toast } from 'sonner'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -260,7 +272,7 @@ function StepTabs({ step, isEditing, onStartEdit, onDoneEdit, editedScript, onSc
 
 // ─── Playbook data ────────────────────────────────────────────────────────────
 
-const playbooks: Playbook[] = [
+const INITIAL_PLAYBOOKS: Playbook[] = [
   // ── 1. Enterprise Handoff ────────────────────────────────────────────────
   {
     id: 'pb-1',
@@ -731,11 +743,240 @@ const colorMap: Record<string, string> = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// ─── Segment icon/color defaults for new playbooks ──────────────────────────
+
+const SEGMENT_DEFAULTS: Record<string, { icon: typeof Building2; color: string }> = {
+  enterprise:    { icon: Building2, color: 'amber' },
+  commercial:    { icon: Target, color: 'sky' },
+  corporate:     { icon: Shield, color: 'violet' },
+  international: { icon: Globe, color: 'rose' },
+  fins:          { icon: Shield, color: 'emerald' },
+  general:       { icon: BookOpen, color: 'stone' },
+}
+
+// ─── CreatePlaybookSheet ─────────────────────────────────────────────────────
+
+interface NewPlaybookStep {
+  title: string
+  description: string
+  owner: PlaybookStep['owner']
+  duration: string
+  type: PlaybookStep['type']
+}
+
+function CreatePlaybookSheet({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean
+  onClose: () => void
+  onSave: (pb: Playbook) => void
+}) {
+  const [name, setName] = useState('')
+  const [segment, setSegment] = useState('enterprise')
+  const [description, setDescription] = useState('')
+  const [sla, setSla] = useState('14 days')
+  const [steps, setSteps] = useState<NewPlaybookStep[]>([
+    { title: '', description: '', owner: 'outgoing_am', duration: 'Day 1', type: 'manual' },
+  ])
+
+  const addStep = () => {
+    const dayNum = steps.length + 1
+    setSteps([...steps, { title: '', description: '', owner: 'incoming_am', duration: `Day ${dayNum}`, type: 'manual' }])
+  }
+
+  const removeStep = (idx: number) => {
+    if (steps.length <= 1) return
+    setSteps(steps.filter((_, i) => i !== idx))
+  }
+
+  const updateStep = (idx: number, field: keyof NewPlaybookStep, value: string) => {
+    setSteps(steps.map((s, i) => i === idx ? { ...s, [field]: value } : s))
+  }
+
+  const handleSave = () => {
+    if (!name.trim()) { toast.error('Playbook name is required'); return }
+    const validSteps = steps.filter(s => s.title.trim())
+    if (validSteps.length === 0) { toast.error('Add at least one step with a title'); return }
+
+    const defaults = SEGMENT_DEFAULTS[segment] || SEGMENT_DEFAULTS.general
+    const stepIcons: Record<NewPlaybookStep['type'], typeof Mail> = {
+      manual: FileText,
+      automated: Zap,
+      ai_generated: Sparkles,
+    }
+
+    const totalDays = parseInt(sla) || 14
+
+    const pb: Playbook = {
+      id: `pb-custom-${Date.now()}`,
+      name: name.trim(),
+      segment: segment.charAt(0).toUpperCase() + segment.slice(1),
+      description: description.trim() || `Custom ${segment} playbook`,
+      totalDays,
+      sla,
+      automations: validSteps.filter(s => s.type !== 'manual').length,
+      icon: defaults.icon,
+      color: defaults.color,
+      usageCount: 0,
+      completionRate: 0,
+      steps: validSteps.map((s, i) => ({
+        id: `custom-s${i + 1}`,
+        title: s.title,
+        description: s.description || s.title,
+        owner: s.owner,
+        duration: s.duration,
+        type: s.type,
+        icon: stepIcons[s.type],
+      })),
+    }
+
+    onSave(pb)
+    toast.success('Playbook created')
+
+    // Reset form
+    setName('')
+    setSegment('enterprise')
+    setDescription('')
+    setSla('14 days')
+    setSteps([{ title: '', description: '', owner: 'outgoing_am', duration: 'Day 1', type: 'manual' }])
+    onClose()
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose() }}>
+      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto p-0">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b">
+          <SheetTitle className="text-lg font-semibold">Create Playbook</SheetTitle>
+          <SheetDescription>Design a structured handoff workflow for your team.</SheetDescription>
+        </SheetHeader>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Playbook Name</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Enterprise Handoff" />
+          </div>
+
+          {/* Segment */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Segment</Label>
+            <Select value={segment} onValueChange={setSegment}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="enterprise">Enterprise</SelectItem>
+                <SelectItem value="commercial">Commercial</SelectItem>
+                <SelectItem value="corporate">Corporate</SelectItem>
+                <SelectItem value="international">International</SelectItem>
+                <SelectItem value="fins">Financial Services</SelectItem>
+                <SelectItem value="general">General</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Description</Label>
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief description of this playbook..." rows={2} />
+          </div>
+
+          {/* SLA */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Target SLA</Label>
+            <Select value={sla} onValueChange={setSla}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7 days">7 days</SelectItem>
+                <SelectItem value="14 days">14 days</SelectItem>
+                <SelectItem value="21 days">21 days</SelectItem>
+                <SelectItem value="30 days">30 days</SelectItem>
+                <SelectItem value="45 days">45 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-medium">Steps</Label>
+              <button onClick={addStep} className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 transition-colors">
+                <Plus className="h-3 w-3" /> Add Step
+              </button>
+            </div>
+
+            {steps.map((step, idx) => (
+              <div key={idx} className="rounded-lg border p-3 space-y-2.5 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Step {idx + 1}</span>
+                  {steps.length > 1 && (
+                    <button onClick={() => removeStep(idx)} className="text-muted-foreground/40 hover:text-red-500 transition-colors">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                <Input
+                  value={step.title}
+                  onChange={e => updateStep(idx, 'title', e.target.value)}
+                  placeholder="Step title"
+                  className="text-xs"
+                />
+                <Textarea
+                  value={step.description}
+                  onChange={e => updateStep(idx, 'description', e.target.value)}
+                  placeholder="Step description (optional)"
+                  rows={2}
+                  className="text-xs"
+                />
+                <div className="grid grid-cols-3 gap-2">
+                  <Select value={step.owner} onValueChange={v => updateStep(idx, 'owner', v)}>
+                    <SelectTrigger className="text-[11px] h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="outgoing_am">Outgoing AM</SelectItem>
+                      <SelectItem value="incoming_am">Incoming AM</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={step.duration}
+                    onChange={e => updateStep(idx, 'duration', e.target.value)}
+                    placeholder="Day 1"
+                    className="text-[11px] h-8"
+                  />
+                  <Select value={step.type} onValueChange={v => updateStep(idx, 'type', v)}>
+                    <SelectTrigger className="text-[11px] h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Manual</SelectItem>
+                      <SelectItem value="automated">Automated</SelectItem>
+                      <SelectItem value="ai_generated">AI Generated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 border-t bg-background px-6 py-4 flex justify-end gap-3">
+          <button onClick={onClose} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">Cancel</button>
+          <button onClick={handleSave} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">Create Playbook</button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function PlaybooksPage() {
+  const [playbooks, setPlaybooks] = useState<Playbook[]>(INITIAL_PLAYBOOKS)
   const [expandedId, setExpandedId] = useState<string | null>('pb-1')
   const [expandedStep, setExpandedStep] = useState<string | null>(null)
   const [editingStep, setEditingStep] = useState<string | null>(null)
   const [editedScripts, setEditedScripts] = useState<Record<string, string>>({})
+  const [createOpen, setCreateOpen] = useState(false)
   const { isTrialMode, enterDemoMode } = useTrialMode()
 
   const selectPlaybook = (id: string) => {
@@ -749,19 +990,29 @@ export default function PlaybooksPage() {
     setEditingStep(null)
   }
 
+  const handleCreatePlaybook = (pb: Playbook) => {
+    setPlaybooks(prev => [...prev, pb])
+    setExpandedId(pb.id)
+  }
+
   if (isTrialMode) {
-    return <TrialPageEmpty icon={BookOpen} title="Playbooks" description="Build handoff guides and playbooks for your team." ctaLabel="Create Playbook" ctaHref="/playbooks" onExploreDemo={enterDemoMode} />
+    return <TrialPageEmpty icon={BookOpen} title="Playbooks" description="Build handoff guides and playbooks for your team." ctaLabel="Explore Demo" ctaHref="/playbooks" onExploreDemo={enterDemoMode} />
   }
 
   return (
     <div className="space-y-6">
+      <CreatePlaybookSheet open={createOpen} onClose={() => setCreateOpen(false)} onSave={handleCreatePlaybook} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Playbooks</h1>
           <p className="text-sm text-muted-foreground mt-1">Standardized transition workflows by segment</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+        <button
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
           <Plus className="h-4 w-4" />
           Create Playbook
         </button>

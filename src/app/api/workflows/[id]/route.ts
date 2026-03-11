@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 // GET /api/workflows/[id] — fetch a single workflow
@@ -8,12 +9,27 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = createAdminClient()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { data, error } = await supabase
+    const { data: profile } = await supabase
+      .from('users')
+      .select('org_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
+    const admin = createAdminClient()
+
+    const { data, error } = await admin
       .from('workflows')
       .select('*')
       .eq('id', id)
+      .eq('org_id', profile.org_id)
       .single()
 
     if (error) {
@@ -37,7 +53,21 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const supabase = createAdminClient()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data: profile } = await supabase
+      .from('users')
+      .select('org_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
+    const admin = createAdminClient()
     const body = await request.json()
 
     const updates: Record<string, unknown> = {}
@@ -48,10 +78,11 @@ export async function PUT(
     if (body.edges !== undefined) updates.edges = body.edges
     updates.updated_at = new Date().toISOString()
 
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from('workflows')
       .update(updates)
       .eq('id', id)
+      .eq('org_id', profile.org_id)
       .select()
       .single()
 
@@ -71,12 +102,27 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const supabase = createAdminClient()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { error } = await supabase
+    const { data: profile } = await supabase
+      .from('users')
+      .select('org_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+    }
+
+    const admin = createAdminClient()
+
+    const { error } = await admin
       .from('workflows')
       .delete()
       .eq('id', id)
+      .eq('org_id', profile.org_id)
 
     if (error) throw error
 
